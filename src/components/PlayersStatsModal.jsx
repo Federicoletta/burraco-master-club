@@ -64,44 +64,47 @@ export default function PlayersStatsModal({
         </div>
 
         {/* Tab di navigazione interna a 3 vie: Grafici vs Partecipanti vs Trofei */}
-        <div className="mt-3 grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-emerald-950/70 border border-emerald-800/60">
+        <div className="mt-3 grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-emerald-950/80 border border-emerald-800/60">
           <button
             type="button"
+            onPointerDown={() => setActiveTab('charts')}
             onClick={() => setActiveTab('charts')}
-            className={`py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`min-h-[40px] py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation select-none ${
               activeTab === 'charts'
                 ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                 : 'text-emerald-300 hover:text-white'
             }`}
           >
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span className="truncate">Grafici</span>
+            <BarChart3 className="w-4 h-4 pointer-events-none" />
+            <span className="truncate pointer-events-none">Grafici</span>
           </button>
 
           <button
             type="button"
+            onPointerDown={() => setActiveTab('players')}
             onClick={() => setActiveTab('players')}
-            className={`py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`min-h-[40px] py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation select-none ${
               activeTab === 'players'
                 ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                 : 'text-emerald-300 hover:text-white'
             }`}
           >
-            <Users className="w-3.5 h-3.5" />
-            <span className="truncate">Partecipanti ({stats.length})</span>
+            <Users className="w-4 h-4 pointer-events-none" />
+            <span className="truncate pointer-events-none">Partecipanti ({stats.length})</span>
           </button>
 
           <button
             type="button"
+            onPointerDown={() => setActiveTab('trophies')}
             onClick={() => setActiveTab('trophies')}
-            className={`py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`min-h-[40px] py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation select-none ${
               activeTab === 'trophies'
                 ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                 : 'text-emerald-300 hover:text-white'
             }`}
           >
-            <Trophy className="w-3.5 h-3.5" />
-            <span className="truncate">Trofei & Titoli</span>
+            <Trophy className="w-4 h-4 pointer-events-none" />
+            <span className="truncate pointer-events-none">Trofei & Titoli</span>
           </button>
         </div>
 

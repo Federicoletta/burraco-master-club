@@ -10,14 +10,36 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button, a, input, select, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button, [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
   }
 }
 
-/* Texture panno da gioco verde */
+/* Elimina il 'falso hover' di Safari su iPad/touch che costringe a toccare due volte */
+@media (hover: none) and (pointer: coarse) {
+  button:hover:not(:active), a:hover:not(:active) {
+    filter: none;
+  }
+}
+
+/* Texture panno da gioco verde con illuminazione centrale e vignettatura */
 .felt-bg {
-  background-color: #0d3829;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
-  background-size: 24px 24px;
+  background-color: #0b2f22;
+  background-image: 
+    radial-gradient(circle at 50% 25%, rgba(20, 92, 65, 0.5) 0%, rgba(6, 26, 19, 0.95) 100%),
+    radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
+  background-size: 100% 100%, 24px 24px;
+  background-attachment: fixed;
 }
 
 .felt-card {

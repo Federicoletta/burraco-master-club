@@ -3,6 +3,61 @@ import { PlusCircle, Trophy, Edit2, Trash2, Share2, AlertCircle, Info, ChevronDo
 import { getGamesHistory, calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 
+// Componente per renderizzare le pillole/chip degli eventi di gioco (Burrachi, Chiusura, Pozzetto)
+function RoundEventChips({ details }) {
+  if (!details) return null;
+  const chips = [];
+
+  if (details.chiusura) {
+    chips.push(
+      <span key="chiusura" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/35 shadow-sm">
+        <span>🌟</span> Chiusura
+      </span>
+    );
+  }
+
+  if (details.burracoPulito > 0) {
+    chips.push(
+      <span key="pulito" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/20 text-emerald-300 border border-emerald-400/35 shadow-sm">
+        <span>💎</span> {details.burracoPulito} {details.burracoPulito === 1 ? 'Pulito' : 'Puliti'}
+      </span>
+    );
+  }
+
+  if (details.burracoSemipulito > 0) {
+    chips.push(
+      <span key="semipulito" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-400/20 text-purple-300 border border-purple-400/35 shadow-sm">
+        <span>🃏</span> {details.burracoSemipulito} {details.burracoSemipulito === 1 ? 'Semipulito' : 'Semipuliti'}
+      </span>
+    );
+  }
+
+  if (details.burracoSporco > 0) {
+    chips.push(
+      <span key="sporco" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700/60 text-slate-300 border border-slate-600/40 shadow-sm">
+        <span>♠</span> {details.burracoSporco} {details.burracoSporco === 1 ? 'Sporco' : 'Sporchi'}
+      </span>
+    );
+  }
+
+  if (details.pozzetto === 'non_preso') {
+    chips.push(
+      <span key="nopozzetto" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/35 shadow-sm">
+        <span>⚠️</span> No Pozzetto
+      </span>
+    );
+  } else if (details.pozzetto === 'preso_non_giocato') {
+    chips.push(
+      <span key="pozzettong" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/35 shadow-sm">
+        <span>⚠️</span> Pozzetto non giocato
+      </span>
+    );
+  }
+
+  if (chips.length === 0) return null;
+  return <div className="flex flex-wrap gap-1.5 mt-1.5">{chips}</div>;
+}
+
 export default function ScoreBoard({
   activeGame,
   gamesHistory = [],
@@ -86,35 +141,38 @@ export default function ScoreBoard({
       )}
 
       {/* CARDS PUNTEGGIO SQUADRE (TABELLONE PRINCIPALE) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
         
-        {/* CARD SQUADRA 1 */}
-        <div className={`relative p-4 sm:p-5 rounded-2xl felt-card border transition-all ${
-          leader === 'team1' ? 'border-amber-400/70 shadow-amber-900/30' : 'border-emerald-600/30'
+        {/* CARD SQUADRA 1 (TEMA ORO / AMBRA) */}
+        <div className={`relative p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
+          leader === 'team1' 
+            ? 'bg-gradient-to-br from-emerald-950/95 via-emerald-950/80 to-amber-950/30 border-amber-400 ring-2 ring-amber-400/25 shadow-xl shadow-amber-950/40' 
+            : 'bg-emerald-950/70 border-emerald-600/30 hover:border-amber-500/40'
         }`}>
           {leader === 'team1' && diff !== 0 && (
-            <div className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-amber-400 text-emerald-950 text-[11px] font-black tracking-wider uppercase shadow-md flex items-center gap-1">
-              <span>👑 In Vantaggio</span>
-              <span>(+{diff} pt)</span>
+            <div className="absolute -top-3.5 right-4 sm:right-6 px-3 py-1 rounded-full gold-gradient text-emerald-950 text-[11px] font-black tracking-wider uppercase shadow-xl shadow-amber-950/60 flex items-center gap-1.5 border border-amber-200/50">
+              <span className="text-xs">👑</span>
+              <span>In Vantaggio</span>
+              <span className="bg-emerald-950/25 px-1.5 py-0.2 rounded-full text-[10px] font-black">(+{diff} pt)</span>
             </div>
           )}
 
           <div className="flex items-start justify-between gap-2 mb-2">
             <div>
-              <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                <span>♦</span> {activeGame.team1.name}
+              <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-base text-amber-300">♦</span> {activeGame.team1.name}
               </span>
-              <div className="text-xs text-emerald-300 font-medium mt-0.5">
+              <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1.5">
                 {activeGame.team1.players.map((p) => {
                   const tInfo = titlesMap[p];
                   return (
                     <span 
                       key={p} 
-                      className="inline-flex items-center gap-1 bg-emerald-900/80 px-2 py-0.5 rounded-md mr-1 border border-emerald-700/40"
+                      className="inline-flex items-center gap-1 bg-emerald-900/90 px-2 py-0.5 rounded-lg border border-amber-500/25 shadow-sm"
                       title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
                     >
                       {tInfo && <span className="text-xs">{tInfo.icon}</span>}
-                      <span>{p}</span>
+                      <span className="font-semibold text-emerald-100">{p}</span>
                     </span>
                   );
                 })}
@@ -124,13 +182,13 @@ export default function ScoreBoard({
 
           {/* Punteggio Gigante */}
           <div className="my-3 flex items-baseline justify-between">
-            <div className="text-4xl sm:text-5xl font-black tracking-tight text-white">
+            <div className="text-5xl sm:text-6xl font-black tracking-tight text-white drop-shadow-md">
               {totalTeam1.toLocaleString('it-IT')}
-              <span className="text-sm font-normal text-emerald-300/70 ml-1.5">pt</span>
+              <span className="text-sm font-normal text-amber-300/80 ml-1.5">pt</span>
             </div>
             <div className="text-right">
               <span className="text-xs text-emerald-400/80 block">Traguardo: {targetScore}</span>
-              <span className="text-xs font-semibold text-amber-300">
+              <span className="text-xs font-bold text-amber-300">
                 {targetScore - totalTeam1 > 0 
                   ? `Mancano ${targetScore - totalTeam1} pt` 
                   : 'Raggiunto! 🎉'}
@@ -139,45 +197,48 @@ export default function ScoreBoard({
           </div>
 
           {/* Barra di Progresso */}
-          <div className="w-full bg-emerald-950/80 rounded-full h-3 p-0.5 border border-emerald-700/50 overflow-hidden">
+          <div className="w-full bg-emerald-950/90 rounded-full h-3 p-0.5 border border-emerald-700/60 overflow-hidden shadow-inner">
             <div 
-              className="bg-gradient-to-r from-amber-500 to-amber-300 h-full rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-200 h-full rounded-full transition-all duration-500 shadow-sm"
               style={{ width: `${t1Percent}%` }}
             />
           </div>
-          <div className="flex justify-between text-[11px] text-emerald-400/70 mt-1">
-            <span>Progresso</span>
-            <span>{t1Percent}%</span>
+          <div className="flex justify-between text-[11px] text-emerald-400/80 mt-1 font-medium">
+            <span>Progresso verso la vittoria</span>
+            <span className="font-bold text-amber-300">{t1Percent}%</span>
           </div>
         </div>
 
-        {/* CARD SQUADRA 2 */}
-        <div className={`relative p-4 sm:p-5 rounded-2xl felt-card border transition-all ${
-          leader === 'team2' ? 'border-blue-400/70 shadow-blue-900/30' : 'border-emerald-600/30'
+        {/* CARD SQUADRA 2 (TEMA BLU NOTTE / ZAFFIRO) */}
+        <div className={`relative p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
+          leader === 'team2' 
+            ? 'bg-gradient-to-br from-emerald-950/95 via-emerald-950/80 to-blue-950/35 border-blue-400 ring-2 ring-blue-400/25 shadow-xl shadow-blue-950/40' 
+            : 'bg-emerald-950/70 border-emerald-600/30 hover:border-blue-500/40'
         }`}>
           {leader === 'team2' && diff !== 0 && (
-            <div className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-blue-400 text-emerald-950 text-[11px] font-black tracking-wider uppercase shadow-md flex items-center gap-1">
-              <span>👑 In Vantaggio</span>
-              <span>(+{Math.abs(diff)} pt)</span>
+            <div className="absolute -top-3.5 right-4 sm:right-6 px-3 py-1 rounded-full bg-gradient-to-r from-blue-400 via-sky-400 to-indigo-400 text-slate-950 text-[11px] font-black tracking-wider uppercase shadow-xl shadow-blue-950/60 flex items-center gap-1.5 border border-blue-200/50">
+              <span className="text-xs">👑</span>
+              <span>In Vantaggio</span>
+              <span className="bg-slate-950/25 px-1.5 py-0.2 rounded-full text-[10px] font-black">(+{Math.abs(diff)} pt)</span>
             </div>
           )}
 
           <div className="flex items-start justify-between gap-2 mb-2">
             <div>
-              <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1">
-                <span>♠</span> {activeGame.team2.name}
+              <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-base text-blue-400">♠</span> {activeGame.team2.name}
               </span>
-              <div className="text-xs text-emerald-300 font-medium mt-0.5">
+              <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1.5">
                 {activeGame.team2.players.map((p) => {
                   const tInfo = titlesMap[p];
                   return (
                     <span 
                       key={p} 
-                      className="inline-flex items-center gap-1 bg-emerald-900/80 px-2 py-0.5 rounded-md mr-1 border border-emerald-700/40"
+                      className="inline-flex items-center gap-1 bg-emerald-900/90 px-2 py-0.5 rounded-lg border border-blue-500/25 shadow-sm"
                       title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
                     >
                       {tInfo && <span className="text-xs">{tInfo.icon}</span>}
-                      <span>{p}</span>
+                      <span className="font-semibold text-emerald-100">{p}</span>
                     </span>
                   );
                 })}
@@ -187,13 +248,13 @@ export default function ScoreBoard({
 
           {/* Punteggio Gigante */}
           <div className="my-3 flex items-baseline justify-between">
-            <div className="text-4xl sm:text-5xl font-black tracking-tight text-white">
+            <div className="text-5xl sm:text-6xl font-black tracking-tight text-white drop-shadow-md">
               {totalTeam2.toLocaleString('it-IT')}
-              <span className="text-sm font-normal text-emerald-300/70 ml-1.5">pt</span>
+              <span className="text-sm font-normal text-blue-300/80 ml-1.5">pt</span>
             </div>
             <div className="text-right">
               <span className="text-xs text-emerald-400/80 block">Traguardo: {targetScore}</span>
-              <span className="text-xs font-semibold text-blue-300">
+              <span className="text-xs font-bold text-blue-300">
                 {targetScore - totalTeam2 > 0 
                   ? `Mancano ${targetScore - totalTeam2} pt` 
                   : 'Raggiunto! 🎉'}
@@ -202,79 +263,79 @@ export default function ScoreBoard({
           </div>
 
           {/* Barra di Progresso */}
-          <div className="w-full bg-emerald-950/80 rounded-full h-3 p-0.5 border border-emerald-700/50 overflow-hidden">
+          <div className="w-full bg-emerald-950/90 rounded-full h-3 p-0.5 border border-emerald-700/60 overflow-hidden shadow-inner">
             <div 
-              className="bg-gradient-to-r from-blue-500 to-blue-300 h-full rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-blue-500 via-sky-400 to-indigo-300 h-full rounded-full transition-all duration-500 shadow-sm"
               style={{ width: `${t2Percent}%` }}
             />
           </div>
-          <div className="flex justify-between text-[11px] text-emerald-400/70 mt-1">
-            <span>Progresso</span>
-            <span>{t2Percent}%</span>
+          <div className="flex justify-between text-[11px] text-emerald-400/80 mt-1 font-medium">
+            <span>Progresso verso la vittoria</span>
+            <span className="font-bold text-blue-300">{t2Percent}%</span>
           </div>
         </div>
 
       </div>
 
       {/* AZIONI VELOCI DELLA PARTITA */}
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <div className="text-xs text-emerald-300/80 font-medium">
-          Mani giocate: <strong className="text-white">{activeGame.rounds.length}</strong>
-        </div>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
         <div className="flex items-center gap-2">
+          <div className="px-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-700/40 text-xs font-semibold text-emerald-200 flex items-center gap-2 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Mano in corso: <strong className="text-amber-300">#{activeGame.rounds.length + 1}</strong></span>
+            <span className="text-emerald-600">•</span>
+            <span className="text-emerald-400/80 font-normal">{activeGame.rounds.length} {activeGame.rounds.length === 1 ? 'mano registrata' : 'mani registrate'}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
           {activeGame.rounds.length > 0 && (
             <>
               <button
                 onClick={onEndGame}
-                className="px-2.5 py-1.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-amber-300 border border-emerald-600/40 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="px-3 py-2 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-amber-300 border border-emerald-600/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm hover:brightness-110 active:scale-95"
                 title="Concludi ora la partita e salvala nello storico"
               >
                 <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Termina & Salva</span>
+                <span>Termina & Salva</span>
               </button>
 
               <button
                 onClick={onDeleteLastRound}
-                className="px-2.5 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/70 text-rose-300 border border-rose-800/40 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="px-3 py-2 rounded-xl bg-rose-950/50 hover:bg-rose-900/70 text-rose-300 border border-rose-800/40 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
                 title="Annulla ultima mano inserita"
               >
                 <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                <span className="hidden sm:inline">Annulla Ultima Mano</span>
+                <span>Annulla Mano</span>
               </button>
             </>
           )}
 
           <button
             onClick={onAddRound}
-            className="px-4 py-2 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+            className="px-5 py-2.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-900/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
           >
-            <PlusCircle className="w-4 h-4 text-emerald-950" />
-            <span>Aggiungi Mano (Smazzata)</span>
+            <PlusCircle className="w-4.5 h-4.5 text-emerald-950" />
+            <span>+ Aggiungi Mano (Smazzata)</span>
           </button>
         </div>
       </div>
 
       {/* TABELLONE STORICO MANI (FOGLIO SEGNAPUNTI) */}
       <div className="felt-card rounded-2xl border border-emerald-600/30 overflow-hidden shadow-xl">
-        <div className="p-3 sm:p-4 bg-emerald-950/80 border-b border-emerald-700/50 flex items-center justify-between">
+        <div className="p-3 sm:p-4 bg-emerald-950/90 border-b border-emerald-700/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-amber-400 font-serif text-lg">♦ ♠</span>
             <h3 className="text-sm sm:text-base font-bold text-white m-0">Foglio Segnapunti Mani</h3>
           </div>
-          {onOpenRules ? (
-            <button
-              onClick={onOpenRules}
-              className="px-2.5 py-1 rounded-lg bg-emerald-900/90 hover:bg-emerald-800 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
-              title="Apri il regolamento completo e la tabella punti"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-              <span>Regole & Punti Carte</span>
-            </button>
-          ) : (
-            <span className="text-xs text-emerald-400/80">
-              Regola: Burraco {activeGame.allowSemipulito ? 'con Semipulito (150)' : 'Classico'}
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-900/60 border border-emerald-700/40 text-[11px] text-emerald-300 font-medium">
+              Traguardo: <strong className="text-amber-300">{targetScore} pt</strong>
             </span>
-          )}
+            <span className="hidden sm:inline-block px-2.5 py-1 rounded-lg bg-emerald-900/60 border border-emerald-700/40 text-[11px] text-emerald-300/80">
+              {activeGame.allowSemipulito ? 'Semipulito Attivo (150)' : 'Classico'}
+            </span>
+          </div>
         </div>
 
         {roundsWithProgressive.length === 0 ? (
@@ -314,59 +375,51 @@ export default function ScoreBoard({
                   return (
                     <tr 
                       key={r.roundNumber} 
-                      className={`hover:bg-emerald-900/30 transition-colors ${
-                        isLast ? 'bg-emerald-900/20' : ''
-                      }`}
+                      className={`transition-colors border-b border-emerald-800/30 ${
+                        isLast ? 'bg-emerald-900/35' : index % 2 === 0 ? 'bg-emerald-950/40' : 'bg-transparent'
+                      } hover:bg-emerald-800/30`}
                     >
                       {/* Numero Mano */}
-                      <td className="py-3 px-3 sm:px-4 text-center font-bold text-emerald-300">
-                        #{r.roundNumber}
+                      <td className="py-3 px-3 sm:px-4 text-center">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-900/80 text-emerald-300 font-black text-xs border border-emerald-700/50 shadow-inner">
+                          #{r.roundNumber}
+                        </span>
                       </td>
 
                       {/* Squadra 1 */}
                       <td className="py-3 px-3 sm:px-4">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-extrabold text-white text-base">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-white text-base tracking-tight">
                             {r.runningT1.toLocaleString('it-IT')}
+                            <span className="text-[11px] font-normal text-emerald-400/70 ml-1">pt</span>
                           </span>
-                          <span className={`text-xs font-semibold ${
-                            r.team1Score >= 0 ? 'text-amber-400' : 'text-rose-400'
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            r.team1Score >= 0 
+                              ? 'bg-amber-400/15 text-amber-300 border border-amber-400/30' 
+                              : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
                           }`}>
-                            ({r.team1Score >= 0 ? `+${r.team1Score}` : r.team1Score})
+                            {r.team1Score >= 0 ? `+${r.team1Score}` : r.team1Score}
                           </span>
                         </div>
-                        {/* Dettagli sintetici se calcolati con guidato */}
-                        {r.team1Details && r.entryMode !== 'quick' && (
-                          <div className="text-[11px] text-emerald-400/70 mt-0.5 space-x-1">
-                            {r.team1Details.chiusura && <span className="text-amber-300 font-semibold">Chiuso •</span>}
-                            {r.team1Details.burracoPulito > 0 && <span>{r.team1Details.burracoPulito} Pulito •</span>}
-                            {r.team1Details.burracoSporco > 0 && <span>{r.team1Details.burracoSporco} Sporco •</span>}
-                            {r.team1Details.pozzetto === 'non_preso' && <span className="text-rose-400">No Pozzetto •</span>}
-                          </div>
-                        )}
+                        {r.entryMode !== 'quick' && <RoundEventChips details={r.team1Details} />}
                       </td>
 
                       {/* Squadra 2 */}
                       <td className="py-3 px-3 sm:px-4">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-extrabold text-white text-base">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-white text-base tracking-tight">
                             {r.runningT2.toLocaleString('it-IT')}
+                            <span className="text-[11px] font-normal text-emerald-400/70 ml-1">pt</span>
                           </span>
-                          <span className={`text-xs font-semibold ${
-                            r.team2Score >= 0 ? 'text-blue-400' : 'text-rose-400'
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            r.team2Score >= 0 
+                              ? 'bg-blue-400/15 text-blue-300 border border-blue-400/30' 
+                              : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
                           }`}>
-                            ({r.team2Score >= 0 ? `+${r.team2Score}` : r.team2Score})
+                            {r.team2Score >= 0 ? `+${r.team2Score}` : r.team2Score}
                           </span>
                         </div>
-                        {/* Dettagli sintetici se calcolati con guidato */}
-                        {r.team2Details && r.entryMode !== 'quick' && (
-                          <div className="text-[11px] text-emerald-400/70 mt-0.5 space-x-1">
-                            {r.team2Details.chiusura && <span className="text-blue-300 font-semibold">Chiuso •</span>}
-                            {r.team2Details.burracoPulito > 0 && <span>{r.team2Details.burracoPulito} Pulito •</span>}
-                            {r.team2Details.burracoSporco > 0 && <span>{r.team2Details.burracoSporco} Sporco •</span>}
-                            {r.team2Details.pozzetto === 'non_preso' && <span className="text-rose-400">No Pozzetto •</span>}
-                          </div>
-                        )}
+                        {r.entryMode !== 'quick' && <RoundEventChips details={r.team2Details} />}
                       </td>
 
                       {/* Azioni riga */}

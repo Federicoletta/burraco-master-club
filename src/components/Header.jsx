@@ -60,79 +60,86 @@ export default function Header({
           
           {/* Regolamento (Sempre visibile su tutti i dispositivi) */}
           <button
+            type="button"
             onClick={onOpenRules}
-            className="h-8 px-2 sm:px-2.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-600/30 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0"
+            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title="Regolamento del Burraco e Punteggi Carte"
           >
-            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
-            <span className="hidden md:inline">Regole</span>
+            <BookOpen className="w-4 h-4 text-amber-300 shrink-0 pointer-events-none" />
+            <span className="hidden md:inline pointer-events-none">Regole</span>
           </button>
 
           {/* Partecipanti (Sempre visibile su tutti i dispositivi) */}
           <button
+            type="button"
             onClick={onOpenPlayers}
-            className="h-8 px-2 sm:px-2.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-600/30 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0"
+            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title="Partecipanti & Statistiche"
           >
-            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
-            <span className="hidden md:inline">Partecipanti</span>
+            <Users className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+            <span className="hidden md:inline pointer-events-none">Partecipanti</span>
           </button>
 
           {/* Suoni ON / OFF (visibile direttamente su Desktop >= lg, su mobile e tablet è nel menu Altro) */}
           <button
+            type="button"
             onClick={toggleAudio}
-            className="hidden lg:flex h-8 px-2.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-600/30 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0"
+            className="hidden lg:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title={soundOn ? 'Effetti sonori attivi (tocca per disattivare)' : 'Effetti sonori disattivati (tocca per attivare)'}
           >
             {soundOn ? (
-              <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <Volume2 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
             ) : (
-              <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0" />
+              <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0 pointer-events-none" />
             )}
-            <span>{soundOn ? 'Audio' : 'Muto'}</span>
+            <span className="pointer-events-none">{soundOn ? 'Audio' : 'Muto'}</span>
           </button>
 
           {/* Cloud DB (visibile direttamente su Desktop >= lg) */}
           <button
+            type="button"
             onClick={onOpenCloud}
-            className="hidden lg:flex h-8 px-2.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-600/30 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0"
+            className="hidden lg:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title="Database Cloud Firestore & Condivisione Tavolo"
           >
-            <Cloud className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Cloud</span>
+            <Cloud className="w-4 h-4 text-emerald-400 shrink-0 pointer-events-none" />
+            <span className="pointer-events-none">Cloud</span>
           </button>
 
           {/* Condividi (visibile direttamente su Desktop >= lg) */}
           {hasActiveGame && onShareGame && (
             <button
+              type="button"
               onClick={onShareGame}
-              className="hidden lg:flex h-8 px-2.5 rounded-lg bg-emerald-800/60 hover:bg-emerald-700/80 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0"
+              className="hidden lg:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-800/70 hover:bg-emerald-700 text-emerald-200 border border-emerald-600/50 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
               title="Condividi punteggio su WhatsApp"
             >
-              <Share2 className="w-4 h-4 text-emerald-300 shrink-0" />
-              <span>Condividi</span>
+              <Share2 className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
+              <span className="pointer-events-none">Condividi</span>
             </button>
           )}
 
           {/* Storico (visibile direttamente su Desktop >= lg) */}
           <button
+            type="button"
             onClick={onOpenHistory}
-            className="hidden lg:flex h-8 px-2.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-600/30 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0"
+            className="hidden lg:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title="Archivio partite passate"
           >
-            <History className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Storico</span>
+            <History className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+            <span className="pointer-events-none">Storico</span>
           </button>
 
           {/* Menu Altro "⋮" (visibile su Mobile e Tablet < lg) */}
           <div className="relative lg:hidden">
             <button
+              type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="h-8 px-2 rounded-lg bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 shrink-0"
+              className="h-9 sm:h-10 px-2.5 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
               title="Altre opzioni (Suoni, Cloud, Storico, Condivisione)"
             >
-              <MoreVertical className="w-4 h-4 text-amber-300" />
-              <span className="hidden sm:inline text-xs font-semibold text-emerald-200">Altro</span>
+              <MoreVertical className="w-4 h-4 text-amber-300 pointer-events-none" />
+              <span className="hidden sm:inline text-xs font-semibold text-emerald-200 pointer-events-none">Altro</span>
             </button>
 
             {/* Menu a tendina Mobile / Tablet */}
@@ -210,12 +217,13 @@ export default function Header({
 
           {/* Nuova Partita (Pulsante Principale - sempre visibile, shrink-0, mai tagliato) */}
           <button
+            type="button"
             onClick={onNewGame}
-            className="h-8 px-2.5 sm:px-3 py-1.5 rounded-lg gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-md shadow-amber-900/30 transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
+            className="h-9 sm:h-10 px-3 sm:px-3.5 py-1.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-md shadow-amber-950/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap touch-manipulation select-none"
             title="Inizia una nuova partita"
           >
-            <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-950 shrink-0" />
-            <span>+ Nuova<span className="hidden sm:inline"> Partita</span></span>
+            <PlusCircle className="w-4 h-4 text-emerald-950 shrink-0 pointer-events-none" />
+            <span className="pointer-events-none">+ Nuova<span className="hidden sm:inline"> Partita</span></span>
           </button>
 
         </div>
