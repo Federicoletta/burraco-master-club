@@ -19,6 +19,16 @@ import {
 import { exportBackupData, importBackupData } from '../utils/storage';
 import { loadCloudGamesHistory } from '../services/firebase';
 
+const formatDate = (dateVal) => {
+  if (!dateVal) return 'Oggi';
+  try {
+    const d = dateVal?.toDate ? dateVal.toDate() : new Date(dateVal);
+    return isNaN(d.getTime()) ? 'Data recente' : d.toLocaleDateString('it-IT');
+  } catch {
+    return 'Data recente';
+  }
+};
+
 export default function HistoryModal({
   isOpen,
   onClose,
@@ -36,8 +46,6 @@ export default function HistoryModal({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const fileInputRef = useRef(null);
 
-  if (!isOpen) return null;
-
   // Unisci la partita attiva corrente (se ha mani giocate) per renderla sempre visibile
   const allDisplayGames = React.useMemo(() => {
     const list = Array.isArray(gamesHistory) ? [...gamesHistory] : [];
@@ -51,6 +59,22 @@ export default function HistoryModal({
     }
     return list;
   }, [gamesHistory, activeGame]);
+
+  // Filtro ricerca per giocatore o nome squadra
+  const filteredGames = React.useMemo(() => {
+    return allDisplayGames.filter(game => {
+      if (!game) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const hayStack = [
+        ...(game.team1?.players || []),
+        ...(game.team2?.players || []),
+        game.team1?.name || '',
+        game.team2?.name || ''
+      ].join(' ').toLowerCase();
+      return hayStack.includes(q);
+    });
+  }, [allDisplayGames, searchQuery]);
 
   const handleManualSync = async () => {
     setIsSyncing(true);
@@ -86,18 +110,8 @@ export default function HistoryModal({
     e.target.value = '';
   };
 
-  // Filtro ricerca per giocatore o nome squadra
-  const filteredGames = allDisplayGames.filter(game => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const hayStack = [
-      ...(game.team1?.players || []),
-      ...(game.team2?.players || []),
-      game.team1?.name || '',
-      game.team2?.name || ''
-    ].join(' ').toLowerCase();
-    return hayStack.includes(q);
-  });
+  // Tutte le hook sono state eseguite: ora possiamo fare il return anticipato se modale chiusa
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
@@ -121,8 +135,8 @@ export default function HistoryModal({
               </div>
               <p className="text-xs text-emerald-300/80 m-0">
                 {selectedGame 
-                  ? `Match del ${new Date(selectedGame.createdAt).toLocaleDateString('it-IT')}` 
-                  : `${gamesHistory.length} partite salvate permanentemente sul database`}
+                  ? `Match del ${formatDate(selectedGame.createdAt)}` 
+                  : `${allDisplayGames.length} partite salvate permanentemente sul database`}
               </p>
             </div>
           </div>
@@ -135,7 +149,7 @@ export default function HistoryModal({
         </div>
 
         {/* Barra di Ricerca per Giocatore (solo nella vista lista) */}
-        {!selectedGame && gamesHistory.length > 0 && (
+        {!selectedGame && allDisplayGames.length > 0 && (
           <div className="mt-3 relative">
             <Search className="w-4 h-4 text-emerald-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
@@ -212,9 +226,9 @@ export default function HistoryModal({
               <div className="p-4 rounded-xl bg-emerald-950/80 border border-amber-500/30">
                 <div className="grid grid-cols-2 gap-3 text-center">
                   <div className={`p-3 rounded-lg ${selectedGame.winner === 'team1' ? 'bg-amber-500/20 border border-amber-400' : 'bg-emerald-900/40'}`}>
-                    <span className="text-xs font-bold text-amber-300 block">♦ {selectedGame.team1.name}</span>
+                    <span className="text-xs font-bold text-amber-300 block">♦ {selectedGame.team1?.name || 'Squadra 1'}</span>
                     <span className="text-[11px] text-emerald-400 block mb-1">
-                      {selectedGame.team1.players.join(' & ')}
+                      {(selectedGame.team1?.players || []).join(' & ') || 'Giocatori'}
                     </span>
                     <span className="text-2xl font-black text-white">
                       {(selectedGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0)} pt
@@ -227,9 +241,9 @@ export default function HistoryModal({
                   </div>
 
                   <div className={`p-3 rounded-lg ${selectedGame.winner === 'team2' ? 'bg-blue-500/20 border border-blue-400' : 'bg-emerald-900/40'}`}>
-                    <span className="text-xs font-bold text-blue-300 block">♠ {selectedGame.team2.name}</span>
+                    <span className="text-xs font-bold text-blue-300 block">♠ {selectedGame.team2?.name || 'Squadra 2'}</span>
                     <span className="text-[11px] text-emerald-400 block mb-1">
-                      {selectedGame.team2.players.join(' & ')}
+                      {(selectedGame.team2?.players || []).join(' & ') || 'Giocatori'}
                     </span>
                     <span className="text-2xl font-black text-white">
                       {(selectedGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0)} pt
@@ -249,8 +263,8 @@ export default function HistoryModal({
                   <thead className="bg-emerald-950 text-emerald-300 uppercase text-[10px]">
                     <tr>
                       <th className="p-2 text-center">Mano</th>
-                      <th className="p-2 text-amber-300">{selectedGame.team1.name}</th>
-                      <th className="p-2 text-blue-300">{selectedGame.team2.name}</th>
+                      <th className="p-2 text-amber-300">{selectedGame.team1?.name || 'Squadra 1'}</th>
+                      <th className="p-2 text-blue-300">{selectedGame.team2?.name || 'Squadra 2'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-emerald-800/40">
@@ -285,7 +299,7 @@ export default function HistoryModal({
                 {filteredGames.map(game => {
                   const t1Total = (game.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
                   const t2Total = (game.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
-                  const winnerName = game.winner === 'team1' ? game.team1.name : game.winner === 'team2' ? game.team2.name : null;
+                  const winnerName = game.winner === 'team1' ? (game.team1?.name || 'Squadra 1') : game.winner === 'team2' ? (game.team2?.name || 'Squadra 2') : null;
                   const isActiveNow = activeGame && activeGame.id === game.id;
                   const isOngoing = !game.isFinished;
 
@@ -302,7 +316,7 @@ export default function HistoryModal({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
-                            {game.team1.name} <span className="text-emerald-400 font-normal">vs</span> {game.team2.name}
+                            {game.team1?.name || 'Squadra 1'} <span className="text-emerald-400 font-normal">vs</span> {game.team2?.name || 'Squadra 2'}
                           </span>
 
                           {/* Badge Stato Partita */}
@@ -333,7 +347,7 @@ export default function HistoryModal({
                         </div>
                         <div className="text-[11px] text-emerald-400/70 flex items-center gap-2">
                           <Calendar className="w-3 h-3" />
-                          <span>{new Date(game.createdAt).toLocaleDateString('it-IT')}</span>
+                          <span>{formatDate(game.createdAt)}</span>
                           <span>•</span>
                           <span>{game.rounds?.length || 0} mani</span>
                           <span>•</span>
