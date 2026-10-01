@@ -22,7 +22,9 @@ import { loadCloudGamesHistory } from '../services/firebase';
 export default function HistoryModal({
   isOpen,
   onClose,
-  gamesHistory,
+  gamesHistory = [],
+  activeGame,
+  onEndGame,
   onResumeGame,
   onDeleteGame,
   onDataImported
@@ -35,6 +37,20 @@ export default function HistoryModal({
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
+
+  // Unisci la partita attiva corrente (se ha mani giocate) per renderla sempre visibile
+  const allDisplayGames = React.useMemo(() => {
+    const list = Array.isArray(gamesHistory) ? [...gamesHistory] : [];
+    if (activeGame && activeGame.rounds && activeGame.rounds.length > 0) {
+      const idx = list.findIndex(g => g.id === activeGame.id);
+      if (idx >= 0) {
+        list[idx] = { ...activeGame };
+      } else {
+        list.unshift({ ...activeGame });
+      }
+    }
+    return list;
+  }, [gamesHistory, activeGame]);
 
   const handleManualSync = async () => {
     setIsSyncing(true);
@@ -71,7 +87,7 @@ export default function HistoryModal({
   };
 
   // Filtro ricerca per giocatore o nome squadra
-  const filteredGames = gamesHistory.filter(game => {
+  const filteredGames = allDisplayGames.filter(game => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const hayStack = [
@@ -146,19 +162,51 @@ export default function HistoryModal({
                   <span>Torna all'archivio</span>
                 </button>
 
-                {onResumeGame && (
-                  <button
-                    onClick={() => {
-                      onResumeGame(selectedGame);
-                      onClose();
-                    }}
-                    className="px-3 py-1.5 rounded-lg gold-gradient text-emerald-950 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer hover:brightness-110"
-                  >
-                    <PlayCircle className="w-4 h-4 text-emerald-950" />
-                    <span>Riprendi sul Tabellone</span>
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {onEndGame && !selectedGame.isFinished && (
+                    <button
+                      onClick={() => {
+                        if (activeGame && activeGame.id === selectedGame.id) {
+                          onEndGame();
+                          onClose();
+                        } else if (onResumeGame) {
+                          onResumeGame(selectedGame);
+                          setTimeout(() => onEndGame(), 100);
+                          onClose();
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 border border-emerald-600/50 text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-colors"
+                      title="Assegna vittoria e archivia ufficialmente"
+                    >
+                      <span>🏁 Concludi Ora</span>
+                    </button>
+                  )}
+
+                  {onResumeGame && (
+                    <button
+                      onClick={() => {
+                        onResumeGame(selectedGame);
+                        onClose();
+                      }}
+                      className="px-3 py-1.5 rounded-lg gold-gradient text-emerald-950 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer hover:brightness-110"
+                    >
+                      <PlayCircle className="w-4 h-4 text-emerald-950" />
+                      <span>{selectedGame.id === activeGame?.id ? 'Torna al Tabellone' : 'Riprendi sul Tabellone'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Banner Partita in corso / in sospeso */}
+              {!selectedGame.isFinished && (
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    <span>Partita in corso ({selectedGame.rounds?.length || 0} mani registrate)</span>
+                  </span>
+                  <span className="text-[11px] text-emerald-300">Traguardo: {selectedGame.targetScore || 2005} pt</span>
+                </div>
+              )}
 
               {/* Box Vincitore & Risultato */}
               <div className="p-4 rounded-xl bg-emerald-950/80 border border-amber-500/30">
@@ -223,10 +271,10 @@ export default function HistoryModal({
 
             </div>
           ) : (
-            /* LISTA PARTITE ARCHIVIATE */
-            gamesHistory.length === 0 ? (
+            /* LISTA PARTITE */
+            allDisplayGames.length === 0 ? (
               <div className="text-center py-10 text-emerald-300/70 text-xs">
-                Nessuna partita archiviata. Le partite completate appariranno automaticamente qui e saranno salvate nel Cloud.
+                Nessuna partita trovata. Le partite con almeno una mano giocata appariranno automaticamente qui e saranno salvate nel Cloud.
               </div>
             ) : filteredGames.length === 0 ? (
               <div className="text-center py-8 text-emerald-400/80 text-xs">
@@ -238,11 +286,17 @@ export default function HistoryModal({
                   const t1Total = (game.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
                   const t2Total = (game.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
                   const winnerName = game.winner === 'team1' ? game.team1.name : game.winner === 'team2' ? game.team2.name : null;
+                  const isActiveNow = activeGame && activeGame.id === game.id;
+                  const isOngoing = !game.isFinished;
 
                   return (
                     <div
                       key={game.id}
-                      className="p-3 sm:p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40 hover:border-amber-500/50 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                      className={`p-3 sm:p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 cursor-pointer group ${
+                        isActiveNow 
+                          ? 'bg-emerald-950/90 border-amber-400/60 shadow-[0_0_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30' 
+                          : 'bg-emerald-950/70 border-emerald-700/40 hover:border-amber-500/50'
+                      }`}
                       onClick={() => setSelectedGame(game)}
                     >
                       <div className="min-w-0">
@@ -250,12 +304,28 @@ export default function HistoryModal({
                           <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                             {game.team1.name} <span className="text-emerald-400 font-normal">vs</span> {game.team2.name}
                           </span>
-                          {winnerName && (
+
+                          {/* Badge Stato Partita */}
+                          {isActiveNow ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span>Sul Tabellone</span>
+                            </span>
+                          ) : isOngoing ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                              <span>⏳ In Sospeso</span>
+                            </span>
+                          ) : winnerName ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center gap-1">
                               <Trophy className="w-3 h-3 text-amber-400" />
                               <span>{winnerName}</span>
                             </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-800/60 text-emerald-200 border border-emerald-600/40">
+                              Conclusa
+                            </span>
                           )}
+
                           <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-900/90 text-emerald-300 border border-emerald-700/50 flex items-center gap-0.5">
                             <Cloud className="w-2.5 h-2.5 text-emerald-400" />
                             <span>Cloud</span>

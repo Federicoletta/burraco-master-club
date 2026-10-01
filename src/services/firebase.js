@@ -84,7 +84,7 @@ export async function loadCloudGamesHistory() {
     const games = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (data && data.id && data.isFinished) {
+      if (data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0))) {
         games.push(data);
       }
     });
@@ -157,7 +157,7 @@ export function subscribeToCloudGamesHistory(onUpdate) {
       const games = [];
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        if (data && data.id && data.isFinished) {
+        if (data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0))) {
           games.push(data);
         }
       });

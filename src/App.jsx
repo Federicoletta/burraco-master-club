@@ -566,6 +566,8 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
         gamesHistory={gamesHistory}
+        activeGame={activeGame}
+        onEndGame={handleEndGame}
         onResumeGame={handleResumeGame}
         onDeleteGame={handleDeleteGameHistory}
         onDataImported={handleDataImported}
