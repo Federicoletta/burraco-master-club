@@ -1,0 +1,144 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: burraco_games
+    // Document ID: {gameId} (must match data.id)
+    // Fields:
+    //   - id: string (required, 3-100 chars, immutable) - Unique game identifier
+    //   - createdAt: string | timestamp (optional, max 50 chars if string, immutable)
+    //   - mode: string (required, 'pairs' | 'singles', max 20 chars) - Match mode
+    //   - allowSemipulito: bool (required) - Whether semipulito burraco is counted
+    //   - targetScore: number (required, 100..10000) - Winning point threshold
+    //   - team1: map (required, keys: ['name', 'players'])
+    //       - name: string (1-100 chars)
+    //       - players: list of strings (1-4 players, 1-100 chars each)
+    //   - team2: map (required, keys: ['name', 'players'])
+    //       - name: string (1-100 chars)
+    //       - players: list of strings (1-4 players, 1-100 chars each)
+    //   - rounds: list (required, max 100 rounds) - Match rounds history
+    //   - winner: string | null (optional, 'team1' | 'team2' | null)
+    //   - isFinished: bool (required) - Whether the match has concluded
+    //   - completedAt: string | timestamp (optional, max 50 chars if string)
+    //   - updatedAt: timestamp | string (optional) - Server sync timestamp
+    //
+    // Collection: burraco_meta
+    // Document ID: {docId} (e.g., 'players')
+    // Fields for 'players':
+    //   - list: list of strings (required, max 200 players)
+    //   - updatedAt: timestamp | string (optional)
+    //
+    // ===============================================================
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidPlayerName(name) {
+      return name is string &&
+             name.size() > 0 &&
+             name.size() <= 100;
+    }
+
+    function isValidPlayerList(players) {
+      return players is list &&
+             players.size() >= 1 &&
+             players.size() <= 4 &&
+             isValidPlayerName(players[0]) &&
+             (players.size() < 2 || isValidPlayerName(players[1])) &&
+             (players.size() < 3 || isValidPlayerName(players[2])) &&
+             (players.size() < 4 || isValidPlayerName(players[3]));
+    }
+
+    function isValidTeam(team) {
+      return team is map &&
+             team.keys().hasOnly(['name', 'players']) &&
+             team.name is string &&
+             team.name.size() > 0 &&
+             team.name.size() <= 100 &&
+             isValidPlayerList(team.players);
+    }
+
+    function isValidGame(data, gameId) {
+      let allowedFields = [
+        'id', 'createdAt', 'mode', 'allowSemipulito', 'targetScore',
+        'team1', 'team2', 'rounds', 'winner', 'isFinished', 'completedAt', 'updatedAt'
+      ];
+      let requiredFields = [
+        'id', 'mode', 'allowSemipulito', 'targetScore', 'team1', 'team2', 'rounds', 'isFinished'
+      ];
+
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.id is string &&
+             data.id.size() >= 3 &&
+             data.id.size() <= 100 &&
+             data.id == gameId &&
+             data.mode is string &&
+             data.mode.size() <= 20 &&
+             data.allowSemipulito is bool &&
+             (data.targetScore is int || data.targetScore is float) &&
+             data.targetScore >= 100 &&
+             data.targetScore <= 10000 &&
+             isValidTeam(data.team1) &&
+             isValidTeam(data.team2) &&
+             data.rounds is list &&
+             data.rounds.size() <= 100 &&
+             data.isFinished is bool &&
+             (!('winner' in data) || data.winner == null || data.winner == 'team1' || data.winner == 'team2') &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
+             (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50) || data.completedAt is timestamp) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+    }
+
+    function isValidPlayersMeta(data) {
+      return data.keys().hasAll(['list']) &&
+             data.keys().hasOnly(['list', 'updatedAt']) &&
+             data.list is list &&
+             data.list.size() <= 200 &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+    }
+
+    function isValidMeta(docId, data) {
+      return docId == 'players'
+        ? isValidPlayersMeta(data)
+        : (data.keys().size() <= 20);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // Matches & Round Points
+    match /burraco_games/{gameId} {
+      allow read: if true;
+      allow create: if isValidGame(request.resource.data, gameId);
+      allow update: if isValidGame(request.resource.data, gameId) &&
+                       request.resource.data.id == resource.data.id &&
+                       (!('createdAt' in resource.data) || !('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if true;
+    }
+
+    // Global Metadata (e.g. Participants List)
+    match /burraco_meta/{docId} {
+      allow read: if true;
+      allow create: if isValidMeta(docId, request.resource.data);
+      allow update: if isValidMeta(docId, request.resource.data);
+      allow delete: if true;
+    }
+  }
+}
