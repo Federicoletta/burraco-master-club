@@ -45,9 +45,6 @@ export default function Header({
               <h1 className="text-sm sm:text-base md:text-xl font-black tracking-tight text-white m-0 whitespace-nowrap">
                 Burraco<span className="text-amber-400 font-serif ml-0.5">Score</span>
               </h1>
-              <span className="hidden xl:inline-flex text-[11px] px-2 py-0.5 rounded-full bg-emerald-800/80 text-amber-300 font-medium border border-amber-500/30">
-                Segnapunti & Statistiche
-              </span>
             </div>
             <p className="hidden lg:block text-xs text-emerald-300/80 m-0 truncate">
               {hasActiveGame ? 'Partita in corso' : 'Pronto per giocare'} • ♣ ♦ ♥ ♠
