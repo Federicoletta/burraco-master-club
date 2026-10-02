@@ -179,12 +179,23 @@ export default function AudioSettingsModal({
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-base sm:text-lg">{track.icon}</span>
+                        <span className="text-base sm:text-lg shrink-0">{track.icon}</span>
                         <div className="min-w-0 flex-1">
                           <span className={`block text-xs font-bold leading-tight truncate ${isSelected ? 'text-amber-300' : 'text-white'}`}>
                             {track.name}
                           </span>
+                          {track.artist && (
+                            <span className="block text-[9px] text-amber-200/60 font-serif italic truncate">
+                              {track.artist}
+                            </span>
+                          )}
                         </div>
+                        {isSelected && musicState.isPlaying && (
+                          <span className="flex h-2 w-2 relative shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                          </span>
+                        )}
                       </div>
                       <p className="text-[10px] text-emerald-300/70 leading-snug line-clamp-2 m-0">
                         {track.subtitle}
