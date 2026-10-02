@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { X, Users, UserPlus, Trophy, Award, Flame, Trash2, TrendingUp, Sparkles, Crown } from 'lucide-react';
 import { calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
@@ -19,8 +19,6 @@ export default function PlayersStatsModal({
   const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
   const [selectedPlayerForTrend, setSelectedPlayerForTrend] = useState(null);
   const [selectedPlayerForTrophies, setSelectedPlayerForTrophies] = useState(null);
-
-  if (!isOpen) return null;
 
   const stats = calculatePlayerStats(playersList, gamesHistory, activeGame);
 
@@ -60,11 +58,13 @@ export default function PlayersStatsModal({
   });
 
   // Massimo per la scala della barra visuale reale
-  const maxVal = useMemo(() => {
-    if (sortBy === 'burrachi') return Math.max(...sortedStats.map(s => s.totalBurrachi), 1);
-    if (sortBy === 'winrate') return 100;
-    return Math.max(...sortedStats.map(s => s.totalPoints), 1);
-  }, [sortedStats, sortBy]);
+  const maxVal = sortBy === 'burrachi'
+    ? Math.max(...sortedStats.map(s => s.totalBurrachi), 1)
+    : sortBy === 'winrate'
+    ? 100
+    : Math.max(...sortedStats.map(s => s.totalPoints), 1);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
