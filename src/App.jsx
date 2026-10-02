@@ -8,6 +8,7 @@ import HistoryModal from './components/HistoryModal';
 import VictoryModal from './components/VictoryModal';
 import CloudSyncModal from './components/CloudSyncModal';
 import RulesModal from './components/RulesModal';
+import EditTeamsModal from './components/EditTeamsModal';
 import { 
   getActiveGame, 
   saveActiveGame, 
@@ -43,6 +44,7 @@ export default function App() {
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isEditTeamsOpen, setIsEditTeamsOpen] = useState(false);
   const [roundToEdit, setRoundToEdit] = useState(null);
 
   // 1. Caricamento iniziale & Controllo Link Condiviso (?game=...)
@@ -278,6 +280,32 @@ export default function App() {
     syncGameToCloud(updatedGame);
   };
 
+  // Aggiorna formazioni squadre e giocatori della partita attiva
+  const handleUpdateTeams = (updatedTeam1, updatedTeam2) => {
+    if (!activeGame) return;
+
+    // Aggiungi eventuali nuovi partecipanti alla rubrica
+    const allPlayers = [
+      ...(updatedTeam1.players || []),
+      ...(updatedTeam2.players || [])
+    ].filter(Boolean);
+
+    allPlayers.forEach(p => savePlayerName(p));
+    const updatedPlayers = getStoredPlayers();
+    setPlayersList(updatedPlayers);
+    syncPlayersToCloud(updatedPlayers);
+
+    const updatedGame = {
+      ...activeGame,
+      team1: updatedTeam1,
+      team2: updatedTeam2,
+    };
+
+    setActiveGame(updatedGame);
+    saveActiveGame(updatedGame);
+    syncGameToCloud(updatedGame);
+  };
+
   // Conclude la partita e festeggia
   const handleEndGame = () => {
     if (!activeGame) return;
@@ -505,6 +533,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
             onEndGame={handleEndGame}
             onShareGame={handleShareGame}
             onOpenRules={() => setIsRulesOpen(true)}
+            onOpenEditTeams={() => setIsEditTeamsOpen(true)}
           />
         ) : (
           /* Schermata di Benvenuto se nessuna partita */
@@ -593,6 +622,15 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       <RulesModal
         isOpen={isRulesOpen}
         onClose={() => setIsRulesOpen(false)}
+      />
+
+      {/* 8. Modal Modifica Squadre & Giocatori Partita Attiva */}
+      <EditTeamsModal
+        isOpen={isEditTeamsOpen}
+        onClose={() => setIsEditTeamsOpen(false)}
+        activeGame={activeGame}
+        playersList={playersList}
+        onSave={handleUpdateTeams}
       />
 
     </div>
