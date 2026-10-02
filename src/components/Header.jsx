@@ -6,11 +6,13 @@ import {
   Share2, 
   Cloud, 
   Volume2, 
+  Volume1,
   VolumeX, 
   BookOpen, 
   MoreVertical 
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
+import AudioSettingsModal from './AudioSettingsModal';
 
 export default function Header({ 
   onNewGame, 
@@ -22,13 +24,22 @@ export default function Header({
   hasActiveGame 
 }) {
   const [soundOn, setSoundOn] = useState(sound.enabled);
+  const [volume, setVolume] = useState(Math.round(sound.volume * 100));
+  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const toggleAudio = () => {
+  const handleToggleSound = () => {
     const next = !soundOn;
     sound.setSoundEnabled(next);
     setSoundOn(next);
     if (next) sound.playTap();
+  };
+
+  const handleVolumeChange = (newVal) => {
+    const vol = Number(newVal);
+    setVolume(vol);
+    sound.setVolume(vol / 100);
+    setSoundOn(vol > 0);
   };
 
   return (
@@ -77,19 +88,25 @@ export default function Header({
             <span className="hidden md:inline pointer-events-none">Partecipanti</span>
           </button>
 
-          {/* Suoni ON / OFF (visibile direttamente su Desktop >= lg, su mobile e tablet è nel menu Altro) */}
+          {/* Suoni & Volume (visibile direttamente su Desktop >= lg, su mobile e tablet è nel menu Altro) */}
           <button
             type="button"
-            onClick={toggleAudio}
+            onClick={() => setIsAudioModalOpen(true)}
             className="hidden lg:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-            title={soundOn ? 'Effetti sonori attivi (tocca per disattivare)' : 'Effetti sonori disattivati (tocca per attivare)'}
+            title="Regola volume ed effetti sonori"
           >
-            {soundOn ? (
-              <Volume2 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+            {soundOn && volume > 0 ? (
+              volume > 50 ? (
+                <Volume2 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+              ) : (
+                <Volume1 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+              )
             ) : (
               <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0 pointer-events-none" />
             )}
-            <span className="pointer-events-none">{soundOn ? 'Audio' : 'Muto'}</span>
+            <span className="pointer-events-none">
+              {soundOn && volume > 0 ? `Audio (${volume}%)` : 'Muto'}
+            </span>
           </button>
 
           {/* Cloud DB (visibile direttamente su Desktop >= lg) */}
@@ -148,24 +165,24 @@ export default function Header({
                 />
                 <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-emerald-950 border border-amber-500/30 shadow-2xl p-1.5 z-50 text-white animate-in fade-in zoom-in-95 duration-150">
                   
-                  {/* Suoni Switch */}
+                  {/* Suoni & Volume */}
                   <button
                     onClick={() => {
-                      toggleAudio();
                       setIsMenuOpen(false);
+                      setIsAudioModalOpen(true);
                     }}
                     className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
                   >
                     <span className="flex items-center gap-2.5">
-                      {soundOn ? (
+                      {soundOn && volume > 0 ? (
                         <Volume2 className="w-4 h-4 text-amber-400" />
                       ) : (
                         <VolumeX className="w-4 h-4 text-emerald-400/50" />
                       )}
-                      Effetti Sonori
+                      Volume & Suoni
                     </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${soundOn ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-white/10 text-white/50'}`}>
-                      {soundOn ? 'ON' : 'OFF'}
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${soundOn && volume > 0 ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-white/10 text-white/50'}`}>
+                      {soundOn && volume > 0 ? `${volume}%` : 'OFF'}
                     </span>
                   </button>
 
@@ -225,6 +242,16 @@ export default function Header({
 
         </div>
       </div>
+
+      {/* Modale Regolazione Volume & Effetti Sonori */}
+      <AudioSettingsModal
+        isOpen={isAudioModalOpen}
+        onClose={() => setIsAudioModalOpen(false)}
+        soundOn={soundOn}
+        onToggleSound={handleToggleSound}
+        volume={volume}
+        onChangeVolume={handleVolumeChange}
+      />
     </header>
   );
 }
