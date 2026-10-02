@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Users, User, Trophy, Sparkles, Check } from 'lucide-react';
 import { DEFAULT_TARGET_SCORES } from '../constants/burraco';
 
@@ -37,6 +38,7 @@ export default function NewGameModal({
   }, [isOpen]);
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const handleStart = (e) => {
     e.preventDefault();
@@ -81,19 +83,19 @@ export default function NewGameModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/30 p-5 sm:p-6 my-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/40 p-5 sm:p-6 my-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
         
         {/* Header Modal */}
-        <div className="flex items-center justify-between pb-4 border-b border-emerald-700/50">
+        <div className="flex items-center justify-between pb-3.5 border-b border-emerald-700/50">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gold-gradient flex items-center justify-center text-emerald-950 font-black">
+            <div className="w-8 h-8 rounded-lg gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md">
               ♣
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white m-0">Nuova Partita di Burraco</h2>
-              <p className="text-xs text-emerald-300/80 m-0">Configura giocatori, coppie e obiettivo punti</p>
+              <h2 className="text-base sm:text-lg font-bold text-white m-0">Nuova Partita di Burraco</h2>
+              <p className="text-[11px] sm:text-xs text-emerald-300/80 m-0">Configura giocatori, coppie e obiettivo punti</p>
             </div>
           </div>
           <button 
@@ -106,13 +108,13 @@ export default function NewGameModal({
         </div>
 
         {hasActiveGame && (
-          <div className="my-3 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
+          <div className="my-3 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Nota: C'è già una partita attiva. Iniziandone una nuova, la precedente verrà archiviata automaticamente nello storico.</span>
+            <span>Nota: Iniziando una nuova partita, quella in corso verrà archiviata automaticamente nello storico.</span>
           </div>
         )}
 
-        <form onSubmit={handleStart} className="space-y-4 mt-4">
+        <form onSubmit={handleStart} className="space-y-4 mt-3.5">
           
           {/* Selettore Modalità 2v2 o 1v1 */}
           <div>
@@ -148,11 +150,11 @@ export default function NewGameModal({
           </div>
 
           {/* Selezione Partecipanti */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             
             {/* SQUADRA 1 */}
-            <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30">
-              <div className="flex items-center justify-between mb-2">
+            <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30 space-y-2">
+              <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
                   <span>♦</span> {mode === 'pairs' ? 'Squadra / Coppia 1' : 'Giocatore 1'}
                 </span>
@@ -164,7 +166,7 @@ export default function NewGameModal({
                   placeholder="Nome Squadra 1 (opzionale)"
                   value={team1Name}
                   onChange={(e) => setTeam1Name(e.target.value)}
-                  className="w-full mb-2 px-3 py-1.5 rounded-lg bg-emerald-900/50 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/50 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-amber-400"
                 />
               )}
 
@@ -198,8 +200,8 @@ export default function NewGameModal({
             </div>
 
             {/* SQUADRA 2 */}
-            <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30">
-              <div className="flex items-center justify-between mb-2">
+            <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30 space-y-2">
+              <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold text-blue-300 uppercase tracking-wider flex items-center gap-1">
                   <span>♠</span> {mode === 'pairs' ? 'Squadra / Coppia 2' : 'Giocatore 2'}
                 </span>
@@ -211,7 +213,7 @@ export default function NewGameModal({
                   placeholder="Nome Squadra 2 (opzionale)"
                   value={team2Name}
                   onChange={(e) => setTeam2Name(e.target.value)}
-                  className="w-full mb-2 px-3 py-1.5 rounded-lg bg-emerald-900/50 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-blue-400"
+                  className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/50 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-blue-400"
                 />
               )}
 
@@ -276,22 +278,22 @@ export default function NewGameModal({
             <label className="block text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">
               Punteggio per la Vittoria
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              {DEFAULT_TARGET_SCORES.map(score => (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {DEFAULT_TARGET_SCORES.map(item => (
                 <button
-                  key={score}
+                  key={item.value}
                   type="button"
                   onClick={() => {
-                    setTargetScore(score);
+                    setTargetScore(item.value);
                     setCustomTarget('');
                   }}
-                  className={`py-2 px-3 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                    targetScore === score && !customTarget
+                  className={`py-2 px-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    targetScore === item.value && !customTarget
                       ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm'
                       : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
                   }`}
                 >
-                  {score} pt
+                  {item.value} pt
                 </button>
               ))}
             </div>
@@ -300,7 +302,7 @@ export default function NewGameModal({
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
-                placeholder="Altro punteggio (es. 1500, 3000)"
+                placeholder="Altro punteggio personalizzato (es. 1500, 3000)"
                 value={customTarget}
                 onChange={(e) => setCustomTarget(e.target.value)}
                 className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/50 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-amber-400"
@@ -350,6 +352,7 @@ export default function NewGameModal({
         </form>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
