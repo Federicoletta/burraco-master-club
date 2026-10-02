@@ -445,20 +445,20 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       />
 
       {/* Contenuto Principale */}
-      <main className="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-5">
+      <main className="flex-1 max-w-5xl w-full mx-auto p-2.5 sm:p-4 md:p-5">
         
         {/* Banner Stato Tavolo Sincronizzato Cloud */}
         {activeGame && (
-          <div className="mb-4 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-950/90 via-emerald-900/60 to-emerald-950/90 backdrop-blur-md border border-emerald-600/35 flex items-center justify-between text-xs text-emerald-200 shadow-lg">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
+          <div className="mb-2.5 px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-950/80 backdrop-blur-md border border-emerald-700/40 flex items-center justify-between text-xs text-emerald-200 shadow-md">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="relative flex h-2 w-2 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="truncate">
-                <strong className="text-white">Tavolo Cloud:</strong>{' '}
+              <span className="truncate text-xs">
+                <strong className="text-emerald-100 font-bold">Tavolo Cloud:</strong>{' '}
                 <span className="text-amber-300 font-bold">{activeGame.team1?.name}</span>{' '}
-                <span className="text-emerald-400 font-normal">vs</span>{' '}
+                <span className="text-emerald-400/80 font-normal">vs</span>{' '}
                 <span className="text-blue-300 font-bold">{activeGame.team2?.name}</span>
               </span>
               {isCloudJoined && (
@@ -467,19 +467,19 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => setIsCloudModalOpen(true)}
-                className="px-2.5 py-1 rounded-xl bg-emerald-800/80 hover:bg-emerald-700 text-amber-300 font-bold text-[11px] border border-amber-500/35 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-102 active:scale-95 shadow-sm"
+                className="px-2.5 py-1 rounded-lg bg-emerald-800/80 hover:bg-emerald-700 text-amber-300 font-bold text-[11px] border border-amber-500/35 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm"
                 title="Condividi o vedi dettagli del tavolo"
               >
                 <Cloud className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Invita al Tavolo</span>
+                <span>Invita al Tavolo</span>
               </button>
               {isCloudJoined && (
                 <button
                   onClick={handleLeaveCloudTable}
-                  className="px-2.5 py-1 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-semibold text-[11px] border border-rose-800/50 cursor-pointer transition-colors active:scale-95"
+                  className="px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-semibold text-[11px] border border-rose-800/50 cursor-pointer transition-colors active:scale-95"
                   title="Scollegati da questo tavolo condiviso"
                 >
                   Scollegati
