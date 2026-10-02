@@ -239,3 +239,8 @@ class SoundManager {
 }
 
 export const sound = new SoundManager();
+
+export function getSharedAudioContext() {
+  sound.initContext();
+  return sound.ctx;
+}

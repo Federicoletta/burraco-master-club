@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   PlusCircle, 
   Users, 
@@ -9,9 +9,12 @@ import {
   Volume1,
   VolumeX, 
   BookOpen, 
-  MoreVertical 
+  MoreVertical,
+  Music,
+  Disc
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
+import { bgMusic, MUSIC_TRACKS } from '../utils/backgroundMusic';
 import AudioSettingsModal from './AudioSettingsModal';
 
 export default function Header({ 
@@ -27,6 +30,18 @@ export default function Header({
   const [volume, setVolume] = useState(Math.round(sound.volume * 100));
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [musicState, setMusicState] = useState({
+    isPlaying: bgMusic.isPlaying,
+    volume: bgMusic.volume,
+    trackId: bgMusic.trackId,
+    enabled: bgMusic.enabled
+  });
+
+  useEffect(() => {
+    return bgMusic.subscribe((state) => {
+      setMusicState({ ...state });
+    });
+  }, []);
 
   const handleToggleSound = () => {
     const next = !soundOn;
@@ -88,25 +103,38 @@ export default function Header({
             <span className="hidden md:inline pointer-events-none">Partecipanti</span>
           </button>
 
-          {/* Suoni & Volume (visibile direttamente su Desktop >= lg, su mobile e tablet è nel menu Altro) */}
+          {/* Suoni & Musica Lounge (visibile direttamente su Desktop >= lg, su mobile e tablet è nel menu Altro) */}
           <button
             type="button"
             onClick={() => setIsAudioModalOpen(true)}
-            className="hidden lg:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-            title="Regola volume ed effetti sonori"
+            className={`hidden lg:flex h-9 sm:h-10 px-3 rounded-xl transition-all items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
+              musicState.isPlaying
+                ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/50 shadow-sm shadow-amber-900/30 ring-1 ring-amber-400/30'
+                : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
+            }`}
+            title="Regola volume ed effetti sonori e musica di sottofondo"
           >
-            {soundOn && volume > 0 ? (
-              volume > 50 ? (
-                <Volume2 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-              ) : (
-                <Volume1 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-              )
+            {musicState.isPlaying ? (
+              <span className="flex items-center gap-1.5 text-amber-300 pointer-events-none">
+                <Music className="w-4 h-4 animate-bounce text-amber-300" style={{ animationDuration: '2.5s' }} />
+                <span>Musica ON</span>
+              </span>
             ) : (
-              <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0 pointer-events-none" />
+              <>
+                {soundOn && volume > 0 ? (
+                  volume > 50 ? (
+                    <Volume2 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+                  ) : (
+                    <Volume1 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+                  )
+                ) : (
+                  <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0 pointer-events-none" />
+                )}
+                <span className="pointer-events-none">
+                  {soundOn && volume > 0 ? `Audio (${volume}%)` : 'Muto'}
+                </span>
+              </>
             )}
-            <span className="pointer-events-none">
-              {soundOn && volume > 0 ? `Audio (${volume}%)` : 'Muto'}
-            </span>
           </button>
 
           {/* Cloud DB (visibile direttamente su Desktop >= lg) */}
@@ -165,7 +193,23 @@ export default function Header({
                 />
                 <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-emerald-950 border border-amber-500/30 shadow-2xl p-1.5 z-50 text-white animate-in fade-in zoom-in-95 duration-150">
                   
-                  {/* Suoni & Volume */}
+                  {/* Toggle Rapido Musica Lounge */}
+                  <button
+                    onClick={() => {
+                      bgMusic.toggle();
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Music className={`w-4 h-4 ${musicState.isPlaying ? 'text-amber-400 animate-pulse' : 'text-emerald-400/70'}`} />
+                      Musica Lounge
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${musicState.isPlaying ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'}`}>
+                      {musicState.isPlaying ? '▶ ON' : 'PAUSA'}
+                    </span>
+                  </button>
+
+                  {/* Volume & Audio Completo */}
                   <button
                     onClick={() => {
                       setIsMenuOpen(false);
@@ -179,7 +223,7 @@ export default function Header({
                       ) : (
                         <VolumeX className="w-4 h-4 text-emerald-400/50" />
                       )}
-                      Volume & Suoni
+                      Regola Volumi
                     </span>
                     <span className={`text-[10px] px-2 py-0.5 rounded font-black ${soundOn && volume > 0 ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-white/10 text-white/50'}`}>
                       {soundOn && volume > 0 ? `${volume}%` : 'OFF'}
