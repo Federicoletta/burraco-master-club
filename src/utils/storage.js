@@ -7,25 +7,35 @@ const STORAGE_KEYS = {
   SETTINGS: 'burraco_settings_v1',
 };
 
-// Default preset di giocatori per iniziare subito
-const DEFAULT_PLAYERS = ['Marco', 'Anna', 'Luca', 'Sofia'];
+// Default preset di giocatori per iniziare: vuoto (nessun nome forzato)
+const DEFAULT_PLAYERS = [];
+const MOCK_NAMES = ['Marco', 'Anna', 'Luca', 'Sofia'];
+const GENERIC_LABELS = ['coppia 1', 'coppia 2', 'giocatore 1', 'giocatore 2', 'squadra 1', 'squadra 2'];
 
 export function getStoredPlayers() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PLAYERS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(DEFAULT_PLAYERS));
-      return DEFAULT_PLAYERS;
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    
+    // Rimuove eventuali residui dei vecchi 4 nomi di prova
+    const cleaned = parsed.filter(p => !MOCK_NAMES.includes(p) && !GENERIC_LABELS.includes(String(p).toLowerCase()));
+    if (cleaned.length !== parsed.length) {
+      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(cleaned));
     }
-    return JSON.parse(raw);
+    return cleaned;
   } catch {
-    return DEFAULT_PLAYERS;
+    return [];
   }
 }
 
 export function savePlayerName(name) {
-  if (!name || !name.trim()) return;
+  if (!name || typeof name !== 'string') return;
   const clean = name.trim();
+  if (!clean) return;
+  if (MOCK_NAMES.includes(clean) || GENERIC_LABELS.includes(clean.toLowerCase())) return;
+
   const list = getStoredPlayers();
   if (!list.includes(clean)) {
     list.push(clean);
@@ -41,8 +51,13 @@ export function deletePlayerName(name) {
 }
 
 export function setStoredPlayers(list) {
-  if (!Array.isArray(list)) return;
-  const unique = Array.from(new Set(list.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  if (!Array.isArray(list)) return [];
+  const unique = Array.from(new Set(
+    list
+      .filter(Boolean)
+      .map(p => String(p).trim())
+      .filter(p => p && !MOCK_NAMES.includes(p) && !GENERIC_LABELS.includes(p.toLowerCase()))
+  )).sort((a, b) => a.localeCompare(b));
   localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(unique));
   return unique;
 }

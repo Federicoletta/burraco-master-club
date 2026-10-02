@@ -167,21 +167,23 @@ export default function ScoreBoard({
                   </button>
                 )}
               </div>
-              <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1">
-                {activeGame.team1.players.map((p) => {
-                  const tInfo = titlesMap[p];
-                  return (
-                    <span 
-                      key={p} 
-                      className="inline-flex items-center gap-1 bg-emerald-900/90 px-1.5 py-0.5 rounded-md border border-amber-500/25 text-[11px] shadow-sm"
-                      title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
-                    >
-                      {tInfo && <span>{tInfo.icon}</span>}
-                      <span className="font-semibold text-emerald-100">{p}</span>
-                    </span>
-                  );
-                })}
-              </div>
+              {activeGame.team1?.players && activeGame.team1.players.length > 0 && (
+                <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1">
+                  {activeGame.team1.players.map((p) => {
+                    const tInfo = titlesMap[p];
+                    return (
+                      <span 
+                        key={p} 
+                        className="inline-flex items-center gap-1 bg-emerald-900/90 px-1.5 py-0.5 rounded-md border border-amber-500/25 text-[11px] shadow-sm"
+                        title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
+                      >
+                        {tInfo && <span>{tInfo.icon}</span>}
+                        <span className="font-semibold text-emerald-100">{p}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Badge Leader Integrato nella Card */}
@@ -246,21 +248,23 @@ export default function ScoreBoard({
                   </button>
                 )}
               </div>
-              <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1">
-                {activeGame.team2.players.map((p) => {
-                  const tInfo = titlesMap[p];
-                  return (
-                    <span 
-                      key={p} 
-                      className="inline-flex items-center gap-1 bg-emerald-900/90 px-1.5 py-0.5 rounded-md border border-blue-500/25 text-[11px] shadow-sm"
-                      title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
-                    >
-                      {tInfo && <span>{tInfo.icon}</span>}
-                      <span className="font-semibold text-emerald-100">{p}</span>
-                    </span>
-                  );
-                })}
-              </div>
+              {activeGame.team2?.players && activeGame.team2.players.length > 0 && (
+                <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1">
+                  {activeGame.team2.players.map((p) => {
+                    const tInfo = titlesMap[p];
+                    return (
+                      <span 
+                        key={p} 
+                        className="inline-flex items-center gap-1 bg-emerald-900/90 px-1.5 py-0.5 rounded-md border border-blue-500/25 text-[11px] shadow-sm"
+                        title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
+                      >
+                        {tInfo && <span>{tInfo.icon}</span>}
+                        <span className="font-semibold text-emerald-100">{p}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Badge Leader Integrato nella Card */}

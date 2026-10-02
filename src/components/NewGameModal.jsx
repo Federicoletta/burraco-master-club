@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Users, User, Trophy, Sparkles, Check } from 'lucide-react';
 import { DEFAULT_TARGET_SCORES } from '../constants/burraco';
 
@@ -6,28 +6,57 @@ export default function NewGameModal({
   isOpen, 
   onClose, 
   onStartGame, 
-  availablePlayers,
+  availablePlayers = [],
   hasActiveGame
 }) {
   const [mode, setMode] = useState('pairs'); // 'pairs' (2v2) | 'singles' (1v1)
-  const [team1Name, setTeam1Name] = useState('Coppia 1');
-  const [team2Name, setTeam2Name] = useState('Coppia 2');
+  const [team1Name, setTeam1Name] = useState('');
+  const [team2Name, setTeam2Name] = useState('');
   
-  // Players
-  const [p1A, setP1A] = useState(availablePlayers[0] || 'Marco');
-  const [p1B, setP1B] = useState(availablePlayers[1] || 'Anna');
-  const [p2A, setP2A] = useState(availablePlayers[2] || 'Luca');
-  const [p2B, setP2B] = useState(availablePlayers[3] || 'Sofia');
+  // Nomi dei giocatori (iniziano completamente vuoti, nessun nome forzato)
+  const [p1A, setP1A] = useState('');
+  const [p1B, setP1B] = useState('');
+  const [p2A, setP2A] = useState('');
+  const [p2B, setP2B] = useState('');
 
   const [targetScore, setTargetScore] = useState(2005);
   const [customTarget, setCustomTarget] = useState('');
   const [allowSemipulito, setAllowSemipulito] = useState(true);
+
+  // Resetta i campi ogni volta che si apre il modale
+  useEffect(() => {
+    if (isOpen) {
+      setTeam1Name('');
+      setTeam2Name('');
+      setP1A('');
+      setP1B('');
+      setP2A('');
+      setP2B('');
+      setCustomTarget('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleStart = (e) => {
     e.preventDefault();
     const finalTarget = customTarget ? Number(customTarget) : Number(targetScore);
+
+    // Raccoglie i giocatori inseriti (solo quelli non vuoti)
+    const t1Players = mode === 'pairs'
+      ? [p1A.trim(), p1B.trim()].filter(Boolean)
+      : [p1A.trim()].filter(Boolean);
+
+    const t2Players = mode === 'pairs'
+      ? [p2A.trim(), p2B.trim()].filter(Boolean)
+      : [p2A.trim()].filter(Boolean);
+
+    // Se l'utente non ha specificato il nome squadra o giocatori, assegna etichette pulite
+    const defaultT1Name = mode === 'pairs' ? 'Coppia 1' : 'Giocatore 1';
+    const defaultT2Name = mode === 'pairs' ? 'Coppia 2' : 'Giocatore 2';
+
+    const finalTeam1Name = team1Name.trim() || (t1Players.length > 0 ? t1Players.join(' & ') : defaultT1Name);
+    const finalTeam2Name = team2Name.trim() || (t2Players.length > 0 ? t2Players.join(' & ') : defaultT2Name);
 
     const newGame = {
       id: 'game_' + Date.now(),
@@ -36,12 +65,12 @@ export default function NewGameModal({
       allowSemipulito,
       targetScore: finalTarget > 0 ? finalTarget : 2005,
       team1: {
-        name: mode === 'pairs' ? (team1Name.trim() || `${p1A} & ${p1B}`) : p1A.trim(),
-        players: mode === 'pairs' ? [p1A.trim(), p1B.trim()].filter(Boolean) : [p1A.trim()],
+        name: finalTeam1Name,
+        players: t1Players,
       },
       team2: {
-        name: mode === 'pairs' ? (team2Name.trim() || `${p2A} & ${p2B}`) : p2A.trim(),
-        players: mode === 'pairs' ? [p2A.trim(), p2B.trim()].filter(Boolean) : [p2A.trim()],
+        name: finalTeam2Name,
+        players: t2Players,
       },
       rounds: [],
       winner: null,
@@ -68,8 +97,9 @@ export default function NewGameModal({
             </div>
           </div>
           <button 
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors"
+            className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -78,7 +108,7 @@ export default function NewGameModal({
         {hasActiveGame && (
           <div className="my-3 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Nota: C'è già una partita attiva. Iniziandone una nuova, la precedente verrà archiviata automaticamente.</span>
+            <span>Nota: C'è già una partita attiva. Iniziandone una nuova, la precedente verrà archiviata automaticamente nello storico.</span>
           </div>
         )}
 
@@ -92,11 +122,7 @@ export default function NewGameModal({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setMode('pairs');
-                  setTeam1Name('Coppia 1');
-                  setTeam2Name('Coppia 2');
-                }}
+                onClick={() => setMode('pairs')}
                 className={`py-2.5 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   mode === 'pairs'
                     ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
@@ -149,11 +175,10 @@ export default function NewGameModal({
                   </label>
                   <input
                     type="text"
-                    required
                     value={p1A}
                     onChange={(e) => setP1A(e.target.value)}
                     className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-amber-400"
-                    placeholder="Es. Marco"
+                    placeholder={mode === 'pairs' ? 'Nome Giocatore 1 (opzionale)' : 'Nome Giocatore (opzionale)'}
                   />
                 </div>
 
@@ -162,11 +187,10 @@ export default function NewGameModal({
                     <label className="text-[11px] text-emerald-300/80 block mb-0.5">Giocatore B</label>
                     <input
                       type="text"
-                      required
                       value={p1B}
                       onChange={(e) => setP1B(e.target.value)}
                       className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-amber-400"
-                      placeholder="Es. Anna"
+                      placeholder="Nome Giocatore 2 (opzionale)"
                     />
                   </div>
                 )}
@@ -198,11 +222,10 @@ export default function NewGameModal({
                   </label>
                   <input
                     type="text"
-                    required
                     value={p2A}
                     onChange={(e) => setP2A(e.target.value)}
                     className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-blue-400"
-                    placeholder="Es. Luca"
+                    placeholder={mode === 'pairs' ? 'Nome Giocatore 1 (opzionale)' : 'Nome Giocatore (opzionale)'}
                   />
                 </div>
 
@@ -211,11 +234,10 @@ export default function NewGameModal({
                     <label className="text-[11px] text-emerald-300/80 block mb-0.5">Giocatore B</label>
                     <input
                       type="text"
-                      required
                       value={p2B}
                       onChange={(e) => setP2B(e.target.value)}
                       className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-blue-400"
-                      placeholder="Es. Sofia"
+                      placeholder="Nome Giocatore 2 (opzionale)"
                     />
                   </div>
                 )}
@@ -224,12 +246,12 @@ export default function NewGameModal({
 
           </div>
 
-          {/* Suggerimenti veloci dai giocatori salvati */}
+          {/* Suggerimenti veloci dai giocatori salvati (se ce ne sono) */}
           {availablePlayers && availablePlayers.length > 0 && (
             <div className="text-xs">
-              <span className="text-emerald-300/70 mr-2">Giocatori frequenti:</span>
+              <span className="text-emerald-300/70 mr-2">I tuoi giocatori registrati:</span>
               <div className="inline-flex flex-wrap gap-1.5 mt-1">
-                {availablePlayers.slice(0, 8).map(name => (
+                {availablePlayers.slice(0, 10).map(name => (
                   <button
                     key={name}
                     type="button"
@@ -240,7 +262,7 @@ export default function NewGameModal({
                       else if (mode === 'pairs' && !p2B) setP2B(name);
                       else setP1A(name);
                     }}
-                    className="px-2 py-0.5 rounded-md bg-emerald-900/80 text-emerald-200 border border-emerald-700/40 text-[11px] hover:border-amber-400 hover:text-white transition-colors"
+                    className="px-2 py-0.5 rounded-md bg-emerald-900/80 text-emerald-200 border border-emerald-700/40 text-[11px] hover:border-amber-400 hover:text-white transition-colors cursor-pointer"
                   >
                     + {name}
                   </button>
@@ -249,58 +271,84 @@ export default function NewGameModal({
             </div>
           )}
 
-          {/* Obiettivo Punti */}
+          {/* Punteggio Obiettivo */}
           <div>
-            <label className="block text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-1.5">
-              Obiettivo Punti per Vincere
+            <label className="block text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">
+              Punteggio per la Vittoria
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {DEFAULT_TARGET_SCORES.map((item) => (
+            <div className="grid grid-cols-3 gap-2">
+              {DEFAULT_TARGET_SCORES.map(score => (
                 <button
-                  key={item.value}
+                  key={score}
                   type="button"
                   onClick={() => {
-                    setTargetScore(item.value);
+                    setTargetScore(score);
                     setCustomTarget('');
                   }}
-                  className={`py-2 px-2 rounded-xl border text-center transition-all cursor-pointer ${
-                    targetScore === item.value && !customTarget
-                      ? 'bg-amber-500/25 border-amber-400 text-amber-200 font-bold'
+                  className={`py-2 px-3 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    targetScore === score && !customTarget
+                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm'
                       : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
                   }`}
                 >
-                  <div className="text-sm font-black">{item.value}</div>
-                  <div className="text-[10px] text-emerald-400/80">{item.value === 2005 ? 'Classico' : item.value === 1005 ? 'Rapido' : 'Punti'}</div>
+                  {score} pt
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Regole & Opzioni */}
-          <div className="pt-2 border-t border-emerald-800/40 flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-emerald-200">
+            {/* Punteggio Personalizzato */}
+            <div className="mt-2 flex items-center gap-2">
               <input
-                type="checkbox"
-                checked={allowSemipulito}
-                onChange={(e) => setAllowSemipulito(e.target.checked)}
-                className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-emerald-900 border-emerald-700"
+                type="number"
+                placeholder="Altro punteggio (es. 1500, 3000)"
+                value={customTarget}
+                onChange={(e) => setCustomTarget(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/50 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-amber-400"
               />
-              <span>Includi Burraco Semipulito (150 punti)</span>
-            </label>
+            </div>
           </div>
 
-          {/* Submit */}
-          <div className="pt-3">
+          {/* Regola Burraco Semipulito */}
+          <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-700/40 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-white block">Consenti Burraco Semipulito (150 pt)</span>
+              <span className="text-[11px] text-emerald-400/80">Sequenza di 7+ carte con una pinella o jolly agli estremi</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAllowSemipulito(!allowSemipulito)}
+              className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                allowSemipulito ? 'bg-amber-400' : 'bg-emerald-900 border border-emerald-700'
+              }`}
+            >
+              <div 
+                className={`w-4 h-4 rounded-full bg-emerald-950 transition-transform absolute top-1 ${
+                  allowSemipulito ? 'left-6' : 'left-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Pulsanti Azione */}
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-emerald-700/50">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl text-emerald-300 hover:bg-emerald-900/50 text-xs font-bold transition-colors cursor-pointer"
+            >
+              Annulla
+            </button>
             <button
               type="submit"
-              className="w-full py-3 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-sm sm:text-base shadow-lg shadow-amber-900/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+              className="px-5 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Trophy className="w-5 h-5 text-emerald-950" />
-              <span>Inizia la Partita</span>
+              <Check className="w-4 h-4 text-emerald-950" />
+              <span>Inizia Partita</span>
             </button>
           </div>
 
         </form>
+
       </div>
     </div>
   );

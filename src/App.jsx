@@ -65,10 +65,35 @@ export default function App() {
     } else {
       const current = getActiveGame();
       if (current) {
-        setActiveGame(current);
-        syncGameToCloud(current); // Assicura che sia sempre salvato sul Cloud
+        // Se la partita attiva ha 0 round registrati e contiene i vecchi nomi di prova di default, ripuliscili
+        const mock = ['Marco', 'Anna', 'Luca', 'Sofia'];
+        let needsClean = false;
+        let cleanedGame = { ...current };
+        if (!current.rounds || current.rounds.length === 0) {
+          const t1 = current.team1?.players || [];
+          const t2 = current.team2?.players || [];
+          if (t1.some(p => mock.includes(p)) || t2.some(p => mock.includes(p))) {
+            cleanedGame.team1 = {
+              ...current.team1,
+              players: t1.filter(p => !mock.includes(p))
+            };
+            cleanedGame.team2 = {
+              ...current.team2,
+              players: t2.filter(p => !mock.includes(p))
+            };
+            needsClean = true;
+          }
+        }
+        if (needsClean) {
+          saveActiveGame(cleanedGame);
+          syncGameToCloud(cleanedGame);
+          setActiveGame(cleanedGame);
+        } else {
+          setActiveGame(current);
+          syncGameToCloud(current);
+        }
       } else {
-        // Inizializza con una partita di esempio pronta per giocare
+        // Inizializza con una partita pulita pronta per giocare (senza nomi fittizi preimpostati)
         const initialGame = {
           id: 'game_' + Date.now(),
           createdAt: new Date().toISOString(),
@@ -77,11 +102,11 @@ export default function App() {
           targetScore: 2005,
           team1: {
             name: 'Coppia 1',
-            players: [storedPlayers[0] || 'Marco', storedPlayers[1] || 'Anna'],
+            players: [],
           },
           team2: {
             name: 'Coppia 2',
-            players: [storedPlayers[2] || 'Luca', storedPlayers[3] || 'Sofia'],
+            players: [],
           },
           rounds: [],
           winner: null,
@@ -196,11 +221,12 @@ export default function App() {
       }
     }
 
-    // Salva i nomi dei giocatori nella rubrica partecipanti
+    // Salva i nomi dei giocatori nella rubrica partecipanti SOLO se sono nomi reali inseriti
     const allPlayers = [
       ...(newGame.team1?.players || []),
       ...(newGame.team2?.players || [])
-    ];
+    ].map(p => typeof p === 'string' ? p.trim() : '').filter(Boolean);
+
     allPlayers.forEach(p => savePlayerName(p));
     const updatedPlayers = getStoredPlayers();
     setPlayersList(updatedPlayers);
@@ -393,7 +419,6 @@ export default function App() {
       window.history.replaceState({}, '', url.pathname);
       setIsCloudJoined(false);
 
-      const storedPlayers = getStoredPlayers();
       const newLocalGame = {
         id: 'game_' + Date.now(),
         createdAt: new Date().toISOString(),
@@ -402,11 +427,11 @@ export default function App() {
         targetScore: 2005,
         team1: {
           name: 'Coppia 1',
-          players: [storedPlayers[0] || 'Marco', storedPlayers[1] || 'Anna'],
+          players: [],
         },
         team2: {
           name: 'Coppia 2',
-          players: [storedPlayers[2] || 'Luca', storedPlayers[3] || 'Sofia'],
+          players: [],
         },
         rounds: [],
         winner: null,
