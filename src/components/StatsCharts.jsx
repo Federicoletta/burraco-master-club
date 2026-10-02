@@ -108,9 +108,9 @@ export default function StatsCharts({ stats, selectedPlayerName, onSelectPlayer 
                     </span>
                   </div>
 
-                  <div className="h-5 w-full bg-emerald-900/60 rounded-lg p-0.5 border border-emerald-700/50 overflow-hidden">
+                  <div className="h-3.5 w-full bg-emerald-900/60 rounded-full p-0.5 border border-emerald-700/50 overflow-hidden">
                     <div
-                      className={`h-full rounded-md transition-all duration-700 flex items-center justify-end pr-2 text-[10px] font-black ${
+                      className={`h-full rounded-full transition-all duration-700 flex items-center justify-end pr-2 text-[9px] font-black ${
                         idx === 0 
                           ? 'bg-gradient-to-r from-amber-500 to-amber-300 text-emerald-950' 
                           : idx === 1 
@@ -118,9 +118,7 @@ export default function StatsCharts({ stats, selectedPlayerName, onSelectPlayer 
                           : 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white'
                       }`}
                       style={{ width: `${widthPct}%` }}
-                    >
-                      {widthPct > 25 && `${widthPct}%`}
-                    </div>
+                    />
                   </div>
                 </div>
               );
@@ -166,31 +164,50 @@ export default function StatsCharts({ stats, selectedPlayerName, onSelectPlayer 
                   </div>
 
                   {p.totalBurrachi > 0 ? (
-                    <div className="h-4 w-full bg-emerald-900/60 rounded-lg p-0.5 border border-emerald-700/50 flex overflow-hidden">
-                      {p.cleanBurrachi > 0 && (
-                        <div
-                          style={{ width: `${cleanPct}%` }}
-                          className="h-full bg-amber-400 rounded-l-sm"
-                          title={`Puliti: ${p.cleanBurrachi}`}
-                        />
-                      )}
-                      {p.semiCleanBurrachi > 0 && (
-                        <div
-                          style={{ width: `${semiPct}%` }}
-                          className="h-full bg-cyan-400"
-                          title={`Semipuliti: ${p.semiCleanBurrachi}`}
-                        />
-                      )}
-                      {p.dirtyBurrachi > 0 && (
-                        <div
-                          style={{ width: `${dirtyPct}%` }}
-                          className="h-full bg-orange-400 rounded-r-sm"
-                          title={`Sporchi: ${p.dirtyBurrachi}`}
-                        />
-                      )}
+                    <div className="space-y-1.5">
+                      <div className="h-3 w-full bg-emerald-900/60 rounded-full p-0.5 border border-emerald-700/50 flex overflow-hidden">
+                        {p.cleanBurrachi > 0 && (
+                          <div
+                            style={{ width: `${cleanPct}%` }}
+                            className="h-full bg-amber-400 rounded-l-full"
+                            title={`Puliti: ${p.cleanBurrachi}`}
+                          />
+                        )}
+                        {p.semiCleanBurrachi > 0 && (
+                          <div
+                            style={{ width: `${semiPct}%` }}
+                            className="h-full bg-cyan-400"
+                            title={`Semipuliti: ${p.semiCleanBurrachi}`}
+                          />
+                        )}
+                        {p.dirtyBurrachi > 0 && (
+                          <div
+                            style={{ width: `${dirtyPct}%` }}
+                            className="h-full bg-orange-400 rounded-r-full"
+                            title={`Sporchi: ${p.dirtyBurrachi}`}
+                          />
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 text-[10px]">
+                        {p.cleanBurrachi > 0 && (
+                          <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-400/30 font-medium">
+                            💎 {p.cleanBurrachi} Puliti
+                          </span>
+                        )}
+                        {p.semiCleanBurrachi > 0 && (
+                          <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-medium">
+                            🃏 {p.semiCleanBurrachi} Semi
+                          </span>
+                        )}
+                        {p.dirtyBurrachi > 0 && (
+                          <span className="px-2 py-0.5 rounded-md bg-orange-500/15 text-orange-300 border border-orange-400/30 font-medium">
+                            ♠ {p.dirtyBurrachi} Sporchi
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <div className="h-4 w-full bg-emerald-950 rounded-lg border border-emerald-800/40 flex items-center justify-center text-[10px] text-emerald-500">
+                    <div className="h-6 w-full bg-emerald-950/80 rounded-lg border border-emerald-800/40 flex items-center justify-center text-[10px] text-emerald-500">
                       Nessun burraco registrato finora
                     </div>
                   )}
@@ -285,53 +302,142 @@ export default function StatsCharts({ stats, selectedPlayerName, onSelectPlayer 
 
           {currentPlayerObj.scoresHistory && currentPlayerObj.scoresHistory.length > 1 ? (
             <div>
-              {/* Grafico SVG Responsivo con Curva Andamento */}
-              <div className="h-44 w-full bg-emerald-950/90 rounded-xl p-3 border border-emerald-800/60 flex flex-col justify-between">
-                <svg className="w-full h-full overflow-visible" viewBox="0 0 300 120" preserveAspectRatio="none">
+              {/* Grafico SVG Responsivo Proporzionato con Curva Andamento Morbida */}
+              <div className="w-full bg-emerald-950/90 rounded-xl p-3 border border-emerald-800/60 flex flex-col justify-between">
+                <svg className="w-full h-48 sm:h-56 overflow-visible" viewBox="0 0 600 220">
                   <defs>
                     <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.4" />
+                      <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.45" />
                       <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.0" />
                     </linearGradient>
                   </defs>
 
-                  {/* Linee guida orizzontali */}
-                  <line x1="0" y1="20" x2="300" y2="20" stroke="#064e3b" strokeDasharray="3 3" />
-                  <line x1="0" y1="60" x2="300" y2="60" stroke="#064e3b" strokeDasharray="3 3" />
-                  <line x1="0" y1="100" x2="300" y2="100" stroke="#064e3b" strokeDasharray="3 3" />
+                  {/* Linee guida orizzontali di riferimento */}
+                  <line x1="30" y1="45" x2="570" y2="45" stroke="#064e3b" strokeDasharray="3 3" />
+                  <line x1="30" y1="105" x2="570" y2="105" stroke="#064e3b" strokeDasharray="3 3" />
+                  <line x1="30" y1="165" x2="570" y2="165" stroke="#064e3b" strokeDasharray="3 3" />
 
                   {(() => {
                     const scores = currentPlayerObj.scoresHistory;
                     const min = Math.min(0, ...scores);
                     const max = Math.max(100, ...scores);
-                    const range = max - min || 1;
+                    const range = (max - min) || 1;
+
+                    // Margini protetti in modo che punti e testi non tocchino mai i bordi
+                    const padLeft = 45;
+                    const padRight = 45;
+                    const padTop = 35;
+                    const padBottom = 42;
+                    const plotWidth = 600 - padLeft - padRight;
+                    const plotHeight = 220 - padTop - padBottom;
 
                     const points = scores.map((val, i) => {
-                      const x = (i / (scores.length - 1)) * 300;
-                      const y = 110 - ((val - min) / range) * 90;
+                      const x = padLeft + (scores.length > 1 ? (i / (scores.length - 1)) * plotWidth : plotWidth / 2);
+                      const y = padTop + (1 - ((val - min) / range)) * plotHeight;
                       return { x, y, val };
                     });
 
-                    const pathD = points.reduce((acc, p, i) => {
-                      return i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
-                    }, '');
+                    // Curva cubica morbida (Bezier) tra i punti
+                    let pathD = `M ${points[0].x} ${points[0].y}`;
+                    for (let i = 0; i < points.length - 1; i++) {
+                      const p0 = points[i];
+                      const p1 = points[i + 1];
+                      const cp1x = p0.x + (p1.x - p0.x) / 2;
+                      const cp1y = p0.y;
+                      const cp2x = p0.x + (p1.x - p0.x) / 2;
+                      const cp2y = p1.y;
+                      pathD += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
+                    }
 
-                    const areaD = `${pathD} L 300 115 L 0 115 Z`;
+                    const bottomY = padTop + plotHeight;
+                    const areaD = `${pathD} L ${points[points.length - 1].x} ${bottomY} L ${points[0].x} ${bottomY} Z`;
+
+                    // Linea dello zero (in caso di punteggi negativi)
+                    const hasNegative = min < 0;
+                    const zeroY = hasNegative ? padTop + (1 - ((0 - min) / range)) * plotHeight : null;
 
                     return (
                       <>
-                        <path d={areaD} fill="url(#trendGrad)" />
-                        <path d={pathD} fill="none" stroke="#fbbf24" strokeWidth="2.5" />
-                        {points.map((p, i) => (
-                          <g key={i}>
-                            <circle cx={p.x} cy={p.y} r="3.5" fill="#f59e0b" stroke="#0b291e" strokeWidth="1.5" />
-                            {i === points.length - 1 && (
-                              <text x={p.x - 10} y={p.y - 8} fill="#fef08a" fontSize="9" fontWeight="bold">
-                                {p.val} pt
-                              </text>
-                            )}
+                        {/* Linea di base 0 pt se ci sono mani negative */}
+                        {hasNegative && (
+                          <g>
+                            <line
+                              x1="25"
+                              y1={zeroY}
+                              x2="575"
+                              y2={zeroY}
+                              stroke="#f43f5e"
+                              strokeWidth="1.5"
+                              strokeDasharray="4 3"
+                              opacity="0.75"
+                            />
+                            <text
+                              x="38"
+                              y={zeroY - 4}
+                              fill="#f43f5e"
+                              fontSize="9"
+                              fontWeight="bold"
+                            >
+                              0 pt (Pareggio)
+                            </text>
                           </g>
-                        ))}
+                        )}
+
+                        {/* Sfumatura area sottostante */}
+                        <path d={areaD} fill="url(#trendGrad)" />
+
+                        {/* Tracciato curva principale */}
+                        <path
+                          d={pathD}
+                          fill="none"
+                          stroke="#fbbf24"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+
+                        {/* Punti e valori */}
+                        {points.map((p, i) => {
+                          const isNeg = p.val < 0;
+                          const isMax = p.val === Math.max(...scores);
+                          return (
+                            <g key={i}>
+                              {/* Cerchio del punto */}
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r={isMax ? "5.5" : "4.5"}
+                                fill={isNeg ? "#f43f5e" : "#fbbf24"}
+                                stroke="#022c22"
+                                strokeWidth="2.5"
+                              />
+
+                              {/* Etichetta punteggio proporzionata */}
+                              <text
+                                x={p.x}
+                                y={isNeg ? p.y + 16 : p.y - 9}
+                                fill={isNeg ? "#fca5a5" : isMax ? "#fef08a" : "#ffffff"}
+                                fontSize="10"
+                                fontWeight="bold"
+                                textAnchor="middle"
+                              >
+                                {p.val > 0 ? `+${p.val}` : `${p.val}`} pt
+                              </text>
+
+                              {/* Indicatore Mano */}
+                              <text
+                                x={p.x}
+                                y="210"
+                                fill="#6ee7b7"
+                                fontSize="9"
+                                textAnchor="middle"
+                                opacity="0.8"
+                              >
+                                Mano {i + 1}
+                              </text>
+                            </g>
+                          );
+                        })}
                       </>
                     );
                   })()}
