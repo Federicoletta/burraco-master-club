@@ -75,27 +75,25 @@ export default function Header({
     <header className="felt-card border-b border-amber-500/20 px-2 sm:px-4 md:px-6 py-2 sm:py-2.5 sticky top-0 z-30 shadow-lg w-full">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3 w-full">
         
-        {/* Logo e Titolo (flessibile e non ruba mai spazio ai tasti) */}
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shadow-amber-900/40 text-emerald-950 font-black text-sm sm:text-base select-none shrink-0">
+        {/* Logo e Titolo (shrink-0 per non essere MAI schiacciato o troncato) */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shadow-amber-900/40 text-emerald-950 font-black text-sm sm:text-base select-none shrink-0">
             ♠
           </div>
-          <div className="min-w-0 truncate">
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-sm sm:text-base md:text-xl font-black tracking-tight text-white m-0 whitespace-nowrap">
-                Burraco<span className="text-amber-400 font-serif ml-0.5">Score</span>
-              </h1>
-            </div>
-            <p className="hidden lg:block text-xs text-emerald-300/80 m-0 truncate">
+          <div className="shrink-0">
+            <h1 className="text-sm sm:text-base md:text-lg font-black tracking-tight text-white m-0 whitespace-nowrap">
+              Burraco<span className="text-amber-400 font-serif ml-0.5">Score</span>
+            </h1>
+            <p className="hidden md:block text-[11px] text-emerald-300/80 m-0 whitespace-nowrap">
               {hasActiveGame ? 'Partita in corso' : 'Pronto per giocare'} • ♣ ♦ ♥ ♠
             </p>
           </div>
         </div>
 
-        {/* Azioni barra superiore (shrink-0 per non essere mai schiacciate o tagliate) */}
+        {/* Azioni barra superiore (ottimizzate per non affollare la barra su iPad e tablet) */}
         <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
           
-          {/* Regolamento (Sempre visibile su tutti i dispositivi) */}
+          {/* Regolamento */}
           <button
             type="button"
             onClick={onOpenRules}
@@ -106,7 +104,7 @@ export default function Header({
             <span className="hidden md:inline pointer-events-none">Regole</span>
           </button>
 
-          {/* Partecipanti (Sempre visibile su tutti i dispositivi) */}
+          {/* Partecipanti */}
           <button
             type="button"
             onClick={onOpenPlayers}
@@ -117,11 +115,11 @@ export default function Header({
             <span className="hidden md:inline pointer-events-none">Partecipanti</span>
           </button>
 
-          {/* Suoni & Musica Lounge (visibile direttamente su Desktop >= lg, su mobile e tablet è nel menu Altro) */}
+          {/* Suoni & Musica Lounge */}
           <button
             type="button"
             onClick={() => setIsAudioModalOpen(true)}
-            className={`hidden lg:flex h-9 sm:h-10 px-3 rounded-xl transition-all items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
+            className={`h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
               musicState.isPlaying
                 ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/50 shadow-sm shadow-amber-900/30 ring-1 ring-amber-400/30'
                 : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
@@ -144,47 +142,30 @@ export default function Header({
                 ) : (
                   <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0 pointer-events-none" />
                 )}
-                <span className="pointer-events-none">
+                <span className="hidden sm:inline pointer-events-none">
                   {soundOn && volume > 0 ? `Audio (${volume}%)` : 'Muto'}
                 </span>
               </>
             )}
           </button>
 
-          {/* Schermo Sempre Acceso Wake Lock (visibile su Desktop/iPad >= lg) */}
-          <button
-            type="button"
-            onClick={() => wakeLock.toggle()}
-            className={`hidden lg:flex h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
-              wakeLockState.enabled
-                ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-400/50 shadow-sm shadow-amber-900/30'
-                : 'bg-emerald-900/60 hover:bg-emerald-800 text-emerald-400/60 border-emerald-700/40'
-            }`}
-            title={wakeLockState.enabled ? "Schermo sempre acceso: ATTIVO (iPad non si spegne)" : "Schermo sempre acceso: DISATTIVATO"}
-          >
-            <Sun className={`w-4 h-4 ${wakeLockState.enabled ? 'text-amber-400' : 'text-emerald-500/50'}`} />
-            <span className="pointer-events-none">
-              {wakeLockState.enabled ? 'Schermo ON' : 'Schermo Auto'}
-            </span>
-          </button>
-
-          {/* Cloud DB (visibile direttamente su Desktop >= lg) */}
+          {/* Cloud DB (visibile su desktop ampi >= xl, su tablet/iPad è nel menu Altro) */}
           <button
             type="button"
             onClick={onOpenCloud}
-            className="hidden lg:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+            className="hidden xl:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title="Database Cloud Firestore & Condivisione Tavolo"
           >
             <Cloud className="w-4 h-4 text-emerald-400 shrink-0 pointer-events-none" />
             <span className="pointer-events-none">Cloud</span>
           </button>
 
-          {/* Condividi (visibile direttamente su Desktop >= lg) */}
+          {/* Condividi (visibile su desktop ampi >= xl) */}
           {hasActiveGame && onShareGame && (
             <button
               type="button"
               onClick={onShareGame}
-              className="hidden lg:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-800/70 hover:bg-emerald-700 text-emerald-200 border border-emerald-600/50 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+              className="hidden xl:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-800/70 hover:bg-emerald-700 text-emerald-200 border border-emerald-600/50 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
               title="Condividi punteggio su WhatsApp"
             >
               <Share2 className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
@@ -192,24 +173,24 @@ export default function Header({
             </button>
           )}
 
-          {/* Storico (visibile direttamente su Desktop >= lg) */}
+          {/* Storico (visibile su desktop ampi >= xl) */}
           <button
             type="button"
             onClick={onOpenHistory}
-            className="hidden lg:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+            className="hidden xl:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title="Archivio partite passate"
           >
             <History className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
             <span className="pointer-events-none">Storico</span>
           </button>
 
-          {/* Menu Altro "⋮" (visibile su Mobile e Tablet < lg) */}
-          <div className="relative lg:hidden">
+          {/* Menu Altro "⋮" (visibile su Mobile e Tablet / iPad < xl) */}
+          <div className="relative xl:hidden">
             <button
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="h-9 sm:h-10 px-2.5 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-              title="Altre opzioni (Suoni, Cloud, Storico, Condivisione)"
+              title="Altre opzioni (Cloud, Storico, Condivisione, Schermo)"
             >
               <MoreVertical className="w-4 h-4 text-amber-300 pointer-events-none" />
               <span className="hidden sm:inline text-xs font-semibold text-emerald-200 pointer-events-none">Altro</span>
