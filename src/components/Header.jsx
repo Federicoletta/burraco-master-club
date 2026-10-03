@@ -5,13 +5,9 @@ import {
   History, 
   Share2, 
   Cloud, 
-  Volume2, 
-  Volume1,
-  VolumeX, 
   BookOpen, 
   Settings,
   Music,
-  Disc,
   Sun
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
@@ -128,41 +124,7 @@ export default function Header({
             <span className="hidden md:inline pointer-events-none">Partecipanti</span>
           </button>
 
-          {/* Suoni & Musica Lounge */}
-          <button
-            type="button"
-            onClick={() => setIsAudioModalOpen(true)}
-            className={`h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
-              musicState.isPlaying
-                ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/50 shadow-sm shadow-amber-900/30 ring-1 ring-amber-400/30'
-                : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
-            }`}
-            title="Regola volume ed effetti sonori e musica di sottofondo"
-          >
-            {musicState.isPlaying ? (
-              <span className="flex items-center gap-1.5 text-amber-300 pointer-events-none">
-                <Music className="w-4 h-4 animate-bounce text-amber-300" style={{ animationDuration: '2.5s' }} />
-                <span className="hidden sm:inline">Musica</span>
-              </span>
-            ) : (
-              <>
-                {soundOn && volume > 0 ? (
-                  volume > 50 ? (
-                    <Volume2 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-                  ) : (
-                    <Volume1 className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-                  )
-                ) : (
-                  <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0 pointer-events-none" />
-                )}
-                <span className="hidden sm:inline pointer-events-none">
-                  {soundOn && volume > 0 ? `Audio` : 'Muto'}
-                </span>
-              </>
-            )}
-          </button>
-
-          {/* Menu Impostazioni (Ingranaggio) con Regolamento, Cloud, Schermo e Opzioni */}
+          {/* Menu Impostazioni (Ingranaggio) con Regolamento, Musica, Cloud, Schermo */}
           <div className="relative">
             <button
               type="button"
@@ -172,7 +134,7 @@ export default function Header({
                   ? 'bg-amber-500/20 text-amber-200 border-amber-400/50 ring-1 ring-amber-400/30 shadow-md shadow-amber-950/30'
                   : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
               }`}
-              title="Impostazioni, Regole, Cloud e Schermo"
+              title="Impostazioni, Regole, Musica, Cloud e Schermo"
             >
               <Settings className={`w-4 h-4 text-amber-300 pointer-events-none transition-transform duration-200 ${isMenuOpen ? 'rotate-45 text-amber-200' : ''}`} />
               <span className="hidden md:inline pointer-events-none">Impostazioni</span>
@@ -228,23 +190,7 @@ export default function Header({
                     </span>
                   </button>
 
-                  {/* Toggle Rapido Musica Lounge */}
-                  <button
-                    onClick={() => {
-                      bgMusic.toggle();
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Music className={`w-4 h-4 shrink-0 ${musicState.isPlaying ? 'text-amber-400 animate-pulse' : 'text-emerald-400/70'}`} />
-                      <span>Musica Lounge</span>
-                    </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${musicState.isPlaying ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'}`}>
-                      {musicState.isPlaying ? '▶ ON' : 'PAUSA'}
-                    </span>
-                  </button>
-
-                  {/* Volume & Audio Completo */}
+                  {/* Musica (Unico tasto per musica e volumi) */}
                   <button
                     onClick={() => {
                       setIsMenuOpen(false);
@@ -253,15 +199,14 @@ export default function Header({
                     className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
                   >
                     <span className="flex items-center gap-2.5">
-                      {soundOn && volume > 0 ? (
-                        <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
-                      ) : (
-                        <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0" />
-                      )}
-                      <span>Regola Volumi</span>
+                      <Music className={`w-4 h-4 shrink-0 ${musicState.isPlaying ? 'text-amber-400 animate-pulse' : 'text-emerald-400/70'}`} />
+                      <div>
+                        <div className="text-white font-bold">Musica</div>
+                        <div className="text-[10px] text-emerald-300/70 font-normal">Brani d'atmosfera e volume</div>
+                      </div>
                     </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${soundOn && volume > 0 ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-white/10 text-white/50'}`}>
-                      {soundOn && volume > 0 ? `${volume}%` : 'OFF'}
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${musicState.isPlaying ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'}`}>
+                      {musicState.isPlaying ? '▶ ON' : 'OFF'}
                     </span>
                   </button>
 
