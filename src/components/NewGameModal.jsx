@@ -20,7 +20,7 @@ export default function NewGameModal({
   const [p2A, setP2A] = useState('');
   const [p2B, setP2B] = useState('');
 
-  const [targetScore, setTargetScore] = useState(2005);
+  const [targetScore, setTargetScore] = useState(2505);
   const [customTarget, setCustomTarget] = useState('');
   const [allowSemipulito, setAllowSemipulito] = useState(true);
 
@@ -33,6 +33,7 @@ export default function NewGameModal({
       setP1B('');
       setP2A('');
       setP2B('');
+      setTargetScore(2505);
       setCustomTarget('');
     }
   }, [isOpen]);
@@ -65,7 +66,7 @@ export default function NewGameModal({
       createdAt: new Date().toISOString(),
       mode,
       allowSemipulito,
-      targetScore: finalTarget > 0 ? finalTarget : 2005,
+      targetScore: finalTarget > 0 ? finalTarget : 2505,
       team1: {
         name: finalTeam1Name,
         players: t1Players,
@@ -278,7 +279,7 @@ export default function NewGameModal({
             <label className="block text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">
               Punteggio per la Vittoria
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
               {DEFAULT_TARGET_SCORES.map(item => (
                 <button
                   key={item.value}
@@ -287,13 +288,18 @@ export default function NewGameModal({
                     setTargetScore(item.value);
                     setCustomTarget('');
                   }}
-                  className={`py-2 px-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
                     targetScore === item.value && !customTarget
-                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm'
+                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm ring-1 ring-amber-400/30'
                       : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
                   }`}
                 >
-                  {item.value} pt
+                  <span className="text-xs sm:text-sm font-bold">{item.value} pt</span>
+                  {item.desc && (
+                    <span className="text-[10px] text-emerald-400/80 font-normal">
+                      {item.desc}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

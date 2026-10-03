@@ -85,7 +85,7 @@ export default function ScoreBoard({
 }) {
   if (!activeGame) return null;
 
-  const targetScore = activeGame.targetScore || 2005;
+  const targetScore = activeGame.targetScore || 2505;
 
   const [wakeLockState, setWakeLockState] = useState({
     enabled: wakeLock.enabled,

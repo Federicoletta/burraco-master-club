@@ -18,10 +18,11 @@ export const HONOR_POINTS = {
 };
 
 export const DEFAULT_TARGET_SCORES = [
-  { label: '2005 Punti (Classico)', value: 2005 },
-  { label: '1005 Punti (Partita Rapida)', value: 1005 },
-  { label: '1505 Punti (Media)', value: 1505 },
-  { label: '3005 Punti (Lunga)', value: 3005 },
+  { label: '1005 Punti (Veloce)', desc: 'Veloce', value: 1005 },
+  { label: '1505 Punti (Media)', desc: 'Media', value: 1505 },
+  { label: '2005 Punti (Classica)', desc: 'Classica', value: 2005 },
+  { label: '2505 Punti (Predefinito)', desc: 'Predefinito', value: 2505 },
+  { label: '3005 Punti (Lunga)', desc: 'Lunga', value: 3005 },
 ];
 
 /**

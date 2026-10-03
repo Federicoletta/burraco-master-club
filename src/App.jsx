@@ -99,7 +99,7 @@ export default function App() {
           createdAt: new Date().toISOString(),
           mode: 'pairs',
           allowSemipulito: true,
-          targetScore: 2005,
+          targetScore: 2505,
           team1: {
             name: 'Coppia 1',
             players: [],
@@ -263,7 +263,7 @@ export default function App() {
       t2Total += r.team2Score || 0;
     });
 
-    const target = activeGame.targetScore || 2005;
+    const target = activeGame.targetScore || 2505;
     let winner = null;
     let shouldCelebrate = false;
 
@@ -424,7 +424,7 @@ export default function App() {
         createdAt: new Date().toISOString(),
         mode: 'pairs',
         allowSemipulito: true,
-        targetScore: 2005,
+        targetScore: 2505,
         team1: {
           name: 'Coppia 1',
           players: [],
