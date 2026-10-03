@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
-import { PlusCircle, Trophy, Edit2, Trash2, Share2, AlertCircle, Info, ChevronDown, BookOpen } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { PlusCircle, Trophy, Edit2, Trash2, Share2, AlertCircle, Info, ChevronDown, BookOpen, Sun } from 'lucide-react';
 import { getGamesHistory, calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
+import { wakeLock } from '../utils/wakeLock';
 
 // Componente per renderizzare le pillole/chip degli eventi di gioco (Burrachi, Chiusura, Pozzetto)
 function RoundEventChips({ details }) {
@@ -72,6 +73,17 @@ export default function ScoreBoard({
   if (!activeGame) return null;
 
   const targetScore = activeGame.targetScore || 2005;
+
+  const [wakeLockState, setWakeLockState] = useState({
+    enabled: wakeLock.enabled,
+    active: wakeLock.active
+  });
+
+  useEffect(() => {
+    return wakeLock.subscribe((state) => {
+      setWakeLockState({ ...state });
+    });
+  }, []);
 
   // Calcola titoli dei giocatori della partita
   const titlesMap = useMemo(() => {
@@ -310,13 +322,30 @@ export default function ScoreBoard({
 
       {/* AZIONI VELOCI DELLA PARTITA */}
       <div className="py-1.5 sm:py-2 px-3 rounded-xl bg-emerald-950/75 border border-emerald-800/40 backdrop-blur-md flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shadow-sm">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="px-2.5 py-1 rounded-lg bg-emerald-900/60 text-xs font-semibold text-emerald-200 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
             <span>Mano in corso: <strong className="text-amber-300">#{activeGame.rounds.length + 1}</strong></span>
             <span className="text-emerald-600">•</span>
             <span className="text-emerald-400/80 font-normal">{activeGame.rounds.length} {activeGame.rounds.length === 1 ? 'registrata' : 'registrate'}</span>
           </div>
+
+          {/* Indicatore & Controllo Rapido Blocco Schermo iPad */}
+          <button
+            type="button"
+            onClick={() => wakeLock.toggle()}
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
+              wakeLockState.enabled
+                ? 'bg-amber-400/15 text-amber-300 border-amber-400/35 hover:bg-amber-400/25 shadow-xs'
+                : 'bg-emerald-900/40 text-emerald-400/60 border-emerald-800/40 hover:bg-emerald-900/70'
+            }`}
+            title="Tocca per attivare o disattivare il blocco spegnimento schermo iPad"
+          >
+            <Sun className={`w-3.5 h-3.5 ${wakeLockState.enabled ? 'text-amber-400' : 'text-emerald-500/50'}`} />
+            <span>
+              {wakeLockState.enabled ? 'Schermo Attivo' : 'Standby Auto'}
+            </span>
+          </button>
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap justify-end">
