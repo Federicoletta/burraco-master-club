@@ -89,61 +89,61 @@ export default function Header({
         {/* Azioni barra superiore */}
         <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
           
-          {/* Condividi Punteggio (visibile durante una partita) */}
+          {/* Condividi Punteggio (visibile su tablet e desktop >= md) */}
           {hasActiveGame && onShareGame && (
             <button
               type="button"
               onClick={onShareGame}
-              className="h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl bg-emerald-800/70 hover:bg-emerald-700 text-emerald-200 border border-emerald-600/50 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+              className="hidden md:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-800/70 hover:bg-emerald-700 text-emerald-200 border border-emerald-600/50 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
               title="Condividi punteggio su WhatsApp"
             >
               <Share2 className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
-              <span className="hidden md:inline pointer-events-none">Condividi</span>
+              <span className="pointer-events-none">Condividi</span>
             </button>
           )}
 
-          {/* Archivio Partite */}
+          {/* Archivio Partite (visibile su tablet e desktop >= md) */}
           <button
             type="button"
             onClick={onOpenHistory}
-            className="h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+            className="hidden md:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title="Archivio partite passate"
           >
             <History className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-            <span className="hidden md:inline pointer-events-none">Archivio</span>
+            <span className="pointer-events-none">Archivio</span>
           </button>
 
-          {/* Partecipanti */}
+          {/* Partecipanti (visibile su tablet e desktop >= md) */}
           <button
             type="button"
             onClick={onOpenPlayers}
-            className="h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+            className="hidden md:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title="Partecipanti & Statistiche"
           >
             <Users className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-            <span className="hidden md:inline pointer-events-none">Partecipanti</span>
+            <span className="pointer-events-none">Partecipanti</span>
           </button>
 
-          {/* Menu Impostazioni (Ingranaggio) con Regolamento, Musica, Cloud, Schermo */}
+          {/* Menu Impostazioni (Ingranaggio) con Regolamento, Musica, Cloud, Schermo e azioni su mobile */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
+              className={`h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
                 isMenuOpen
                   ? 'bg-amber-500/20 text-amber-200 border-amber-400/50 ring-1 ring-amber-400/30 shadow-md shadow-amber-950/30'
                   : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
               }`}
-              title="Impostazioni, Regole, Musica, Cloud e Schermo"
+              title="Menu & Impostazioni"
             >
               <Settings className={`w-4 h-4 text-amber-300 pointer-events-none transition-transform duration-200 ${isMenuOpen ? 'rotate-45 text-amber-200' : ''}`} />
-              <span className="hidden md:inline pointer-events-none">Impostazioni</span>
+              <span className="hidden sm:inline pointer-events-none">Menu</span>
             </button>
 
-            {/* Menu a tendina Impostazioni */}
+            {/* Menu a tendina Impostazioni & Funzioni */}
             {isMenuOpen && (
               <>
-                {/* Overlay trasparente per chiudere cliccando fuori - NESSUNA sfocatura e NESSUN bug alla barra */}
+                {/* Overlay trasparente per chiudere cliccando fuori */}
                 <div 
                   className="fixed inset-0 z-40 bg-transparent"
                   onClick={() => setIsMenuOpen(false)}
@@ -155,9 +155,57 @@ export default function Header({
                   <div className="px-3 py-1.5 border-b border-emerald-800/60 mb-1 flex items-center justify-between text-[11px] font-bold text-amber-400 tracking-wider uppercase">
                     <span className="flex items-center gap-1.5">
                       <Settings className="w-3.5 h-3.5 text-amber-400" />
-                      Impostazioni & Regole
+                      Menu & Opzioni
                     </span>
                   </div>
+
+                  {/* Voci rapide visibili SOLO su smartphone (perché nascoste dalla barra principale) */}
+                  {hasActiveGame && onShareGame && (
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onShareGame();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer md:hidden"
+                    >
+                      <Share2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                      <div>
+                        <div className="text-white font-bold">Condividi Punteggio</div>
+                        <div className="text-[10px] text-emerald-300/70 font-normal">Invia riepilogo su WhatsApp</div>
+                      </div>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenHistory();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer md:hidden"
+                  >
+                    <History className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <div className="text-white font-bold">Archivio Partite</div>
+                      <div className="text-[10px] text-emerald-300/70 font-normal">Storico partite passate</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenPlayers();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer md:hidden"
+                  >
+                    <Users className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <div className="text-white font-bold">Partecipanti</div>
+                      <div className="text-[10px] text-emerald-300/70 font-normal">Giocatori e statistiche</div>
+                    </div>
+                  </button>
+
+                  {/* Separatore su mobile se ci sono le voci sopra */}
+                  <div className="border-t border-emerald-800/40 my-1 md:hidden" />
 
                   {/* Regolamento del Burraco */}
                   <button
