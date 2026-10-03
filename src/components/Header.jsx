@@ -9,7 +9,7 @@ import {
   Volume1,
   VolumeX, 
   BookOpen, 
-  MoreVertical,
+  Settings,
   Music,
   Disc,
   Sun
@@ -90,25 +90,38 @@ export default function Header({
           </div>
         </div>
 
-        {/* Azioni barra superiore (ottimizzate per non affollare la barra su iPad e tablet) */}
+        {/* Azioni barra superiore */}
         <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
           
-          {/* Regolamento */}
+          {/* Condividi Punteggio (visibile durante una partita) */}
+          {hasActiveGame && onShareGame && (
+            <button
+              type="button"
+              onClick={onShareGame}
+              className="h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl bg-emerald-800/70 hover:bg-emerald-700 text-emerald-200 border border-emerald-600/50 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+              title="Condividi punteggio su WhatsApp"
+            >
+              <Share2 className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
+              <span className="hidden md:inline pointer-events-none">Condividi</span>
+            </button>
+          )}
+
+          {/* Archivio Partite */}
           <button
             type="button"
-            onClick={onOpenRules}
-            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-            title="Regolamento del Burraco e Punteggi Carte"
+            onClick={onOpenHistory}
+            className="h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+            title="Archivio partite passate"
           >
-            <BookOpen className="w-4 h-4 text-amber-300 shrink-0 pointer-events-none" />
-            <span className="hidden md:inline pointer-events-none">Regole</span>
+            <History className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+            <span className="hidden md:inline pointer-events-none">Archivio</span>
           </button>
 
           {/* Partecipanti */}
           <button
             type="button"
             onClick={onOpenPlayers}
-            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+            className="h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
             title="Partecipanti & Statistiche"
           >
             <Users className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
@@ -119,7 +132,7 @@ export default function Header({
           <button
             type="button"
             onClick={() => setIsAudioModalOpen(true)}
-            className={`h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
+            className={`h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
               musicState.isPlaying
                 ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/50 shadow-sm shadow-amber-900/30 ring-1 ring-amber-400/30'
                 : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
@@ -129,7 +142,7 @@ export default function Header({
             {musicState.isPlaying ? (
               <span className="flex items-center gap-1.5 text-amber-300 pointer-events-none">
                 <Music className="w-4 h-4 animate-bounce text-amber-300" style={{ animationDuration: '2.5s' }} />
-                <span>Musica ON</span>
+                <span className="hidden sm:inline">Musica</span>
               </span>
             ) : (
               <>
@@ -143,78 +156,88 @@ export default function Header({
                   <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0 pointer-events-none" />
                 )}
                 <span className="hidden sm:inline pointer-events-none">
-                  {soundOn && volume > 0 ? `Audio (${volume}%)` : 'Muto'}
+                  {soundOn && volume > 0 ? `Audio` : 'Muto'}
                 </span>
               </>
             )}
           </button>
 
-          {/* Cloud DB (visibile su desktop ampi >= xl, su tablet/iPad è nel menu Altro) */}
-          <button
-            type="button"
-            onClick={onOpenCloud}
-            className="hidden xl:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-            title="Database Cloud Firestore & Condivisione Tavolo"
-          >
-            <Cloud className="w-4 h-4 text-emerald-400 shrink-0 pointer-events-none" />
-            <span className="pointer-events-none">Cloud</span>
-          </button>
-
-          {/* Condividi (visibile su desktop ampi >= xl) */}
-          {hasActiveGame && onShareGame && (
-            <button
-              type="button"
-              onClick={onShareGame}
-              className="hidden xl:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-800/70 hover:bg-emerald-700 text-emerald-200 border border-emerald-600/50 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-              title="Condividi punteggio su WhatsApp"
-            >
-              <Share2 className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
-              <span className="pointer-events-none">Condividi</span>
-            </button>
-          )}
-
-          {/* Storico (visibile su desktop ampi >= xl) */}
-          <button
-            type="button"
-            onClick={onOpenHistory}
-            className="hidden xl:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-            title="Archivio partite passate"
-          >
-            <History className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-            <span className="pointer-events-none">Storico</span>
-          </button>
-
-          {/* Menu Altro "⋮" (visibile su Mobile e Tablet / iPad < xl) */}
-          <div className="relative xl:hidden">
+          {/* Menu Impostazioni (Ingranaggio) con Regolamento, Cloud, Schermo e Opzioni */}
+          <div className="relative">
             <button
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="h-9 sm:h-10 px-2.5 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-              title="Altre opzioni (Cloud, Storico, Condivisione, Schermo)"
+              className={`h-9 sm:h-10 px-2 sm:px-2.5 md:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
+                isMenuOpen
+                  ? 'bg-amber-500/20 text-amber-200 border-amber-400/50 ring-1 ring-amber-400/30 shadow-md shadow-amber-950/30'
+                  : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
+              }`}
+              title="Impostazioni, Regole, Cloud e Schermo"
             >
-              <MoreVertical className="w-4 h-4 text-amber-300 pointer-events-none" />
-              <span className="hidden sm:inline text-xs font-semibold text-emerald-200 pointer-events-none">Altro</span>
+              <Settings className={`w-4 h-4 text-amber-300 pointer-events-none transition-transform duration-200 ${isMenuOpen ? 'rotate-45 text-amber-200' : ''}`} />
+              <span className="hidden md:inline pointer-events-none">Impostazioni</span>
             </button>
 
-            {/* Menu a tendina Mobile / Tablet */}
+            {/* Menu a tendina Impostazioni */}
             {isMenuOpen && (
               <>
+                {/* Overlay trasparente per chiudere cliccando fuori - NESSUNA sfocatura e NESSUN bug alla barra */}
                 <div 
-                  className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs"
+                  className="fixed inset-0 z-40 bg-transparent"
                   onClick={() => setIsMenuOpen(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-emerald-950 border border-amber-500/30 shadow-2xl p-1.5 z-50 text-white animate-in fade-in zoom-in-95 duration-150">
+                
+                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl bg-emerald-950/95 backdrop-blur-md border border-amber-500/40 shadow-2xl p-2 z-50 text-white animate-in fade-in zoom-in-95 duration-150">
                   
+                  {/* Intestazione del menu */}
+                  <div className="px-3 py-1.5 border-b border-emerald-800/60 mb-1 flex items-center justify-between text-[11px] font-bold text-amber-400 tracking-wider uppercase">
+                    <span className="flex items-center gap-1.5">
+                      <Settings className="w-3.5 h-3.5 text-amber-400" />
+                      Impostazioni & Regole
+                    </span>
+                  </div>
+
+                  {/* Regolamento del Burraco */}
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenRules();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                  >
+                    <BookOpen className="w-4 h-4 text-amber-300 shrink-0" />
+                    <div>
+                      <div className="text-white font-bold">Regole del Burraco</div>
+                      <div className="text-[10px] text-emerald-300/70 font-normal">Punteggi carte, combinazioni, chiusure</div>
+                    </div>
+                  </button>
+
+                  {/* Schermo Sempre Acceso (iPad / Mobile) */}
+                  <button
+                    onClick={() => {
+                      wakeLock.toggle();
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Sun className={`w-4 h-4 shrink-0 ${wakeLockState.enabled ? 'text-amber-400' : 'text-emerald-400/60'}`} />
+                      <span>Schermo Sempre Acceso</span>
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${wakeLockState.enabled ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'}`}>
+                      {wakeLockState.enabled ? '☀️ ATTIVO' : 'OFF'}
+                    </span>
+                  </button>
+
                   {/* Toggle Rapido Musica Lounge */}
                   <button
                     onClick={() => {
                       bgMusic.toggle();
                     }}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
                   >
                     <span className="flex items-center gap-2.5">
-                      <Music className={`w-4 h-4 ${musicState.isPlaying ? 'text-amber-400 animate-pulse' : 'text-emerald-400/70'}`} />
-                      Musica Lounge
+                      <Music className={`w-4 h-4 shrink-0 ${musicState.isPlaying ? 'text-amber-400 animate-pulse' : 'text-emerald-400/70'}`} />
+                      <span>Musica Lounge</span>
                     </span>
                     <span className={`text-[10px] px-2 py-0.5 rounded font-black ${musicState.isPlaying ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'}`}>
                       {musicState.isPlaying ? '▶ ON' : 'PAUSA'}
@@ -227,74 +250,35 @@ export default function Header({
                       setIsMenuOpen(false);
                       setIsAudioModalOpen(true);
                     }}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
                   >
                     <span className="flex items-center gap-2.5">
                       {soundOn && volume > 0 ? (
-                        <Volume2 className="w-4 h-4 text-amber-400" />
+                        <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
                       ) : (
-                        <VolumeX className="w-4 h-4 text-emerald-400/50" />
+                        <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0" />
                       )}
-                      Regola Volumi
+                      <span>Regola Volumi</span>
                     </span>
                     <span className={`text-[10px] px-2 py-0.5 rounded font-black ${soundOn && volume > 0 ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-white/10 text-white/50'}`}>
                       {soundOn && volume > 0 ? `${volume}%` : 'OFF'}
                     </span>
                   </button>
 
-                  {/* Schermo Sempre Acceso (iPad / Mobile) */}
-                  <button
-                    onClick={() => {
-                      wakeLock.toggle();
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Sun className={`w-4 h-4 ${wakeLockState.enabled ? 'text-amber-400' : 'text-emerald-400/60'}`} />
-                      Schermo Sempre Acceso
-                    </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${wakeLockState.enabled ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'}`}>
-                      {wakeLockState.enabled ? '☀️ ATTIVO' : 'OFF'}
-                    </span>
-                  </button>
-
-                  {/* Storico Partite */}
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onOpenHistory();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                  >
-                    <History className="w-4 h-4 text-amber-400" />
-                    <span>Archivio Partite</span>
-                  </button>
-
-                  {/* Cloud Database */}
+                  {/* Cloud Database & Condivisione Tavolo */}
                   <button
                     onClick={() => {
                       setIsMenuOpen(false);
                       onOpenCloud();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer border-t border-emerald-800/60 mt-1 pt-2"
                   >
-                    <Cloud className="w-4 h-4 text-emerald-400" />
-                    <span>Database Cloud & Tavolo</span>
+                    <Cloud className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <div className="text-white font-bold">Database Cloud & Tavolo</div>
+                      <div className="text-[10px] text-emerald-300/70 font-normal">Sincronizzazione partite online</div>
+                    </div>
                   </button>
-
-                  {/* Condividi su WhatsApp */}
-                  {hasActiveGame && onShareGame && (
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onShareGame();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer border-t border-emerald-800/50 mt-1 pt-2"
-                    >
-                      <Share2 className="w-4 h-4 text-emerald-300" />
-                      <span>Condividi Punteggio</span>
-                    </button>
-                  )}
 
                 </div>
               </>
