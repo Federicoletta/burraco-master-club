@@ -498,7 +498,14 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       />
 
       {/* Contenuto Principale */}
-      <main className="flex-1 max-w-5xl w-full mx-auto p-2.5 sm:p-4 md:p-5">
+      <main 
+        className="flex-1 max-w-5xl w-full mx-auto p-2.5 sm:p-4 md:p-5"
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
+          paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 0.625rem)',
+          paddingRight: 'calc(env(safe-area-inset-right, 0px) + 0.625rem)',
+        }}
+      >
         
         {/* Banner Stato Tavolo Sincronizzato Cloud */}
         {activeGame && (

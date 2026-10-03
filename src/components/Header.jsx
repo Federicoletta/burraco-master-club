@@ -68,7 +68,14 @@ export default function Header({
   };
 
   return (
-    <header className="felt-card border-b border-amber-500/20 px-2 sm:px-4 md:px-6 py-2 sm:py-2.5 sticky top-0 z-30 shadow-lg w-full">
+    <header 
+      className="felt-card border-b border-amber-500/20 px-2 sm:px-4 md:px-6 pb-2 sm:pb-2.5 sticky top-0 z-30 shadow-lg w-full transition-all"
+      style={{
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.625rem)',
+        paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 0.5rem)',
+        paddingRight: 'calc(env(safe-area-inset-right, 0px) + 0.5rem)',
+      }}
+    >
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3 w-full">
         
         {/* Logo e Titolo (shrink-0 per non essere MAI schiacciato o troncato) */}
