@@ -258,18 +258,31 @@ export default function App() {
     // Ricalcola totali per verificare eventuale vittoria
     let t1Total = 0;
     let t2Total = 0;
+    let t3Total = 0;
+    const isTrio = activeGame.mode === 'trio';
+
     updatedRounds.forEach(r => {
       t1Total += r.team1Score || 0;
       t2Total += r.team2Score || 0;
+      t3Total += r.team3Score || 0;
     });
 
     const target = activeGame.targetScore || 2505;
     let winner = null;
     let shouldCelebrate = false;
 
-    if (t1Total >= target || t2Total >= target) {
-      winner = t1Total >= t2Total ? 'team1' : 'team2';
-      shouldCelebrate = true;
+    if (isTrio) {
+      if (t1Total >= target || t2Total >= target || t3Total >= target) {
+        if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
+        else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
+        else winner = 'team3';
+        shouldCelebrate = true;
+      }
+    } else {
+      if (t1Total >= target || t2Total >= target) {
+        winner = t1Total >= t2Total ? 'team1' : 'team2';
+        shouldCelebrate = true;
+      }
     }
 
     const updatedGame = {
@@ -307,13 +320,14 @@ export default function App() {
   };
 
   // Aggiorna formazioni squadre e giocatori della partita attiva
-  const handleUpdateTeams = (updatedTeam1, updatedTeam2) => {
+  const handleUpdateTeams = (updatedTeam1, updatedTeam2, updatedTeam3) => {
     if (!activeGame) return;
 
     // Aggiungi eventuali nuovi partecipanti alla rubrica
     const allPlayers = [
       ...(updatedTeam1.players || []),
-      ...(updatedTeam2.players || [])
+      ...(updatedTeam2.players || []),
+      ...(updatedTeam3?.players || [])
     ].filter(Boolean);
 
     allPlayers.forEach(p => savePlayerName(p));
@@ -325,6 +339,7 @@ export default function App() {
       ...activeGame,
       team1: updatedTeam1,
       team2: updatedTeam2,
+      ...(activeGame.mode === 'trio' && updatedTeam3 ? { team3: updatedTeam3 } : {}),
     };
 
     setActiveGame(updatedGame);
@@ -335,9 +350,19 @@ export default function App() {
   // Conclude la partita e festeggia
   const handleEndGame = () => {
     if (!activeGame) return;
+    const isTrio = activeGame.mode === 'trio';
     const t1Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
     const t2Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
-    const winner = t1Total >= t2Total ? 'team1' : 'team2';
+    const t3Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
+
+    let winner = 'team1';
+    if (isTrio) {
+      if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
+      else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
+      else winner = 'team3';
+    } else {
+      winner = t1Total >= t2Total ? 'team1' : 'team2';
+    }
 
     const updatedGame = {
       ...activeGame,
@@ -373,6 +398,7 @@ export default function App() {
       targetScore: activeGame.targetScore,
       team1: activeGame.team1,
       team2: activeGame.team2,
+      ...(activeGame.mode === 'trio' ? { team3: activeGame.team3 } : {}),
       rounds: [],
       winner: null,
       isFinished: false,
@@ -453,13 +479,24 @@ export default function App() {
   // Condivisione punteggio rapida (WhatsApp / Appunti)
   const handleShareGame = () => {
     if (!activeGame) return;
+    const isTrio = activeGame.mode === 'trio';
     const t1Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
     const t2Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
+    const t3Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
 
-    const text = `🃏 Burraco Score:
+    let text;
+    if (isTrio) {
+      text = `🃏 Burraco a 3 Score:
+♦ ${activeGame.team1.name} (${(activeGame.team1.players || []).join(' & ')}): ${t1Total} pt
+♠ ${activeGame.team2.name} (${(activeGame.team2.players || []).join(' & ')}): ${t2Total} pt
+♥ ${activeGame.team3?.name || 'Giocatore 3'} (${(activeGame.team3?.players || []).join(' & ')}): ${t3Total} pt
+Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} pt)`;
+    } else {
+      text = `🃏 Burraco Score:
 ♦ ${activeGame.team1.name} (${activeGame.team1.players.join(' & ')}): ${t1Total} pt
 ♠ ${activeGame.team2.name} (${activeGame.team2.players.join(' & ')}): ${t2Total} pt
 Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} pt)`;
+    }
 
     if (navigator.share) {
       navigator.share({ title: 'Punteggio Burraco', text });
@@ -520,6 +557,12 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
                 <span className="text-amber-300 font-bold">{activeGame.team1?.name}</span>{' '}
                 <span className="text-emerald-400/80 font-normal">vs</span>{' '}
                 <span className="text-blue-300 font-bold">{activeGame.team2?.name}</span>
+                {activeGame.mode === 'trio' && (
+                  <>
+                    {' '}<span className="text-emerald-400/80 font-normal">vs</span>{' '}
+                    <span className="text-rose-300 font-bold">{activeGame.team3?.name || 'Giocatore 3'}</span>
+                  </>
+                )}
               </span>
               {isCloudJoined && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/40 shrink-0">

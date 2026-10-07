@@ -12,7 +12,7 @@ service cloud.firestore {
     // Fields:
     //   - id: string (required, 3-100 chars, immutable) - Unique game identifier
     //   - createdAt: string | timestamp (optional, max 50 chars if string, immutable)
-    //   - mode: string (required, 'pairs' | 'singles', max 20 chars) - Match mode
+    //   - mode: string (required, 'pairs' | 'singles' | 'trio', max 20 chars) - Match mode
     //   - allowSemipulito: bool (required) - Whether semipulito burraco is counted
     //   - targetScore: number (required, 100..10000) - Winning point threshold
     //   - team1: map (required, keys: ['name', 'players'])
@@ -21,8 +21,11 @@ service cloud.firestore {
     //   - team2: map (required, keys: ['name', 'players'])
     //       - name: string (1-100 chars)
     //       - players: list of strings (1-4 players, 1-100 chars each)
+    //   - team3: map (optional for pairs/singles, required for trio, keys: ['name', 'players'])
+    //       - name: string (1-100 chars)
+    //       - players: list of strings (1-4 players, 1-100 chars each)
     //   - rounds: list (required, max 100 rounds) - Match rounds history
-    //   - winner: string | null (optional, 'team1' | 'team2' | null)
+    //   - winner: string | null (optional, 'team1' | 'team2' | 'team3' | null)
     //   - isFinished: bool (required) - Whether the match has concluded
     //   - completedAt: string | timestamp (optional, max 50 chars if string)
     //   - updatedAt: timestamp | string (optional) - Server sync timestamp
@@ -76,7 +79,7 @@ service cloud.firestore {
     function isValidGame(data, gameId) {
       let allowedFields = [
         'id', 'createdAt', 'mode', 'allowSemipulito', 'targetScore',
-        'team1', 'team2', 'rounds', 'winner', 'isFinished', 'completedAt', 'updatedAt'
+        'team1', 'team2', 'team3', 'rounds', 'winner', 'isFinished', 'completedAt', 'updatedAt'
       ];
       let requiredFields = [
         'id', 'mode', 'allowSemipulito', 'targetScore', 'team1', 'team2', 'rounds', 'isFinished'
@@ -89,17 +92,18 @@ service cloud.firestore {
              data.id.size() <= 100 &&
              data.id == gameId &&
              data.mode is string &&
-             data.mode.size() <= 20 &&
+             data.mode in ['pairs', 'singles', 'trio'] &&
              data.allowSemipulito is bool &&
              (data.targetScore is int || data.targetScore is float) &&
              data.targetScore >= 100 &&
              data.targetScore <= 10000 &&
              isValidTeam(data.team1) &&
              isValidTeam(data.team2) &&
+             (data.mode == 'trio' ? ('team3' in data && isValidTeam(data.team3)) : (!('team3' in data) || isValidTeam(data.team3))) &&
              data.rounds is list &&
              data.rounds.size() <= 100 &&
              data.isFinished is bool &&
-             (!('winner' in data) || data.winner == null || data.winner == 'team1' || data.winner == 'team2') &&
+             (!('winner' in data) || data.winner == null || data.winner == 'team1' || data.winner == 'team2' || data.winner == 'team3') &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
              (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50) || data.completedAt is timestamp) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);

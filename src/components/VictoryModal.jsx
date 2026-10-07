@@ -58,18 +58,44 @@ export default function VictoryModal({
 
   if (!isOpen || !activeGame) return null;
 
+  const isTrio = activeGame.mode === 'trio';
   const t1Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
   const t2Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
+  const t3Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
 
-  const isT1Winner = t1Total >= t2Total;
-  const winnerTeam = isT1Winner ? activeGame.team1 : activeGame.team2;
-  const loserTeam = isT1Winner ? activeGame.team2 : activeGame.team1;
-  const winnerScore = isT1Winner ? t1Total : t2Total;
-  const loserScore = isT1Winner ? t2Total : t1Total;
-  const diff = winnerScore - loserScore;
+  let winnerTeam;
+  let winnerScore;
+  let rankedTeams = [];
+
+  if (isTrio) {
+    rankedTeams = [
+      { team: activeGame.team1, score: t1Total, icon: '♦', color: 'text-amber-300' },
+      { team: activeGame.team2, score: t2Total, icon: '♠', color: 'text-blue-300' },
+      { team: activeGame.team3, score: t3Total, icon: '♥', color: 'text-rose-300' },
+    ].sort((a, b) => b.score - a.score);
+    winnerTeam = rankedTeams[0].team;
+    winnerScore = rankedTeams[0].score;
+  } else {
+    const isT1Winner = t1Total >= t2Total;
+    winnerTeam = isT1Winner ? activeGame.team1 : activeGame.team2;
+    winnerScore = isT1Winner ? t1Total : t2Total;
+    const loserTeam = isT1Winner ? activeGame.team2 : activeGame.team1;
+    const loserScore = isT1Winner ? t2Total : t1Total;
+    rankedTeams = [
+      { team: winnerTeam, score: winnerScore, icon: isT1Winner ? '♦' : '♠', color: isT1Winner ? 'text-amber-300' : 'text-blue-300' },
+      { team: loserTeam, score: loserScore, icon: isT1Winner ? '♠' : '♦', color: 'text-slate-300' },
+    ];
+  }
 
   const handleShare = () => {
-    const text = `🏆 Burraco: Vittoria di ${winnerTeam.name} (${winnerTeam.players.join(' & ')}) con ${winnerScore} pt contro ${loserTeam.name} (${loserScore} pt) in ${activeGame.rounds.length} mani! ♠️♥️♣️♦️`;
+    let text;
+    if (isTrio) {
+      text = `🏆 Burraco a 3: Vittoria di ${winnerTeam.name} (${(winnerTeam.players || []).join(' & ')}) con ${winnerScore} pt! Classifica: 1° ${rankedTeams[0].team.name} (${rankedTeams[0].score} pt), 2° ${rankedTeams[1].team.name} (${rankedTeams[1].score} pt), 3° ${rankedTeams[2].team.name} (${rankedTeams[2].score} pt) in ${activeGame.rounds.length} mani! ♠️♥️♣️♦️`;
+    } else {
+      const loserTeam = rankedTeams[1].team;
+      const loserScore = rankedTeams[1].score;
+      text = `🏆 Burraco: Vittoria di ${winnerTeam.name} (${(winnerTeam.players || []).join(' & ')}) con ${winnerScore} pt contro ${loserTeam.name} (${loserScore} pt) in ${activeGame.rounds.length} mani! ♠️♥️♣️♦️`;
+    }
     if (navigator.share) {
       navigator.share({ title: 'Vittoria a Burraco!', text });
     } else {
@@ -98,24 +124,42 @@ export default function VictoryModal({
         </h2>
 
         <div className="my-2 text-sm text-emerald-200 font-medium">
-          Complimenti a <strong className="text-amber-300">{winnerTeam.players.join(' & ')}</strong>
+          Complimenti a <strong className="text-amber-300">{(winnerTeam.players || []).join(' & ')}</strong>
         </div>
 
         {/* Box Punteggio Finale */}
         <div className="my-4 p-4 rounded-2xl bg-emerald-950/90 border border-amber-400/40 shadow-inner">
-          <div className="flex items-center justify-center gap-4 text-center">
-            <div>
-              <span className="text-xs font-bold text-amber-300 block">{winnerTeam.name}</span>
-              <span className="text-3xl font-black text-white">{winnerScore.toLocaleString('it-IT')}</span>
-              <span className="text-[10px] text-amber-400 font-bold block">VINCITORE</span>
+          {isTrio ? (
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {rankedTeams.map((item, idx) => (
+                <div key={idx} className={`p-2 rounded-xl ${idx === 0 ? 'bg-amber-400/20 border border-amber-400/50' : 'bg-emerald-900/40 border border-emerald-800/40'}`}>
+                  <span className={`text-[11px] font-bold ${item.color} block truncate`}>
+                    {item.icon} {item.team.name}
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-white block my-0.5">
+                    {item.score.toLocaleString('it-IT')}
+                  </span>
+                  <span className={`text-[9px] font-bold block ${idx === 0 ? 'text-amber-400 font-black' : 'text-slate-400'}`}>
+                    {idx === 0 ? '👑 1° POSTO' : `${idx + 1}° POSTO`}
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="text-emerald-500 font-bold text-xl">-</div>
-            <div>
-              <span className="text-xs font-bold text-slate-300 block">{loserTeam.name}</span>
-              <span className="text-3xl font-black text-slate-300">{loserScore.toLocaleString('it-IT')}</span>
-              <span className="text-[10px] text-slate-400 block">Distacco: -{diff} pt</span>
+          ) : (
+            <div className="flex items-center justify-center gap-4 text-center">
+              <div>
+                <span className="text-xs font-bold text-amber-300 block">{winnerTeam.name}</span>
+                <span className="text-3xl font-black text-white">{winnerScore.toLocaleString('it-IT')}</span>
+                <span className="text-[10px] text-amber-400 font-bold block">VINCITORE</span>
+              </div>
+              <div className="text-emerald-500 font-bold text-xl">-</div>
+              <div>
+                <span className="text-xs font-bold text-slate-300 block">{rankedTeams[1].team.name}</span>
+                <span className="text-3xl font-black text-slate-300">{rankedTeams[1].score.toLocaleString('it-IT')}</span>
+                <span className="text-[10px] text-slate-400 block">Distacco: -{winnerScore - rankedTeams[1].score} pt</span>
+              </div>
             </div>
-          </div>
+          )}
           <div className="mt-3 pt-2.5 border-t border-emerald-800/50 text-xs text-emerald-400/80">
             Obiettivo {activeGame.targetScore} pt raggiunto in {activeGame.rounds.length} mani
           </div>

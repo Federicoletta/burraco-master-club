@@ -11,11 +11,12 @@ export default function RoundCalculatorModal({
   roundToEdit = null,
   roundNumber = 1
 }) {
+  const isTrio = activeGame?.mode === 'trio';
   const [entryMode, setEntryMode] = useState('guided'); // 'guided' | 'quick'
-  const [activeTab, setActiveTab] = useState('team1'); // 'team1' | 'team2'
+  const [activeTab, setActiveTab] = useState(isTrio ? 'lone' : 'team1'); // 'team1' | 'team2' | 'lone' | 'pair'
+  const [lonePlayer, setLonePlayer] = useState('team1'); // 'team1' | 'team2' | 'team3'
 
-  // Stato per Squadra 1
-  const [team1Data, setTeam1Data] = useState({
+  const defaultEntity = {
     chiusura: false,
     burracoPulito: 0,
     burracoSemipulito: 0,
@@ -28,83 +29,134 @@ export default function RoundCalculatorModal({
     showTableCardPad: false,
     showHandCardPad: false,
     manualScore: '',
-  });
+  };
+
+  // Stato per Squadra 1
+  const [team1Data, setTeam1Data] = useState({ ...defaultEntity });
 
   // Stato per Squadra 2
-  const [team2Data, setTeam2Data] = useState({
-    chiusura: false,
-    burracoPulito: 0,
-    burracoSemipulito: 0,
-    burracoSporco: 0,
-    pozzetto: 'preso_giocato',
-    cardsOnTableDirect: '',
-    cardsInHandDirect: '',
-    cardsOnTableCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
-    cardsInHandCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
-    showTableCardPad: false,
-    showHandCardPad: false,
-    manualScore: '',
-  });
+  const [team2Data, setTeam2Data] = useState({ ...defaultEntity });
+
+  // Stato per Giocatore 3 (Quick mode a 3)
+  const [team3Data, setTeam3Data] = useState({ ...defaultEntity });
+
+  // Stato per Burraco a 3 (Modalità Guidata FIBUR: Solitario vs Coppia)
+  const [loneData, setLoneData] = useState({ ...defaultEntity });
+  const [pairData, setPairData] = useState({ ...defaultEntity });
 
   // Caricamento in caso di modifica di una mano
   useEffect(() => {
     if (roundToEdit) {
+      if (roundToEdit.lonePlayer) {
+        setLonePlayer(roundToEdit.lonePlayer);
+      }
       if (roundToEdit.entryMode === 'quick') {
         setEntryMode('quick');
-        setTeam1Data(prev => ({ ...prev, manualScore: String(roundToEdit.team1Score || '') }));
-        setTeam2Data(prev => ({ ...prev, manualScore: String(roundToEdit.team2Score || '') }));
-      } else if (roundToEdit.team1Details && roundToEdit.team2Details) {
+        setTeam1Data(prev => ({ ...prev, manualScore: String(roundToEdit.team1Score ?? '') }));
+        setTeam2Data(prev => ({ ...prev, manualScore: String(roundToEdit.team2Score ?? '') }));
+        setTeam3Data(prev => ({ ...prev, manualScore: String(roundToEdit.team3Score ?? '') }));
+      } else {
         setEntryMode('guided');
-        setTeam1Data({ ...team1Data, ...roundToEdit.team1Details });
-        setTeam2Data({ ...team2Data, ...roundToEdit.team2Details });
+        if (isTrio) {
+          if (roundToEdit.loneDetails && roundToEdit.pairDetails) {
+            setLoneData({ ...defaultEntity, ...roundToEdit.loneDetails });
+            setPairData({ ...defaultEntity, ...roundToEdit.pairDetails });
+          } else {
+            const lp = roundToEdit.lonePlayer || 'team1';
+            const loneDet = lp === 'team1' ? roundToEdit.team1Details : lp === 'team2' ? roundToEdit.team2Details : roundToEdit.team3Details;
+            const pairDet = lp === 'team1' ? roundToEdit.team2Details : roundToEdit.team1Details;
+            if (loneDet) setLoneData({ ...defaultEntity, ...loneDet });
+            if (pairDet) setPairData({ ...defaultEntity, ...pairDet });
+          }
+        } else {
+          if (roundToEdit.team1Details) setTeam1Data({ ...defaultEntity, ...roundToEdit.team1Details });
+          if (roundToEdit.team2Details) setTeam2Data({ ...defaultEntity, ...roundToEdit.team2Details });
+        }
       }
     } else {
       // Reset defaults per nuova mano
-      setTeam1Data({
-        chiusura: false,
-        burracoPulito: 0,
-        burracoSemipulito: 0,
-        burracoSporco: 0,
-        pozzetto: 'preso_giocato',
-        cardsOnTableDirect: '',
-        cardsInHandDirect: '',
-        cardsOnTableCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
-        cardsInHandCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
-        showTableCardPad: false,
-        showHandCardPad: false,
-        manualScore: '',
-      });
-      setTeam2Data({
-        chiusura: false,
-        burracoPulito: 0,
-        burracoSemipulito: 0,
-        burracoSporco: 0,
-        pozzetto: 'preso_giocato',
-        cardsOnTableDirect: '',
-        cardsInHandDirect: '',
-        cardsOnTableCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
-        cardsInHandCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
-        showTableCardPad: false,
-        showHandCardPad: false,
-        manualScore: '',
-      });
+      setTeam1Data({ ...defaultEntity });
+      setTeam2Data({ ...defaultEntity });
+      setTeam3Data({ ...defaultEntity });
+      setLoneData({ ...defaultEntity });
+      setPairData({ ...defaultEntity });
+      setLonePlayer('team1');
+      setActiveTab(isTrio ? 'lone' : 'team1');
     }
-  }, [roundToEdit, isOpen]);
+  }, [roundToEdit, isOpen, isTrio]);
 
   if (!isOpen || !activeGame) return null;
 
   // Calcolo punti in tempo reale
-  const team1Score = entryMode === 'quick' 
+  const team1ScoreNormal = entryMode === 'quick' 
     ? Number(team1Data.manualScore) || 0 
     : calculateTeamRoundScore(team1Data);
 
-  const team2Score = entryMode === 'quick' 
+  const team2ScoreNormal = entryMode === 'quick' 
     ? Number(team2Data.manualScore) || 0 
     : calculateTeamRoundScore(team2Data);
 
-  // Helper gestione chiusura esclusiva (solo una squadra può chiudere la smazzata)
-  const handleChiusura = (teamKey) => {
-    if (teamKey === 'team1') {
+  // Calcolo punti per modalità a 3
+  const loneScore = calculateTeamRoundScore(loneData);
+  const pairRawScore = calculateTeamRoundScore(pairData);
+  const pairSplitScore = Math.round(pairRawScore / 2);
+
+  const t1Quick = Number(team1Data.manualScore) || 0;
+  const t2Quick = Number(team2Data.manualScore) || 0;
+  const t3Quick = Number(team3Data.manualScore) || 0;
+
+  let team1Score = team1ScoreNormal;
+  let team2Score = team2ScoreNormal;
+  let team3Score = 0;
+
+  if (isTrio) {
+    if (entryMode === 'quick') {
+      team1Score = t1Quick;
+      team2Score = t2Quick;
+      team3Score = t3Quick;
+    } else {
+      if (lonePlayer === 'team1') {
+        team1Score = loneScore;
+        team2Score = pairSplitScore;
+        team3Score = pairSplitScore;
+      } else if (lonePlayer === 'team2') {
+        team1Score = pairSplitScore;
+        team2Score = loneScore;
+        team3Score = pairSplitScore;
+      } else {
+        team1Score = pairSplitScore;
+        team2Score = pairSplitScore;
+        team3Score = loneScore;
+      }
+    }
+  }
+
+  // Helper gestione chiusura esclusiva (solo una squadra o entità può chiudere la smazzata)
+  const handleChiusura = (tabKey) => {
+    if (isTrio) {
+      if (tabKey === 'lone') {
+        const willClose = !loneData.chiusura;
+        setLoneData(prev => ({ ...prev, chiusura: willClose }));
+        if (willClose) {
+          sound.playBurracoChime();
+          setPairData(prev => ({ ...prev, chiusura: false }));
+        } else {
+          sound.playTap();
+        }
+      } else {
+        const willClose = !pairData.chiusura;
+        setPairData(prev => ({ ...prev, chiusura: willClose }));
+        if (willClose) {
+          sound.playBurracoChime();
+          setLoneData(prev => ({ ...prev, chiusura: false }));
+        } else {
+          sound.playTap();
+        }
+      }
+      return;
+    }
+
+    if (tabKey === 'team1') {
       const willClose = !team1Data.chiusura;
       setTeam1Data(prev => ({ ...prev, chiusura: willClose }));
       if (willClose) {
@@ -132,8 +184,24 @@ export default function RoundCalculatorModal({
       entryMode,
       team1Score,
       team2Score,
-      team1Details: entryMode === 'guided' ? team1Data : { manualScore: team1Score },
-      team2Details: entryMode === 'guided' ? team2Data : { manualScore: team2Score },
+      ...(isTrio ? {
+        team3Score,
+        lonePlayer,
+        loneDetails: entryMode === 'guided' ? loneData : undefined,
+        pairDetails: entryMode === 'guided' ? pairData : undefined,
+        team1Details: entryMode === 'guided' 
+          ? (lonePlayer === 'team1' ? loneData : pairData)
+          : { manualScore: team1Score },
+        team2Details: entryMode === 'guided' 
+          ? (lonePlayer === 'team2' ? loneData : pairData)
+          : { manualScore: team2Score },
+        team3Details: entryMode === 'guided' 
+          ? (lonePlayer === 'team3' ? loneData : pairData)
+          : { manualScore: team3Score },
+      } : {
+        team1Details: entryMode === 'guided' ? team1Data : { manualScore: team1Score },
+        team2Details: entryMode === 'guided' ? team2Data : { manualScore: team2Score },
+      }),
       timestamp: new Date().toISOString(),
     };
 
@@ -141,10 +209,40 @@ export default function RoundCalculatorModal({
     onClose();
   };
 
-  const currentData = activeTab === 'team1' ? team1Data : team2Data;
-  const setCurrentData = activeTab === 'team1' ? setTeam1Data : setTeam2Data;
-  const currentTeamName = activeTab === 'team1' ? activeGame.team1.name : activeGame.team2.name;
-  const currentTeamScore = activeTab === 'team1' ? team1Score : team2Score;
+  const lonePlayerName = activeGame[lonePlayer]?.name || (lonePlayer === 'team1' ? 'Giocatore 1' : lonePlayer === 'team2' ? 'Giocatore 2' : 'Giocatore 3');
+  const pairKeys = ['team1', 'team2', 'team3'].filter(k => k !== lonePlayer);
+  const pairNames = pairKeys.map(k => activeGame[k]?.name).filter(Boolean).join(' & ');
+
+  let currentData;
+  let setCurrentData;
+  let currentTeamName;
+  let currentTeamScore;
+
+  if (isTrio) {
+    if (activeTab === 'lone') {
+      currentData = loneData;
+      setCurrentData = setLoneData;
+      currentTeamName = `👤 ${lonePlayerName} (Solitario)`;
+      currentTeamScore = loneScore;
+    } else {
+      currentData = pairData;
+      setCurrentData = setPairData;
+      currentTeamName = `👥 Coppia (${pairNames})`;
+      currentTeamScore = pairRawScore;
+    }
+  } else {
+    if (activeTab === 'team1') {
+      currentData = team1Data;
+      setCurrentData = setTeam1Data;
+      currentTeamName = activeGame.team1.name;
+      currentTeamScore = team1Score;
+    } else {
+      currentData = team2Data;
+      setCurrentData = setTeam2Data;
+      currentTeamName = activeGame.team2.name;
+      currentTeamScore = team2Score;
+    }
+  }
 
   // Calcoli parziali per il mini-scontrino trasparente
   const currentHonorsBurrachi = 
@@ -235,9 +333,9 @@ export default function RoundCalculatorModal({
         {entryMode === 'quick' ? (
           <div className="my-5 space-y-4">
             <p className="text-xs text-emerald-300/90 text-center">
-              Inserisci direttamente il punteggio netto calcolato per ciascuna squadra per questa smazzata.
+              Inserisci direttamente il punteggio netto calcolato per ciascun partecipante per questa smazzata.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3.5`}>
               
               {/* SQUADRA 1 */}
               <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-amber-500/40">
@@ -245,7 +343,7 @@ export default function RoundCalculatorModal({
                   ♦ {activeGame.team1.name}
                 </span>
                 <span className="text-[11px] text-emerald-400 block mb-2">
-                  {activeGame.team1.players.join(' & ')}
+                  {(activeGame.team1.players || []).join(' & ')}
                 </span>
                 <div className="relative">
                   <input
@@ -256,7 +354,7 @@ export default function RoundCalculatorModal({
                     className="w-full text-center text-3xl font-black py-2.5 rounded-xl bg-emerald-900/80 border border-amber-400/50 text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
                   />
                   <span className="text-[10px] text-emerald-400/70 block text-center mt-1">
-                    Supporta anche valori negativi (es: -100)
+                    Supporta anche negativi (-100)
                   </span>
                 </div>
               </div>
@@ -267,7 +365,7 @@ export default function RoundCalculatorModal({
                   ♠ {activeGame.team2.name}
                 </span>
                 <span className="text-[11px] text-emerald-400 block mb-2">
-                  {activeGame.team2.players.join(' & ')}
+                  {(activeGame.team2.players || []).join(' & ')}
                 </span>
                 <div className="relative">
                   <input
@@ -278,69 +376,194 @@ export default function RoundCalculatorModal({
                     className="w-full text-center text-3xl font-black py-2.5 rounded-xl bg-emerald-900/80 border border-blue-400/50 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                   />
                   <span className="text-[10px] text-emerald-400/70 block text-center mt-1">
-                    Supporta anche valori negativi (es: -100)
+                    Supporta anche negativi (-100)
                   </span>
                 </div>
               </div>
 
+              {/* SQUADRA 3 (SE IN MODALITÀ A 3) */}
+              {isTrio && (
+                <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-rose-500/40">
+                  <span className="text-xs font-bold text-rose-300 uppercase tracking-wider block mb-0.5">
+                    ♥ {activeGame.team3?.name || 'Giocatore 3'}
+                  </span>
+                  <span className="text-[11px] text-emerald-400 block mb-2">
+                    {(activeGame.team3?.players || []).join(' & ')}
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={team3Data.manualScore}
+                      onChange={(e) => setTeam3Data(p => ({ ...p, manualScore: e.target.value }))}
+                      placeholder="0"
+                      className="w-full text-center text-3xl font-black py-2.5 rounded-xl bg-emerald-900/80 border border-rose-400/50 text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
+                    />
+                    <span className="text-[10px] text-emerald-400/70 block text-center mt-1">
+                      Supporta anche negativi (-100)
+                    </span>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         ) : (
-          /* CONTENUTO CALCOLO GUIDATO (RIORGANIZZATO COMPATTO A GRIGLIA) */
+          /* CONTENUTO CALCOLO GUIDATO */
           <div className="mt-3 space-y-3">
             
-            {/* Selettore Squadra in Alto (Card Grandi e Chiare) */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onPointerDown={() => handleSwitchTab('team1')}
-                onClick={() => handleSwitchTab('team1')}
-                className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
-                  activeTab === 'team1'
-                    ? 'bg-emerald-900/90 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
-                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1 truncate">
-                    <span>♦</span> {activeGame.team1.name}
+            {/* SE MODALITÀ A 3: SELETTORE CHI È IL SOLITARIO (18 CARTE) */}
+            {isTrio && (
+              <div className="p-3 rounded-xl bg-emerald-950/90 border border-amber-400/50 shadow-md">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>👤</span> Chi ha preso il Pozzetto da 18 carte (Solitario)?
                   </span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
-                    team1Score > 0 ? 'bg-amber-400/25 text-amber-300 border border-amber-400/40' : 'bg-emerald-950 text-emerald-300'
-                  }`}>
-                    {team1Score > 0 ? `+${team1Score}` : team1Score} pt
+                  <span className="text-[10px] text-emerald-400 font-medium">Regola Ufficiale FIBUR</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'team1', icon: '♦' },
+                    { key: 'team2', icon: '♠' },
+                    { key: 'team3', icon: '♥' },
+                  ].map(({ key, icon }) => {
+                    const isSelected = lonePlayer === key;
+                    const team = activeGame[key];
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setLonePlayer(key)}
+                        className={`py-2 px-2 rounded-xl border text-center transition-all cursor-pointer font-bold text-xs flex flex-col items-center justify-center gap-0.5 ${
+                          isSelected
+                            ? 'gold-gradient text-emerald-950 font-black shadow-md ring-2 ring-amber-300/60 scale-[1.02]'
+                            : 'bg-emerald-900/60 border-emerald-700/60 text-emerald-200 hover:text-white hover:bg-emerald-800/60'
+                        }`}
+                      >
+                        <span className="text-xs truncate max-w-full">{icon} {team?.name}</span>
+                        <span className={`text-[10px] ${isSelected ? 'text-emerald-950 font-extrabold' : 'text-emerald-400'}`}>
+                          {isSelected ? '★ Solitario' : 'In Coppia'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 text-[11px] text-emerald-300/90 flex flex-wrap items-center justify-between gap-1 border-t border-emerald-800/50 pt-1.5">
+                  <span>
+                    👥 <strong>Coppia di questa mano:</strong> {pairNames}
+                  </span>
+                  <span className="text-amber-300 font-semibold text-[10px]">
+                    Punti coppia divisi al 50% ({pairRawScore} pt ÷ 2 = {pairSplitScore} pt cad.)
                   </span>
                 </div>
-                <div className="text-[11px] text-emerald-400/80 truncate mt-0.5">
-                  {activeGame.team1.players.join(' & ')}
-                </div>
-              </button>
+              </div>
+            )}
 
-              <button
-                type="button"
-                onPointerDown={() => handleSwitchTab('team2')}
-                onClick={() => handleSwitchTab('team2')}
-                className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
-                  activeTab === 'team2'
-                    ? 'bg-emerald-900/90 border-blue-400 ring-2 ring-blue-400/40 shadow-md'
-                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1 truncate">
-                    <span>♠</span> {activeGame.team2.name}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
-                    team2Score > 0 ? 'bg-blue-400/25 text-blue-300 border border-blue-400/40' : 'bg-emerald-950 text-emerald-300'
-                  }`}>
-                    {team2Score > 0 ? `+${team2Score}` : team2Score} pt
-                  </span>
-                </div>
-                <div className="text-[11px] text-emerald-400/80 truncate mt-0.5">
-                  {activeGame.team2.players.join(' & ')}
-                </div>
-              </button>
-            </div>
+            {/* SELETTORE TAB GUIDATO */}
+            {isTrio ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onPointerDown={() => handleSwitchTab('lone')}
+                  onClick={() => handleSwitchTab('lone')}
+                  className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
+                    activeTab === 'lone'
+                      ? 'bg-emerald-900/90 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
+                      : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1 truncate">
+                      <span>👤</span> Solitario: {lonePlayerName}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
+                      loneScore > 0 ? 'bg-amber-400/25 text-amber-300 border border-amber-400/40' : 'bg-emerald-950 text-emerald-300'
+                    }`}>
+                      {loneScore > 0 ? `+${loneScore}` : loneScore} pt
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-emerald-400/80 truncate mt-0.5">
+                    100% punti assegnati a {lonePlayerName}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onPointerDown={() => handleSwitchTab('pair')}
+                  onClick={() => handleSwitchTab('pair')}
+                  className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
+                    activeTab === 'pair'
+                      ? 'bg-emerald-900/90 border-blue-400 ring-2 ring-blue-400/40 shadow-md'
+                      : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1 truncate">
+                      <span>👥</span> Coppia: {pairNames}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
+                      pairSplitScore > 0 ? 'bg-blue-400/25 text-blue-300 border border-blue-400/40' : 'bg-emerald-950 text-emerald-300'
+                    }`}>
+                      {pairSplitScore > 0 ? `+${pairSplitScore}` : pairSplitScore} pt cad.
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-emerald-400/80 truncate mt-0.5">
+                    Totale tavolo: {pairRawScore} pt (÷2 per ciascun compagno)
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onPointerDown={() => handleSwitchTab('team1')}
+                  onClick={() => handleSwitchTab('team1')}
+                  className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
+                    activeTab === 'team1'
+                      ? 'bg-emerald-900/90 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
+                      : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1 truncate">
+                      <span>♦</span> {activeGame.team1.name}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
+                      team1Score > 0 ? 'bg-amber-400/25 text-amber-300 border border-amber-400/40' : 'bg-emerald-950 text-emerald-300'
+                    }`}>
+                      {team1Score > 0 ? `+${team1Score}` : team1Score} pt
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-emerald-400/80 truncate mt-0.5">
+                    {activeGame.team1.players.join(' & ')}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onPointerDown={() => handleSwitchTab('team2')}
+                  onClick={() => handleSwitchTab('team2')}
+                  className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
+                    activeTab === 'team2'
+                      ? 'bg-emerald-900/90 border-blue-400 ring-2 ring-blue-400/40 shadow-md'
+                      : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1 truncate">
+                      <span>♠</span> {activeGame.team2.name}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
+                      team2Score > 0 ? 'bg-blue-400/25 text-blue-300 border border-blue-400/40' : 'bg-emerald-950 text-emerald-300'
+                    }`}>
+                      {team2Score > 0 ? `+${team2Score}` : team2Score} pt
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-emerald-400/80 truncate mt-0.5">
+                    {activeGame.team2.players.join(' & ')}
+                  </div>
+                </button>
+              </div>
+            )}
 
             {/* AREA COMPILAZIONE SQUADRA ATTIVA */}
             <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-0.5">
@@ -709,7 +932,7 @@ export default function RoundCalculatorModal({
         {/* BARRA INFERIORE DI RIEPILOGO E SALVATAGGIO */}
         <div className="mt-3.5 pt-2.5 border-t border-emerald-700/50">
           <div className="flex items-center justify-between mb-2 text-xs">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-emerald-300/80 text-[11px]">Riepilogo Mano:</span>
               <span className="font-bold text-amber-300 text-xs">
                 ♦ {activeGame.team1.name}: {team1Score >= 0 ? `+${team1Score}` : team1Score} pt
@@ -718,6 +941,14 @@ export default function RoundCalculatorModal({
               <span className="font-bold text-blue-300 text-xs">
                 ♠ {activeGame.team2.name}: {team2Score >= 0 ? `+${team2Score}` : team2Score} pt
               </span>
+              {isTrio && (
+                <>
+                  <span className="text-emerald-600 font-bold">•</span>
+                  <span className="font-bold text-rose-300 text-xs">
+                    ♥ {activeGame.team3?.name || 'Giocatore 3'}: {team3Score >= 0 ? `+${team3Score}` : team3Score} pt
+                  </span>
+                </>
+              )}
             </div>
           </div>
 

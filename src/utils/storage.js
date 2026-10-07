@@ -192,28 +192,38 @@ export function calculatePlayerStats(playersList, gamesHistory = [], activeGame 
 
     const t1Players = game.team1?.players || [];
     const t2Players = game.team2?.players || [];
+    const t3Players = game.team3?.players || [];
 
     let t1Total = 0;
     let t2Total = 0;
+    let t3Total = 0;
     let t1Clean = 0;
     let t2Clean = 0;
+    let t3Clean = 0;
     let t1Semi = 0;
     let t2Semi = 0;
+    let t3Semi = 0;
     let t1Dirty = 0;
     let t2Dirty = 0;
+    let t3Dirty = 0;
     let t1Closures = 0;
     let t2Closures = 0;
+    let t3Closures = 0;
 
     const t1HandScores = [];
     const t2HandScores = [];
+    const t3HandScores = [];
 
     (game.rounds || []).forEach(r => {
       const s1 = Number(r.team1Score) || 0;
       const s2 = Number(r.team2Score) || 0;
+      const s3 = Number(r.team3Score) || 0;
       t1Total += s1;
       t2Total += s2;
+      t3Total += s3;
       t1HandScores.push(s1);
       t2HandScores.push(s2);
+      t3HandScores.push(s3);
 
       if (r.team1Details) {
         t1Clean += r.team1Details.burracoPulito || 0;
@@ -227,111 +237,75 @@ export function calculatePlayerStats(playersList, gamesHistory = [], activeGame 
         t2Dirty += r.team2Details.burracoSporco || 0;
         if (r.team2Details.chiusura) t2Closures += 1;
       }
+      if (r.team3Details) {
+        t3Clean += r.team3Details.burracoPulito || 0;
+        t3Semi += r.team3Details.burracoSemipulito || 0;
+        t3Dirty += r.team3Details.burracoSporco || 0;
+        if (r.team3Details.chiusura) t3Closures += 1;
+      }
     });
 
     const roundsCount = (game.rounds || []).length;
+    const isTeam3Winner = game.winner === 'team3';
 
-    // Aggiorna Squadra 1
-    t1Players.forEach(p => {
-      if (!statsMap[p]) {
-        statsMap[p] = {
-          name: p,
-          gamesPlayed: 0,
-          gamesWon: 0,
-          gamesLost: 0,
-          winRate: 0,
-          totalPoints: 0,
-          totalHands: 0,
-          avgPointsPerGame: 0,
-          avgPointsPerHand: 0,
-          cleanBurrachi: 0,
-          semiCleanBurrachi: 0,
-          dirtyBurrachi: 0,
-          totalBurrachi: 0,
-          closures: 0,
-          bestHandScore: 0,
-          scoresHistory: [],
-          matchScores: [],
-        };
-      }
-
-      if (isFinished) {
-        statsMap[p].gamesPlayed += 1;
-        if (isTeam1Winner) {
-          statsMap[p].gamesWon += 1;
-        } else if (isTeam2Winner) {
-          statsMap[p].gamesLost += 1;
+    // Helper per aggiornare statistiche di un gruppo di giocatori
+    const updatePlayersStats = (players, totalScore, clean, semi, dirty, closures, handScores, isWinner) => {
+      players.forEach(p => {
+        if (!statsMap[p]) {
+          statsMap[p] = {
+            name: p,
+            gamesPlayed: 0,
+            gamesWon: 0,
+            gamesLost: 0,
+            winRate: 0,
+            totalPoints: 0,
+            totalHands: 0,
+            avgPointsPerGame: 0,
+            avgPointsPerHand: 0,
+            cleanBurrachi: 0,
+            semiCleanBurrachi: 0,
+            dirtyBurrachi: 0,
+            totalBurrachi: 0,
+            closures: 0,
+            bestHandScore: 0,
+            scoresHistory: [],
+            matchScores: [],
+          };
         }
-      }
 
-      statsMap[p].totalPoints += t1Total;
-      statsMap[p].totalHands += roundsCount;
-      statsMap[p].cleanBurrachi += t1Clean;
-      statsMap[p].semiCleanBurrachi += t1Semi;
-      statsMap[p].dirtyBurrachi += t1Dirty;
-      statsMap[p].closures += t1Closures;
-      statsMap[p].scoresHistory.push(...t1HandScores);
-      if (roundsCount > 0) {
-        statsMap[p].matchScores.push(t1Total);
-      }
-
-      t1HandScores.forEach(score => {
-        if (score > statsMap[p].bestHandScore) {
-          statsMap[p].bestHandScore = score;
+        if (isFinished) {
+          statsMap[p].gamesPlayed += 1;
+          if (isWinner) {
+            statsMap[p].gamesWon += 1;
+          } else if (isTeam1Winner || isTeam2Winner || isTeam3Winner) {
+            statsMap[p].gamesLost += 1;
+          }
         }
+
+        statsMap[p].totalPoints += totalScore;
+        statsMap[p].totalHands += roundsCount;
+        statsMap[p].cleanBurrachi += clean;
+        statsMap[p].semiCleanBurrachi += semi;
+        statsMap[p].dirtyBurrachi += dirty;
+        statsMap[p].closures += closures;
+        statsMap[p].scoresHistory.push(...handScores);
+        if (roundsCount > 0) {
+          statsMap[p].matchScores.push(totalScore);
+        }
+
+        handScores.forEach(score => {
+          if (score > statsMap[p].bestHandScore) {
+            statsMap[p].bestHandScore = score;
+          }
+        });
       });
-    });
+    };
 
-    // Aggiorna Squadra 2
-    t2Players.forEach(p => {
-      if (!statsMap[p]) {
-        statsMap[p] = {
-          name: p,
-          gamesPlayed: 0,
-          gamesWon: 0,
-          gamesLost: 0,
-          winRate: 0,
-          totalPoints: 0,
-          totalHands: 0,
-          avgPointsPerGame: 0,
-          avgPointsPerHand: 0,
-          cleanBurrachi: 0,
-          semiCleanBurrachi: 0,
-          dirtyBurrachi: 0,
-          totalBurrachi: 0,
-          closures: 0,
-          bestHandScore: 0,
-          scoresHistory: [],
-          matchScores: [],
-        };
-      }
-
-      if (isFinished) {
-        statsMap[p].gamesPlayed += 1;
-        if (isTeam2Winner) {
-          statsMap[p].gamesWon += 1;
-        } else if (isTeam1Winner) {
-          statsMap[p].gamesLost += 1;
-        }
-      }
-
-      statsMap[p].totalPoints += t2Total;
-      statsMap[p].totalHands += roundsCount;
-      statsMap[p].cleanBurrachi += t2Clean;
-      statsMap[p].semiCleanBurrachi += t2Semi;
-      statsMap[p].dirtyBurrachi += t2Dirty;
-      statsMap[p].closures += t2Closures;
-      statsMap[p].scoresHistory.push(...t2HandScores);
-      if (roundsCount > 0) {
-        statsMap[p].matchScores.push(t2Total);
-      }
-
-      t2HandScores.forEach(score => {
-        if (score > statsMap[p].bestHandScore) {
-          statsMap[p].bestHandScore = score;
-        }
-      });
-    });
+    updatePlayersStats(t1Players, t1Total, t1Clean, t1Semi, t1Dirty, t1Closures, t1HandScores, isTeam1Winner);
+    updatePlayersStats(t2Players, t2Total, t2Clean, t2Semi, t2Dirty, t2Closures, t2HandScores, isTeam2Winner);
+    if (t3Players.length > 0) {
+      updatePlayersStats(t3Players, t3Total, t3Clean, t3Semi, t3Dirty, t3Closures, t3HandScores, isTeam3Winner);
+    }
   });
 
   // Calcola derivate finali (medie, percentuali, totali)

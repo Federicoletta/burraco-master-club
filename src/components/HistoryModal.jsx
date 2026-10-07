@@ -69,8 +69,10 @@ export default function HistoryModal({
       const hayStack = [
         ...(game.team1?.players || []),
         ...(game.team2?.players || []),
+        ...(game.team3?.players || []),
         game.team1?.name || '',
-        game.team2?.name || ''
+        game.team2?.name || '',
+        game.team3?.name || ''
       ].join(' ').toLowerCase();
       return hayStack.includes(q);
     });
@@ -224,37 +226,86 @@ export default function HistoryModal({
 
               {/* Box Vincitore & Risultato */}
               <div className="p-4 rounded-xl bg-emerald-950/80 border border-amber-500/30">
-                <div className="grid grid-cols-2 gap-3 text-center">
-                  <div className={`p-3 rounded-lg ${selectedGame.winner === 'team1' ? 'bg-amber-500/20 border border-amber-400' : 'bg-emerald-900/40'}`}>
-                    <span className="text-xs font-bold text-amber-300 block">♦ {selectedGame.team1?.name || 'Squadra 1'}</span>
-                    <span className="text-[11px] text-emerald-400 block mb-1">
-                      {(selectedGame.team1?.players || []).join(' & ') || 'Giocatori'}
-                    </span>
-                    <span className="text-2xl font-black text-white">
-                      {(selectedGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0)} pt
-                    </span>
-                    {selectedGame.winner === 'team1' && (
-                      <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-emerald-950 uppercase">
-                        Vincitore 🏆
+                {selectedGame.mode === 'trio' ? (
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className={`p-2.5 rounded-lg ${selectedGame.winner === 'team1' ? 'bg-amber-500/20 border border-amber-400' : 'bg-emerald-900/40'}`}>
+                      <span className="text-xs font-bold text-amber-300 block truncate">♦ {selectedGame.team1?.name || 'G1'}</span>
+                      <span className="text-[10px] text-emerald-400 block mb-1 truncate">
+                        {(selectedGame.team1?.players || []).join(' & ') || 'Giocatore'}
                       </span>
-                    )}
-                  </div>
+                      <span className="text-xl sm:text-2xl font-black text-white">
+                        {(selectedGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0)} pt
+                      </span>
+                      {selectedGame.winner === 'team1' && (
+                        <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-emerald-950 uppercase">
+                          Vincitore 🏆
+                        </span>
+                      )}
+                    </div>
 
-                  <div className={`p-3 rounded-lg ${selectedGame.winner === 'team2' ? 'bg-blue-500/20 border border-blue-400' : 'bg-emerald-900/40'}`}>
-                    <span className="text-xs font-bold text-blue-300 block">♠ {selectedGame.team2?.name || 'Squadra 2'}</span>
-                    <span className="text-[11px] text-emerald-400 block mb-1">
-                      {(selectedGame.team2?.players || []).join(' & ') || 'Giocatori'}
-                    </span>
-                    <span className="text-2xl font-black text-white">
-                      {(selectedGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0)} pt
-                    </span>
-                    {selectedGame.winner === 'team2' && (
-                      <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-400 text-emerald-950 uppercase">
-                        Vincitore 🏆
+                    <div className={`p-2.5 rounded-lg ${selectedGame.winner === 'team2' ? 'bg-blue-500/20 border border-blue-400' : 'bg-emerald-900/40'}`}>
+                      <span className="text-xs font-bold text-blue-300 block truncate">♠ {selectedGame.team2?.name || 'G2'}</span>
+                      <span className="text-[10px] text-emerald-400 block mb-1 truncate">
+                        {(selectedGame.team2?.players || []).join(' & ') || 'Giocatore'}
                       </span>
-                    )}
+                      <span className="text-xl sm:text-2xl font-black text-white">
+                        {(selectedGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0)} pt
+                      </span>
+                      {selectedGame.winner === 'team2' && (
+                        <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-[9px] font-black bg-blue-400 text-emerald-950 uppercase">
+                          Vincitore 🏆
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={`p-2.5 rounded-lg ${selectedGame.winner === 'team3' ? 'bg-rose-500/20 border border-rose-400' : 'bg-emerald-900/40'}`}>
+                      <span className="text-xs font-bold text-rose-300 block truncate">♥ {selectedGame.team3?.name || 'G3'}</span>
+                      <span className="text-[10px] text-emerald-400 block mb-1 truncate">
+                        {(selectedGame.team3?.players || []).join(' & ') || 'Giocatore'}
+                      </span>
+                      <span className="text-xl sm:text-2xl font-black text-white">
+                        {(selectedGame.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0)} pt
+                      </span>
+                      {selectedGame.winner === 'team3' && (
+                        <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-400 text-slate-950 uppercase">
+                          Vincitore 🏆
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 text-center">
+                    <div className={`p-3 rounded-lg ${selectedGame.winner === 'team1' ? 'bg-amber-500/20 border border-amber-400' : 'bg-emerald-900/40'}`}>
+                      <span className="text-xs font-bold text-amber-300 block">♦ {selectedGame.team1?.name || 'Squadra 1'}</span>
+                      <span className="text-[11px] text-emerald-400 block mb-1">
+                        {(selectedGame.team1?.players || []).join(' & ') || 'Giocatori'}
+                      </span>
+                      <span className="text-2xl font-black text-white">
+                        {(selectedGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0)} pt
+                      </span>
+                      {selectedGame.winner === 'team1' && (
+                        <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-emerald-950 uppercase">
+                          Vincitore 🏆
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={`p-3 rounded-lg ${selectedGame.winner === 'team2' ? 'bg-blue-500/20 border border-blue-400' : 'bg-emerald-900/40'}`}>
+                      <span className="text-xs font-bold text-blue-300 block">♠ {selectedGame.team2?.name || 'Squadra 2'}</span>
+                      <span className="text-[11px] text-emerald-400 block mb-1">
+                        {(selectedGame.team2?.players || []).join(' & ') || 'Giocatori'}
+                      </span>
+                      <span className="text-2xl font-black text-white">
+                        {(selectedGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0)} pt
+                      </span>
+                      {selectedGame.winner === 'team2' && (
+                        <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-400 text-emerald-950 uppercase">
+                          Vincitore 🏆
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Tabella Mani della partita */}
@@ -265,6 +316,9 @@ export default function HistoryModal({
                       <th className="p-2 text-center">Mano</th>
                       <th className="p-2 text-amber-300">{selectedGame.team1?.name || 'Squadra 1'}</th>
                       <th className="p-2 text-blue-300">{selectedGame.team2?.name || 'Squadra 2'}</th>
+                      {selectedGame.mode === 'trio' && (
+                        <th className="p-2 text-rose-300">{selectedGame.team3?.name || 'Giocatore 3'}</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-emerald-800/40">
@@ -277,6 +331,11 @@ export default function HistoryModal({
                         <td className="p-2 font-semibold text-white">
                           {r.team2Score >= 0 ? `+${r.team2Score}` : r.team2Score}
                         </td>
+                        {selectedGame.mode === 'trio' && (
+                          <td className="p-2 font-semibold text-white">
+                            {(r.team3Score || 0) >= 0 ? `+${r.team3Score || 0}` : r.team3Score}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -297,9 +356,17 @@ export default function HistoryModal({
             ) : (
               <div className="space-y-2.5">
                 {filteredGames.map(game => {
+                  const isGameTrio = game.mode === 'trio';
                   const t1Total = (game.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
                   const t2Total = (game.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
-                  const winnerName = game.winner === 'team1' ? (game.team1?.name || 'Squadra 1') : game.winner === 'team2' ? (game.team2?.name || 'Squadra 2') : null;
+                  const t3Total = (game.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
+                  const winnerName = game.winner === 'team1' 
+                    ? (game.team1?.name || 'Squadra 1') 
+                    : game.winner === 'team2' 
+                    ? (game.team2?.name || 'Squadra 2') 
+                    : game.winner === 'team3' 
+                    ? (game.team3?.name || 'Giocatore 3') 
+                    : null;
                   const isActiveNow = activeGame && activeGame.id === game.id;
                   const isOngoing = !game.isFinished;
 
@@ -317,6 +384,12 @@ export default function HistoryModal({
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                             {game.team1?.name || 'Squadra 1'} <span className="text-emerald-400 font-normal">vs</span> {game.team2?.name || 'Squadra 2'}
+                            {isGameTrio && (
+                              <>
+                                {' '}<span className="text-emerald-400 font-normal">vs</span>{' '}
+                                {game.team3?.name || 'Giocatore 3'}
+                              </>
+                            )}
                           </span>
 
                           {/* Badge Stato Partita */}
@@ -351,7 +424,9 @@ export default function HistoryModal({
                           <span>•</span>
                           <span>{game.rounds?.length || 0} mani</span>
                           <span>•</span>
-                          <span className="font-semibold text-emerald-200">{t1Total} - {t2Total} pt</span>
+                          <span className="font-semibold text-emerald-200">
+                            {isGameTrio ? `${t1Total} - ${t2Total} - ${t3Total} pt` : `${t1Total} - ${t2Total} pt`}
+                          </span>
                         </div>
                       </div>
 

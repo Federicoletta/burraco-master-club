@@ -10,7 +10,7 @@ export default function NewGameModal({
   availablePlayers = [],
   hasActiveGame
 }) {
-  const [mode, setMode] = useState('pairs'); // 'pairs' (2v2) | 'singles' (1v1)
+  const [mode, setMode] = useState('pairs'); // 'pairs' (2v2) | 'singles' (1v1) | 'trio' (A 3)
   const [team1Name, setTeam1Name] = useState('');
   const [team2Name, setTeam2Name] = useState('');
   
@@ -19,6 +19,7 @@ export default function NewGameModal({
   const [p1B, setP1B] = useState('');
   const [p2A, setP2A] = useState('');
   const [p2B, setP2B] = useState('');
+  const [p3A, setP3A] = useState('');
 
   const [targetScore, setTargetScore] = useState(2505);
   const [customTarget, setCustomTarget] = useState('');
@@ -33,6 +34,7 @@ export default function NewGameModal({
       setP1B('');
       setP2A('');
       setP2B('');
+      setP3A('');
       setTargetScore(2505);
       setCustomTarget('');
     }
@@ -54,12 +56,18 @@ export default function NewGameModal({
       ? [p2A.trim(), p2B.trim()].filter(Boolean)
       : [p2A.trim()].filter(Boolean);
 
+    const t3Players = mode === 'trio'
+      ? [p3A.trim()].filter(Boolean)
+      : [];
+
     // Se l'utente non ha specificato il nome squadra o giocatori, assegna etichette pulite
     const defaultT1Name = mode === 'pairs' ? 'Coppia 1' : 'Giocatore 1';
     const defaultT2Name = mode === 'pairs' ? 'Coppia 2' : 'Giocatore 2';
+    const defaultT3Name = 'Giocatore 3';
 
     const finalTeam1Name = team1Name.trim() || (t1Players.length > 0 ? t1Players.join(' & ') : defaultT1Name);
     const finalTeam2Name = team2Name.trim() || (t2Players.length > 0 ? t2Players.join(' & ') : defaultT2Name);
+    const finalTeam3Name = t3Players.length > 0 ? t3Players[0] : defaultT3Name;
 
     const newGame = {
       id: 'game_' + Date.now(),
@@ -69,12 +77,18 @@ export default function NewGameModal({
       targetScore: finalTarget > 0 ? finalTarget : 2505,
       team1: {
         name: finalTeam1Name,
-        players: t1Players,
+        players: t1Players.length > 0 ? t1Players : [finalTeam1Name],
       },
       team2: {
         name: finalTeam2Name,
-        players: t2Players,
+        players: t2Players.length > 0 ? t2Players : [finalTeam2Name],
       },
+      ...(mode === 'trio' ? {
+        team3: {
+          name: finalTeam3Name,
+          players: t3Players.length > 0 ? t3Players : [finalTeam3Name],
+        }
+      } : {}),
       rounds: [],
       winner: null,
       isFinished: false,
@@ -117,43 +131,55 @@ export default function NewGameModal({
 
         <form onSubmit={handleStart} className="space-y-4 mt-3.5">
           
-          {/* Selettore Modalità 2v2 o 1v1 */}
+          {/* Selettore Modalità 2v2, A 3, o 1v1 */}
           <div>
             <label className="block text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">
               Modalità di Gioco
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setMode('pairs')}
-                className={`py-2.5 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`py-2 px-2 rounded-xl border flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   mode === 'pairs'
                     ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
                     : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
                 }`}
               >
                 <Users className="w-4 h-4" />
-                <span>A Coppie (2 vs 2)</span>
+                <span>A Coppie (2v2)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('trio')}
+                className={`py-2 px-2 rounded-xl border flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  mode === 'trio'
+                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400/30'
+                    : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
+                }`}
+              >
+                <Users className="w-4 h-4 text-amber-400" />
+                <span>A 3 (1 vs 2)</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMode('singles')}
-                className={`py-2.5 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`py-2 px-2 rounded-xl border flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   mode === 'singles'
                     ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
                     : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
                 }`}
               >
                 <User className="w-4 h-4" />
-                <span>Singolo (1 vs 1)</span>
+                <span>Singolo (1v1)</span>
               </button>
             </div>
           </div>
 
           {/* Selezione Partecipanti */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className={`grid grid-cols-1 ${mode === 'trio' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
             
-            {/* SQUADRA 1 */}
+            {/* SQUADRA / GIOCATORE 1 */}
             <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30 space-y-2">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
@@ -200,7 +226,7 @@ export default function NewGameModal({
               </div>
             </div>
 
-            {/* SQUADRA 2 */}
+            {/* SQUADRA / GIOCATORE 2 */}
             <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30 space-y-2">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold text-blue-300 uppercase tracking-wider flex items-center gap-1">
@@ -247,6 +273,32 @@ export default function NewGameModal({
               </div>
             </div>
 
+            {/* GIOCATORE 3 (Solo in modalità A 3) */}
+            {mode === 'trio' && (
+              <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30 space-y-2 animate-in fade-in">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1">
+                    <span>♥</span> Giocatore 3
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[11px] text-emerald-300/80 block mb-0.5">
+                      Nome Partecipante
+                    </label>
+                    <input
+                      type="text"
+                      value={p3A}
+                      onChange={(e) => setP3A(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-rose-400"
+                      placeholder="Nome Giocatore (opzionale)"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Suggerimenti veloci dai giocatori salvati (se ce ne sono) */}
@@ -263,6 +315,7 @@ export default function NewGameModal({
                       else if (mode === 'pairs' && !p1B) setP1B(name);
                       else if (!p2A) setP2A(name);
                       else if (mode === 'pairs' && !p2B) setP2B(name);
+                      else if (mode === 'trio' && !p3A) setP3A(name);
                       else setP1A(name);
                     }}
                     className="px-2 py-0.5 rounded-md bg-emerald-900/80 text-emerald-200 border border-emerald-700/40 text-[11px] hover:border-amber-400 hover:text-white transition-colors cursor-pointer"

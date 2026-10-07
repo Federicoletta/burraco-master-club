@@ -31,41 +31,53 @@ export default function RulesModal({ isOpen, onClose }) {
         </div>
 
         {/* Tab Selettori */}
-        <div className="mt-3 flex items-center gap-1.5 p-1 rounded-xl bg-emerald-950/70 border border-emerald-800/60">
+        <div className="mt-3 flex items-center gap-1 p-1 rounded-xl bg-emerald-950/70 border border-emerald-800/60 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('scores')}
-            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'scores'
                 ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                 : 'text-emerald-300 hover:text-white'
             }`}
           >
-            Valore Carte & Burrachi
+            Valori Carte
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('trio')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'trio'
+                ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
+                : 'text-emerald-300 hover:text-white'
+            }`}
+          >
+            Burraco a 3 (FIBUR)
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('basics')}
-            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'basics'
                 ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                 : 'text-emerald-300 hover:text-white'
             }`}
           >
-            Regole & Chiusura
+            Regole Base
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('faq')}
-            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'faq'
                 ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                 : 'text-emerald-300 hover:text-white'
             }`}
           >
-            Dubbi Frequenti (FAQ)
+            FAQ
           </button>
         </div>
 
@@ -183,6 +195,68 @@ export default function RulesModal({ isOpen, onClose }) {
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {/* TAB 2: BURRACO A 3 (FIBUR) */}
+          {activeTab === 'trio' && (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-600/40 space-y-2">
+                <h4 className="font-bold text-amber-300 text-xs sm:text-sm m-0 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Regolamento Ufficiale FIBUR (1 contro 2)</span>
+                </h4>
+                <p className="text-xs text-amber-100/90 leading-relaxed m-0">
+                  Nel Burraco a 3 ciascuno compete per la classifica individuale, ma in ogni mano la dinamica è un <strong>1 contro 2</strong> decisa da chi va per primo a pozzetto.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40 space-y-2">
+                <h4 className="font-bold text-amber-300 text-xs sm:text-sm m-0 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                  <span>1. I Due Pozzetti (18 e 11 Carte)</span>
+                </h4>
+                <ul className="list-disc pl-4 space-y-1.5 text-xs text-emerald-100">
+                  <li>Si preparano <strong>due pozzetti disuguali</strong>: uno composto da <strong>18 carte</strong> e uno da <strong>11 carte</strong>.</li>
+                  <li>Il pozzetto da 18 carte viene posizionato <strong>sopra</strong> quello da 11.</li>
+                  <li>Ciascun giocatore inizia con la consueta mano di <strong>11 carte</strong>.</li>
+                </ul>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40 space-y-2">
+                <h4 className="font-bold text-amber-300 text-xs sm:text-sm m-0 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                  <span>2. Assegnazione Ruoli: Solitario vs Coppia</span>
+                </h4>
+                <ul className="list-disc pl-4 space-y-1.5 text-xs text-emerald-100">
+                  <li><strong>Il primo giocatore</strong> che esaurisce le proprie carte prende il <strong>pozzetto da 18 carte</strong> e diventa il <strong>Solitario (18c)</strong>. Giocherà da solo per tutta la smazzata.</li>
+                  <li><strong>Gli altri due giocatori</strong> diventano automaticamente <strong>compagni di Coppia</strong> per quella mano: mettono in comune i giochi a terra, legano le carte reciprocamente e prenderanno insieme l'altro pozzetto da <strong>11 carte</strong>.</li>
+                </ul>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40 space-y-2">
+                <h4 className="font-bold text-amber-300 text-xs sm:text-sm m-0 flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-amber-400" />
+                  <span>3. Conteggio dei Punti a Fine Mano</span>
+                </h4>
+                <ul className="list-disc pl-4 space-y-1.5 text-xs text-emerald-100">
+                  <li><strong>Punti Solitario</strong>: Il Solitario calcola e incassa il <strong>100% dei propri punti</strong> (burrachi, carte a terra, eventuale chiusura, meno carte in mano o mancato pozzetto).</li>
+                  <li><strong>Punti Coppia (Divisi al 50%)</strong>: I punti realizzati sul tavolo della Coppia vengono conteggiati insieme (meno le carte rimaste in mano a ciascuno). Il totale complessivo viene <strong>diviso esattamente a metà (50%)</strong> e accreditato a ciascuno dei due compagni!</li>
+                </ul>
+                <div className="p-2 rounded-lg bg-emerald-900/60 border border-emerald-700/50 text-[11px] text-emerald-300">
+                  💡 <em>L'app calcola e divide automaticamente i punti della coppia al centesimo con la modalità guidata!</em>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40 space-y-2">
+                <h4 className="font-bold text-amber-300 text-xs sm:text-sm m-0 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                  <span>4. Traguardo di Vittoria</span>
+                </h4>
+                <p className="text-xs text-emerald-100 leading-relaxed m-0">
+                  Secondo le regole federali FIBUR, la partita termina al raggiungimento dei <strong>2505 punti</strong> (impostati come predefiniti). In alternativa si può giocare a 1505 o 2005 punti. Vince chi totalizza il punteggio più alto.
+                </p>
+              </div>
             </div>
           )}
 

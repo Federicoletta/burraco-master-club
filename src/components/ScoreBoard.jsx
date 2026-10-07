@@ -107,10 +107,14 @@ export default function ScoreBoard({
   }, []);
 
   // Calcola titoli dei giocatori della partita
+  const isTrio = activeGame.mode === 'trio';
+
+  // Calcola titoli dei giocatori della partita
   const titlesMap = useMemo(() => {
     const allPlayersInGame = [
       ...(activeGame.team1?.players || []),
-      ...(activeGame.team2?.players || [])
+      ...(activeGame.team2?.players || []),
+      ...(activeGame.team3?.players || [])
     ].filter(Boolean);
     const history = gamesHistory.length > 0 ? gamesHistory : getGamesHistory();
     const stats = calculatePlayerStats(allPlayersInGame, history, activeGame);
@@ -121,30 +125,60 @@ export default function ScoreBoard({
     return map;
   }, [activeGame, gamesHistory]);
 
-
   // Calcola totali progressivi
   let runningT1 = 0;
   let runningT2 = 0;
+  let runningT3 = 0;
   const roundsWithProgressive = (activeGame.rounds || []).map((r) => {
     runningT1 += r.team1Score || 0;
     runningT2 += r.team2Score || 0;
+    runningT3 += r.team3Score || 0;
     return {
       ...r,
       runningT1,
       runningT2,
+      runningT3,
     };
   });
 
   const totalTeam1 = runningT1;
   const totalTeam2 = runningT2;
+  const totalTeam3 = runningT3;
 
-  const diff = totalTeam1 - totalTeam2;
-  const leader = diff > 0 ? 'team1' : diff < 0 ? 'team2' : 'tie';
+  let leader = 'tie';
+  let diff = 0;
+
+  if (isTrio) {
+    if (totalTeam1 > totalTeam2 && totalTeam1 > totalTeam3) {
+      leader = 'team1';
+      diff = totalTeam1 - Math.max(totalTeam2, totalTeam3);
+    } else if (totalTeam2 > totalTeam1 && totalTeam2 > totalTeam3) {
+      leader = 'team2';
+      diff = totalTeam2 - Math.max(totalTeam1, totalTeam3);
+    } else if (totalTeam3 > totalTeam1 && totalTeam3 > totalTeam2) {
+      leader = 'team3';
+      diff = totalTeam3 - Math.max(totalTeam1, totalTeam2);
+    } else {
+      leader = 'tie';
+      diff = 0;
+    }
+  } else {
+    diff = totalTeam1 - totalTeam2;
+    leader = diff > 0 ? 'team1' : diff < 0 ? 'team2' : 'tie';
+  }
 
   const t1Percent = Math.min(100, Math.max(0, Math.round((totalTeam1 / targetScore) * 100)));
   const t2Percent = Math.min(100, Math.max(0, Math.round((totalTeam2 / targetScore) * 100)));
+  const t3Percent = Math.min(100, Math.max(0, Math.round((totalTeam3 / targetScore) * 100)));
 
-  const isTargetReached = totalTeam1 >= targetScore || totalTeam2 >= targetScore;
+  const isTargetReached = totalTeam1 >= targetScore || totalTeam2 >= targetScore || (isTrio && totalTeam3 >= targetScore);
+
+  const winningTeam = isTrio
+    ? (totalTeam1 >= totalTeam2 && totalTeam1 >= totalTeam3 ? activeGame.team1 : totalTeam2 >= totalTeam1 && totalTeam2 >= totalTeam3 ? activeGame.team2 : activeGame.team3)
+    : (totalTeam1 >= totalTeam2 ? activeGame.team1 : activeGame.team2);
+  const winningScore = isTrio
+    ? Math.max(totalTeam1, totalTeam2, totalTeam3)
+    : Math.max(totalTeam1, totalTeam2);
 
   return (
     <div className="space-y-2.5 sm:space-y-3 pb-12">
@@ -159,9 +193,7 @@ export default function ScoreBoard({
                 Traguardo di {targetScore} punti raggiunto!
               </h3>
               <p className="text-xs text-amber-300/90 m-0">
-                {totalTeam1 > totalTeam2 
-                  ? `${activeGame.team1.name} ha vinto la partita con ${totalTeam1} punti!` 
-                  : `${activeGame.team2.name} ha vinto la partita con ${totalTeam2} punti!`}
+                {winningTeam?.name} ha vinto la partita con {winningScore} punti!
               </p>
             </div>
           </div>
@@ -175,7 +207,7 @@ export default function ScoreBoard({
       )}
 
       {/* CARDS PUNTEGGIO SQUADRE (TABELLONE PRINCIPALE) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3.5">
+      <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'md:grid-cols-2'} gap-2.5 sm:gap-3.5`}>
         
         {/* CARD SQUADRA 1 (TEMA ORO / AMBRA) */}
         <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-amber-400 transition-all duration-300 ${
@@ -339,6 +371,89 @@ export default function ScoreBoard({
           </div>
         </div>
 
+        {/* CARD SQUADRA 3 (TEMA RUBINO / ROSA - SOLO SE A 3) */}
+        {isTrio && (
+          <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-rose-400 transition-all duration-300 ${
+            leader === 'team3' 
+              ? 'bg-gradient-to-br from-emerald-950/95 via-emerald-950/85 to-rose-950/35 border-rose-400/80 ring-1 ring-rose-400/30 shadow-xl shadow-rose-950/30' 
+              : 'bg-emerald-950/75 border-emerald-600/30 hover:border-rose-500/40 shadow-md'
+          }`}>
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-sm text-rose-400">♥</span> {activeGame.team3?.name || 'Giocatore 3'}
+                  </span>
+                  {onOpenEditTeams && (
+                    <button
+                      type="button"
+                      onClick={onOpenEditTeams}
+                      className="p-1 rounded-md text-emerald-400/70 hover:text-rose-300 hover:bg-emerald-900/60 transition-colors cursor-pointer"
+                      title="Modifica squadra e giocatori"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                {activeGame.team3?.players && activeGame.team3.players.length > 0 && (
+                  <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1">
+                    {activeGame.team3.players.map((p) => {
+                      const tInfo = titlesMap[p];
+                      return (
+                        <span 
+                          key={p} 
+                          className="inline-flex items-center gap-1 bg-emerald-900/90 px-1.5 py-0.5 rounded-md border border-rose-500/25 text-[11px] shadow-sm"
+                          title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
+                        >
+                          {tInfo && <span>{tInfo.icon}</span>}
+                          <span className="font-semibold text-emerald-100">{p}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Badge Leader Integrato nella Card */}
+              {leader === 'team3' && diff !== 0 && (
+                <div className="px-2.5 py-1 rounded-full bg-gradient-to-r from-rose-400 via-pink-400 to-purple-400 text-slate-950 text-[10px] sm:text-[11px] font-black tracking-wide uppercase shadow-md flex items-center gap-1 border border-rose-200/50 shrink-0 animate-in fade-in">
+                  <span>👑</span>
+                  <span>In Vantaggio</span>
+                  <span className="bg-slate-950/20 px-1.5 py-0.2 rounded-full font-black text-[9px] sm:text-[10px]">(+{Math.abs(diff)} pt)</span>
+                </div>
+              )}
+            </div>
+
+            {/* Punteggio Gigante */}
+            <div className="my-2 flex items-baseline justify-between">
+              <div className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-white drop-shadow-md">
+                {totalTeam3.toLocaleString('it-IT')}
+                <span className="text-sm font-normal text-rose-300/80 ml-1.5">pt</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] text-emerald-400/80 block">Traguardo: {targetScore}</span>
+                <span className="text-xs font-bold text-rose-300">
+                  {targetScore - totalTeam3 > 0 
+                    ? `Mancano ${targetScore - totalTeam3} pt` 
+                    : 'Raggiunto! 🎉'}
+                </span>
+              </div>
+            </div>
+
+            {/* Barra di Progresso */}
+            <div className="w-full bg-emerald-950/90 rounded-full h-2.5 p-0.5 border border-emerald-700/60 overflow-hidden shadow-inner">
+              <div 
+                className="bg-gradient-to-r from-rose-500 via-pink-400 to-rose-300 h-full rounded-full transition-all duration-500 shadow-sm"
+                style={{ width: `${t3Percent}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] sm:text-[11px] text-emerald-400/80 mt-1 font-medium">
+              <span>Progresso vittoria</span>
+              <span className="font-bold text-rose-300">{t3Percent}%</span>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* AZIONI VELOCI DELLA PARTITA */}
@@ -473,8 +588,14 @@ export default function ScoreBoard({
           <div className="p-2.5 sm:p-3 space-y-2.5">
             {roundsWithProgressive.map((r, index) => {
               const isLast = index === roundsWithProgressive.length - 1;
-              const t1WonHand = r.team1Score > r.team2Score;
-              const t2WonHand = r.team2Score > r.team1Score;
+              const t1WonHand = isTrio
+                ? (r.team1Score > r.team2Score && r.team1Score > (r.team3Score || 0))
+                : (r.team1Score > r.team2Score);
+              const t2WonHand = isTrio
+                ? (r.team2Score > r.team1Score && r.team2Score > (r.team3Score || 0))
+                : (r.team2Score > r.team1Score);
+              const t3WonHand = isTrio && (r.team3Score > r.team1Score && r.team3Score > r.team2Score);
+
               return (
                 <div 
                   key={r.roundNumber} 
@@ -510,8 +631,8 @@ export default function ScoreBoard({
                     </button>
                   </div>
 
-                  {/* Confronto 2 Squadre affiancate (50% / 50%) */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Confronto Squadre affiancate */}
+                  <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'grid-cols-2'} gap-2`}>
                     
                     {/* Squadra 1 */}
                     <div className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
@@ -524,7 +645,12 @@ export default function ScoreBoard({
                           <span className="text-[11px] font-bold text-amber-300 truncate">
                             ♦ {activeGame.team1.name}
                           </span>
-                          {t1WonHand && r.team1Score - r.team2Score > 0 && (
+                          {isTrio && r.lonePlayer === 'team1' && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 font-extrabold border border-amber-400/30 shrink-0">
+                              👤 Solitario
+                            </span>
+                          )}
+                          {!isTrio && t1WonHand && r.team1Score - r.team2Score > 0 && (
                             <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30 shrink-0">
                               +{r.team1Score - r.team2Score}
                             </span>
@@ -564,7 +690,12 @@ export default function ScoreBoard({
                           <span className="text-[11px] font-bold text-blue-300 truncate">
                             ♠ {activeGame.team2.name}
                           </span>
-                          {t2WonHand && r.team2Score - r.team1Score > 0 && (
+                          {isTrio && r.lonePlayer === 'team2' && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-400/20 text-blue-300 font-extrabold border border-blue-400/30 shrink-0">
+                              👤 Solitario
+                            </span>
+                          )}
+                          {!isTrio && t2WonHand && r.team2Score - r.team1Score > 0 && (
                             <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-400/20 text-blue-300 font-bold border border-blue-400/30 shrink-0">
                               +{r.team2Score - r.team1Score}
                             </span>
@@ -593,6 +724,48 @@ export default function ScoreBoard({
                       {r.entryMode !== 'quick' && <RoundEventChips details={r.team2Details} />}
                     </div>
 
+                    {/* Squadra 3 (se a 3) */}
+                    {isTrio && (
+                      <div className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
+                        t3WonHand
+                          ? 'bg-gradient-to-b from-rose-500/10 to-emerald-950/40 border-rose-400/40 shadow-xs'
+                          : 'bg-emerald-900/20 border-emerald-800/30'
+                      }`}>
+                        <div>
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[11px] font-bold text-rose-300 truncate">
+                              ♥ {activeGame.team3?.name || 'Giocatore 3'}
+                            </span>
+                            {r.lonePlayer === 'team3' && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-rose-400/20 text-rose-300 font-extrabold border border-rose-400/30 shrink-0">
+                                👤 Solitario
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Punti guadagnati nella mano */}
+                          <div className="my-0.5">
+                            <div className="flex items-baseline gap-1">
+                              <span className={`text-xl font-black tracking-tight ${
+                                (r.team3Score || 0) >= 0 ? 'text-white' : 'text-rose-300'
+                              }`}>
+                                {(r.team3Score || 0) >= 0 ? `+${r.team3Score || 0}` : r.team3Score}
+                              </span>
+                              <span className="text-[10px] text-rose-300/70 font-medium">nella mano</span>
+                            </div>
+                          </div>
+
+                          {/* Totale cumulativo dopo la mano */}
+                          <div className="text-[11px] text-emerald-200/90 font-medium mt-1 pt-1 border-t border-emerald-800/30">
+                            Totale: <strong className="text-white font-black">{r.runningT3.toLocaleString('it-IT')} pt</strong>
+                          </div>
+                        </div>
+
+                        {/* Eventi smazzata (Burrachi, Chiusura, Pozzetto) */}
+                        {r.entryMode !== 'quick' && <RoundEventChips details={r.team3Details} />}
+                      </div>
+                    )}
+
                   </div>
                 </div>
               );
@@ -611,6 +784,11 @@ export default function ScoreBoard({
                   <th className="py-2.5 px-3 sm:px-4 text-blue-300">
                     ♠ {activeGame.team2.name}
                   </th>
+                  {isTrio && (
+                    <th className="py-2.5 px-3 sm:px-4 text-rose-300">
+                      ♥ {activeGame.team3?.name || 'Giocatore 3'}
+                    </th>
+                  )}
                   <th className="py-2.5 px-3 sm:px-4 text-right w-16">Azioni</th>
                 </tr>
               </thead>
@@ -645,6 +823,11 @@ export default function ScoreBoard({
                           }`}>
                             {r.team1Score >= 0 ? `+${r.team1Score}` : r.team1Score} mano
                           </span>
+                          {isTrio && r.lonePlayer === 'team1' && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 font-extrabold border border-amber-400/30">
+                              👤 Solitario
+                            </span>
+                          )}
                         </div>
                         {r.entryMode !== 'quick' && <RoundEventChips details={r.team1Details} />}
                       </td>
@@ -663,9 +846,39 @@ export default function ScoreBoard({
                           }`}>
                             {r.team2Score >= 0 ? `+${r.team2Score}` : r.team2Score} mano
                           </span>
+                          {isTrio && r.lonePlayer === 'team2' && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-400/20 text-blue-300 font-extrabold border border-blue-400/30">
+                              👤 Solitario
+                            </span>
+                          )}
                         </div>
                         {r.entryMode !== 'quick' && <RoundEventChips details={r.team2Details} />}
                       </td>
+
+                      {/* Squadra 3 (se a 3) */}
+                      {isTrio && (
+                        <td className="py-2.5 px-2.5 sm:px-4">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-white text-sm sm:text-base tracking-tight">
+                              {r.runningT3.toLocaleString('it-IT')}
+                              <span className="text-[10px] font-normal text-emerald-400/70 ml-1">tot</span>
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold ${
+                              (r.team3Score || 0) >= 0 
+                                ? 'bg-rose-400/15 text-rose-300 border border-rose-400/30' 
+                                : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                            }`}>
+                              {(r.team3Score || 0) >= 0 ? `+${r.team3Score || 0}` : r.team3Score} mano
+                            </span>
+                            {r.lonePlayer === 'team3' && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-400/20 text-rose-300 font-extrabold border border-rose-400/30">
+                                👤 Solitario
+                              </span>
+                            )}
+                          </div>
+                          {r.entryMode !== 'quick' && <RoundEventChips details={r.team3Details} />}
+                        </td>
+                      )}
 
                       {/* Azioni riga */}
                       <td className="py-2.5 px-2.5 sm:px-4 text-right">

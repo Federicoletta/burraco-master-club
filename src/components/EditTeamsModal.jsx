@@ -8,6 +8,9 @@ export default function EditTeamsModal({
   playersList = [],
   onSave
 }) {
+  const isTrio = activeGame.mode === 'trio';
+  const isPairs = !isTrio && (activeGame.mode === 'pairs' || (activeGame.team1?.players?.length > 1));
+
   const [t1Name, setT1Name] = useState('');
   const [t1P1, setT1P1] = useState('');
   const [t1P2, setT1P2] = useState('');
@@ -16,24 +19,30 @@ export default function EditTeamsModal({
   const [t2P1, setT2P1] = useState('');
   const [t2P2, setT2P2] = useState('');
 
-  const [focusedField, setFocusedField] = useState(null); // 't1P1' | 't1P2' | 't2P1' | 't2P2' | null
+  const [t3Name, setT3Name] = useState('');
+  const [t3P1, setT3P1] = useState('');
+
+  const [focusedField, setFocusedField] = useState(null); // 't1P1' | 't1P2' | 't2P1' | 't2P2' | 't3P1' | null
 
   // Sincronizza lo stato ogni volta che il modale si apre o activeGame cambia
   useEffect(() => {
     if (activeGame) {
-      setT1Name(activeGame.team1?.name || 'Coppia 1');
+      setT1Name(activeGame.team1?.name || (isTrio ? 'Giocatore 1' : 'Coppia 1'));
       setT1P1(activeGame.team1?.players?.[0] || '');
       setT1P2(activeGame.team1?.players?.[1] || '');
 
-      setT2Name(activeGame.team2?.name || 'Coppia 2');
+      setT2Name(activeGame.team2?.name || (isTrio ? 'Giocatore 2' : 'Coppia 2'));
       setT2P1(activeGame.team2?.players?.[0] || '');
       setT2P2(activeGame.team2?.players?.[1] || '');
+
+      if (isTrio) {
+        setT3Name(activeGame.team3?.name || 'Giocatore 3');
+        setT3P1(activeGame.team3?.players?.[0] || '');
+      }
     }
-  }, [activeGame, isOpen]);
+  }, [activeGame, isOpen, isTrio]);
 
   if (!isOpen || !activeGame) return null;
-
-  const isPairs = activeGame.mode === 'pairs' || (activeGame.team1?.players?.length > 1);
 
   // Inverte le due formazioni complete (Squadra 1 <-> Squadra 2)
   const handleSwapTeams = () => {
@@ -52,18 +61,28 @@ export default function EditTeamsModal({
     setT2P2(temp);
   };
 
+  // Ruota i 3 giocatori (1 -> 2 -> 3 -> 1)
+  const handleRotateTrio = () => {
+    const n1 = t1Name, p1 = t1P1;
+    setT1Name(t3Name); setT1P1(t3P1);
+    setT3Name(t2Name); setT3P1(t2P1);
+    setT2Name(n1); setT2P1(p1);
+  };
+
   // Seleziona un giocatore salvato nel campo attualmente attivo
   const handleSelectSuggestedPlayer = (playerName) => {
     if (focusedField === 't1P1') setT1P1(playerName);
     else if (focusedField === 't1P2') setT1P2(playerName);
     else if (focusedField === 't2P1') setT2P1(playerName);
     else if (focusedField === 't2P2') setT2P2(playerName);
+    else if (focusedField === 't3P1') setT3P1(playerName);
     else {
       // Se nessun campo ha il focus, riempi il primo vuoto disponibile
       if (!t1P1.trim()) setT1P1(playerName);
       else if (isPairs && !t1P2.trim()) setT1P2(playerName);
       else if (!t2P1.trim()) setT2P1(playerName);
       else if (isPairs && !t2P2.trim()) setT2P2(playerName);
+      else if (isTrio && !t3P1.trim()) setT3P1(playerName);
     }
   };
 
@@ -72,9 +91,10 @@ export default function EditTeamsModal({
 
     const p1 = [t1P1.trim(), isPairs ? t1P2.trim() : null].filter(Boolean);
     const p2 = [t2P1.trim(), isPairs ? t2P2.trim() : null].filter(Boolean);
+    const p3 = isTrio ? [t3P1.trim()].filter(Boolean) : [];
 
-    if (p1.length === 0 || p2.length === 0) {
-      alert('Inserisci almeno un giocatore per ciascuna squadra.');
+    if (p1.length === 0 || p2.length === 0 || (isTrio && p3.length === 0)) {
+      alert('Inserisci almeno un giocatore per ciascuna postazione.');
       return;
     }
 
@@ -90,7 +110,13 @@ export default function EditTeamsModal({
       players: p2,
     };
 
-    onSave(updatedTeam1, updatedTeam2);
+    const updatedTeam3 = isTrio ? {
+      ...(activeGame.team3 || {}),
+      name: t3Name.trim() || p3[0],
+      players: p3,
+    } : undefined;
+
+    onSave(updatedTeam1, updatedTeam2, updatedTeam3);
     onClose();
   };
 
@@ -121,19 +147,19 @@ export default function EditTeamsModal({
         {/* Form Modifica */}
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3.5`}>
             
             {/* SCHEDA SQUADRA 1 (♦ TEMA ORO) */}
             <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-amber-500/40 shadow-sm space-y-2.5">
               <div className="flex items-center justify-between pb-1.5 border-b border-emerald-800/60">
                 <span className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="text-sm">♦</span> Squadra 1 (Tema Oro)
+                  <span className="text-sm">♦</span> {isTrio ? 'Giocatore 1' : 'Squadra 1 (Tema Oro)'}
                 </span>
               </div>
 
               <div>
                 <label className="text-[11px] font-semibold text-emerald-300/80 block mb-1">
-                  Nome Squadra
+                  {isTrio ? 'Nome Visualizzato' : 'Nome Squadra'}
                 </label>
                 <input
                   type="text"
@@ -183,13 +209,13 @@ export default function EditTeamsModal({
             <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-blue-500/40 shadow-sm space-y-2.5">
               <div className="flex items-center justify-between pb-1.5 border-b border-emerald-800/60">
                 <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="text-sm">♠</span> Squadra 2 (Tema Blu)
+                  <span className="text-sm">♠</span> {isTrio ? 'Giocatore 2' : 'Squadra 2 (Tema Blu)'}
                 </span>
               </div>
 
               <div>
                 <label className="text-[11px] font-semibold text-emerald-300/80 block mb-1">
-                  Nome Squadra
+                  {isTrio ? 'Nome Visualizzato' : 'Nome Squadra'}
                 </label>
                 <input
                   type="text"
@@ -235,30 +261,85 @@ export default function EditTeamsModal({
               </div>
             </div>
 
+            {/* SCHEDA SQUADRA 3 (♥ TEMA RUBINO - SOLO SE A 3) */}
+            {isTrio && (
+              <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-rose-500/40 shadow-sm space-y-2.5">
+                <div className="flex items-center justify-between pb-1.5 border-b border-emerald-800/60">
+                  <span className="text-xs font-black text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-sm">♥</span> Giocatore 3 (Tema Rubino)
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-emerald-300/80 block mb-1">
+                    Nome Visualizzato
+                  </label>
+                  <input
+                    type="text"
+                    value={t3Name}
+                    onChange={(e) => setT3Name(e.target.value)}
+                    placeholder="Es. Giocatore 3"
+                    className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-xs sm:text-sm focus:outline-none focus:border-rose-400"
+                  />
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <div>
+                    <label className="text-[11px] font-semibold text-emerald-300/80 block mb-1">
+                      Giocatore Singolo
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={t3P1}
+                      onFocus={() => setFocusedField('t3P1')}
+                      onChange={(e) => setT3P1(e.target.value)}
+                      placeholder="Nome giocatore..."
+                      className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-xs sm:text-sm focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Tasti Rapidi di Scambio */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={handleSwapTeams}
-              className="px-3 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
-              title="Scambia le due squadre per intero"
-            >
-              <ArrowLeftRight className="w-3.5 h-3.5 text-amber-400" />
-              <span>Inverti Squadre (♦ ⇄ ♠)</span>
-            </button>
-
-            {isPairs && (
+            {isTrio ? (
               <button
                 type="button"
-                onClick={handleSwapPartners}
+                onClick={handleRotateTrio}
                 className="px-3 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
-                title="Scambia i secondi giocatori delle due squadre"
+                title="Ruota i 3 giocatori"
               >
-                <ArrowLeftRight className="w-3.5 h-3.5 text-teal-400" />
-                <span>Scambia Compagni 2</span>
+                <ArrowLeftRight className="w-3.5 h-3.5 text-amber-400" />
+                <span>Ruota Giocatori (1 ➔ 2 ➔ 3 ➔ 1)</span>
               </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSwapTeams}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+                  title="Scambia le due squadre per intero"
+                >
+                  <ArrowLeftRight className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Inverti Squadre (♦ ⇄ ♠)</span>
+                </button>
+
+                {isPairs && (
+                  <button
+                    type="button"
+                    onClick={handleSwapPartners}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+                    title="Scambia i secondi giocatori delle due squadre"
+                  >
+                    <ArrowLeftRight className="w-3.5 h-3.5 text-teal-400" />
+                    <span>Scambia Compagni 2</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
 
