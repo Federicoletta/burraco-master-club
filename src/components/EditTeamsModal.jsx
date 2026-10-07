@@ -8,8 +8,8 @@ export default function EditTeamsModal({
   playersList = [],
   onSave
 }) {
-  const isTrio = activeGame.mode === 'trio';
-  const isPairs = !isTrio && (activeGame.mode === 'pairs' || (activeGame.team1?.players?.length > 1));
+  const isTrio = activeGame?.mode === 'trio';
+  const isPairs = !isTrio && (activeGame?.mode === 'pairs' || ((activeGame?.team1?.players?.length || 0) > 1));
 
   const [t1Name, setT1Name] = useState('');
   const [t1P1, setT1P1] = useState('');

@@ -226,7 +226,7 @@ export default function HistoryModal({
 
               {/* Box Vincitore & Risultato */}
               <div className="p-4 rounded-xl bg-emerald-950/80 border border-amber-500/30">
-                {selectedGame.mode === 'trio' ? (
+                {selectedGame?.mode === 'trio' ? (
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className={`p-2.5 rounded-lg ${selectedGame.winner === 'team1' ? 'bg-amber-500/20 border border-amber-400' : 'bg-emerald-900/40'}`}>
                       <span className="text-xs font-bold text-amber-300 block truncate">♦ {selectedGame.team1?.name || 'G1'}</span>
@@ -316,7 +316,7 @@ export default function HistoryModal({
                       <th className="p-2 text-center">Mano</th>
                       <th className="p-2 text-amber-300">{selectedGame.team1?.name || 'Squadra 1'}</th>
                       <th className="p-2 text-blue-300">{selectedGame.team2?.name || 'Squadra 2'}</th>
-                      {selectedGame.mode === 'trio' && (
+                      {selectedGame?.mode === 'trio' && (
                         <th className="p-2 text-rose-300">{selectedGame.team3?.name || 'Giocatore 3'}</th>
                       )}
                     </tr>
@@ -331,7 +331,7 @@ export default function HistoryModal({
                         <td className="p-2 font-semibold text-white">
                           {r.team2Score >= 0 ? `+${r.team2Score}` : r.team2Score}
                         </td>
-                        {selectedGame.mode === 'trio' && (
+                        {selectedGame?.mode === 'trio' && (
                           <td className="p-2 font-semibold text-white">
                             {(r.team3Score || 0) >= 0 ? `+${r.team3Score || 0}` : r.team3Score}
                           </td>
@@ -356,7 +356,7 @@ export default function HistoryModal({
             ) : (
               <div className="space-y-2.5">
                 {filteredGames.map(game => {
-                  const isGameTrio = game.mode === 'trio';
+                  const isGameTrio = game?.mode === 'trio';
                   const t1Total = (game.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
                   const t2Total = (game.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
                   const t3Total = (game.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);

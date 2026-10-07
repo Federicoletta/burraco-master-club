@@ -58,7 +58,7 @@ export default function VictoryModal({
 
   if (!isOpen || !activeGame) return null;
 
-  const isTrio = activeGame.mode === 'trio';
+  const isTrio = activeGame?.mode === 'trio';
   const t1Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
   const t2Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
   const t3Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
