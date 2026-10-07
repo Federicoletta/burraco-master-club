@@ -80,13 +80,9 @@ export default function ScoreBoard({
   onDeleteLastRound,
   onEndGame,
   onShareGame,
-  onOpenRules,
+  onOpenRules: _onOpenRules,
   onOpenEditTeams,
 }) {
-  if (!activeGame) return null;
-
-  const targetScore = activeGame.targetScore || 2505;
-
   const [wakeLockState, setWakeLockState] = useState({
     enabled: wakeLock.enabled,
     active: wakeLock.active
@@ -107,10 +103,10 @@ export default function ScoreBoard({
   }, []);
 
   // Calcola titoli dei giocatori della partita
-  const isTrio = activeGame.mode === 'trio';
+  const isTrio = activeGame?.mode === 'trio';
 
-  // Calcola titoli dei giocatori della partita
   const titlesMap = useMemo(() => {
+    if (!activeGame) return {};
     const allPlayersInGame = [
       ...(activeGame.team1?.players || []),
       ...(activeGame.team2?.players || []),
@@ -125,25 +121,36 @@ export default function ScoreBoard({
     return map;
   }, [activeGame, gamesHistory]);
 
-  // Calcola totali progressivi
-  let runningT1 = 0;
-  let runningT2 = 0;
-  let runningT3 = 0;
-  const roundsWithProgressive = (activeGame.rounds || []).map((r) => {
-    runningT1 += r.team1Score || 0;
-    runningT2 += r.team2Score || 0;
-    runningT3 += r.team3Score || 0;
+  // Calcola totali progressivi in modo immutabile
+  const { roundsWithProgressive, totalTeam1, totalTeam2, totalTeam3 } = useMemo(() => {
+    let runningT1 = 0;
+    let runningT2 = 0;
+    let runningT3 = 0;
+    const list = (activeGame?.rounds || []).filter(Boolean).map((r) => {
+      const s1 = Number(r.team1Score) || 0;
+      const s2 = Number(r.team2Score) || 0;
+      const s3 = Number(r.team3Score) || 0;
+      runningT1 += s1;
+      runningT2 += s2;
+      runningT3 += s3;
+      return {
+        ...r,
+        runningT1,
+        runningT2,
+        runningT3,
+      };
+    });
     return {
-      ...r,
-      runningT1,
-      runningT2,
-      runningT3,
+      roundsWithProgressive: list,
+      totalTeam1: runningT1,
+      totalTeam2: runningT2,
+      totalTeam3: runningT3,
     };
-  });
+  }, [activeGame?.rounds]);
 
-  const totalTeam1 = runningT1;
-  const totalTeam2 = runningT2;
-  const totalTeam3 = runningT3;
+  if (!activeGame) return null;
+
+  const targetScore = activeGame.targetScore || 2505;
 
   let leader = 'tie';
   let diff = 0;
@@ -219,7 +226,7 @@ export default function ScoreBoard({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="text-sm text-amber-300">♦</span> {activeGame.team1.name}
+                  <span className="text-sm text-amber-300">♦</span> {activeGame.team1?.name || 'Squadra 1'}
                 </span>
                 {onOpenEditTeams && (
                   <button
@@ -300,7 +307,7 @@ export default function ScoreBoard({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="text-sm text-blue-400">♠</span> {activeGame.team2.name}
+                  <span className="text-sm text-blue-400">♠</span> {activeGame.team2?.name || 'Squadra 2'}
                 </span>
                 {onOpenEditTeams && (
                   <button
@@ -643,7 +650,7 @@ export default function ScoreBoard({
                       <div>
                         <div className="flex items-center justify-between gap-1 mb-1">
                           <span className="text-[11px] font-bold text-amber-300 truncate">
-                            ♦ {activeGame.team1.name}
+                            ♦ {activeGame.team1?.name || 'Squadra 1'}
                           </span>
                           {isTrio && r.lonePlayer === 'team1' && (
                             <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 font-extrabold border border-amber-400/30 shrink-0">
@@ -671,7 +678,7 @@ export default function ScoreBoard({
 
                         {/* Totale cumulativo dopo la mano */}
                         <div className="text-[11px] text-emerald-200/90 font-medium mt-1 pt-1 border-t border-emerald-800/30">
-                          Totale: <strong className="text-white font-black">{r.runningT1.toLocaleString('it-IT')} pt</strong>
+                          Totale: <strong className="text-white font-black">{Number(r.runningT1 || 0).toLocaleString('it-IT')} pt</strong>
                         </div>
                       </div>
 
@@ -688,7 +695,7 @@ export default function ScoreBoard({
                       <div>
                         <div className="flex items-center justify-between gap-1 mb-1">
                           <span className="text-[11px] font-bold text-blue-300 truncate">
-                            ♠ {activeGame.team2.name}
+                            ♠ {activeGame.team2?.name || 'Squadra 2'}
                           </span>
                           {isTrio && r.lonePlayer === 'team2' && (
                             <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-400/20 text-blue-300 font-extrabold border border-blue-400/30 shrink-0">
@@ -779,10 +786,10 @@ export default function ScoreBoard({
                 <tr className="border-b border-emerald-700/50 bg-emerald-950/60 text-[11px] font-bold uppercase tracking-wider text-emerald-300">
                   <th className="py-2.5 px-3 sm:px-4 text-center w-12 sm:w-16">Mano</th>
                   <th className="py-2.5 px-3 sm:px-4 text-amber-300">
-                    ♦ {activeGame.team1.name}
+                    ♦ {activeGame.team1?.name || 'Squadra 1'}
                   </th>
                   <th className="py-2.5 px-3 sm:px-4 text-blue-300">
-                    ♠ {activeGame.team2.name}
+                    ♠ {activeGame.team2?.name || 'Squadra 2'}
                   </th>
                   {isTrio && (
                     <th className="py-2.5 px-3 sm:px-4 text-rose-300">
@@ -797,7 +804,7 @@ export default function ScoreBoard({
                   const isLast = index === roundsWithProgressive.length - 1;
                   return (
                     <tr 
-                      key={r.roundNumber} 
+                      key={r.roundNumber || index} 
                       className={`transition-colors border-b border-emerald-800/30 ${
                         isLast ? 'bg-emerald-900/35' : index % 2 === 0 ? 'bg-emerald-950/40' : 'bg-transparent'
                       } hover:bg-emerald-800/30`}
@@ -805,7 +812,7 @@ export default function ScoreBoard({
                       {/* Numero Mano */}
                       <td className="py-2.5 px-2.5 sm:px-4 text-center">
                         <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-emerald-900/80 text-emerald-300 font-black text-xs border border-emerald-700/50 shadow-inner">
-                          #{r.roundNumber}
+                          #{r.roundNumber || index + 1}
                         </span>
                       </td>
 
@@ -813,7 +820,7 @@ export default function ScoreBoard({
                       <td className="py-2.5 px-2.5 sm:px-4">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-black text-white text-sm sm:text-base tracking-tight">
-                            {r.runningT1.toLocaleString('it-IT')}
+                            {Number(r.runningT1 || 0).toLocaleString('it-IT')}
                             <span className="text-[10px] font-normal text-emerald-400/70 ml-1">tot</span>
                           </span>
                           <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold ${
@@ -836,7 +843,7 @@ export default function ScoreBoard({
                       <td className="py-2.5 px-2.5 sm:px-4">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-black text-white text-sm sm:text-base tracking-tight">
-                            {r.runningT2.toLocaleString('it-IT')}
+                            {Number(r.runningT2 || 0).toLocaleString('it-IT')}
                             <span className="text-[10px] font-normal text-emerald-400/70 ml-1">tot</span>
                           </span>
                           <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold ${
@@ -860,7 +867,7 @@ export default function ScoreBoard({
                         <td className="py-2.5 px-2.5 sm:px-4">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-black text-white text-sm sm:text-base tracking-tight">
-                              {r.runningT3.toLocaleString('it-IT')}
+                              {Number(r.runningT3 || 0).toLocaleString('it-IT')}
                               <span className="text-[10px] font-normal text-emerald-400/70 ml-1">tot</span>
                             </span>
                             <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold ${

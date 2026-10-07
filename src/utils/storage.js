@@ -185,14 +185,15 @@ export function calculatePlayerStats(playersList, gamesHistory = [], activeGame 
     };
   });
 
-  allGames.forEach(game => {
+  allGames.filter(Boolean).forEach(game => {
+    if (!game || typeof game !== 'object') return;
     const isFinished = Boolean(game.isFinished);
     const isTeam1Winner = game.winner === 'team1';
     const isTeam2Winner = game.winner === 'team2';
 
-    const t1Players = game.team1?.players || [];
-    const t2Players = game.team2?.players || [];
-    const t3Players = game.team3?.players || [];
+    const t1Players = Array.isArray(game.team1?.players) ? game.team1.players : [];
+    const t2Players = Array.isArray(game.team2?.players) ? game.team2.players : [];
+    const t3Players = Array.isArray(game.team3?.players) ? game.team3.players : [];
 
     let t1Total = 0;
     let t2Total = 0;
@@ -214,7 +215,8 @@ export function calculatePlayerStats(playersList, gamesHistory = [], activeGame 
     const t2HandScores = [];
     const t3HandScores = [];
 
-    (game.rounds || []).forEach(r => {
+    (game.rounds || []).filter(Boolean).forEach(r => {
+      if (!r || typeof r !== 'object') return;
       const s1 = Number(r.team1Score) || 0;
       const s2 = Number(r.team2Score) || 0;
       const s3 = Number(r.team3Score) || 0;
@@ -250,7 +252,9 @@ export function calculatePlayerStats(playersList, gamesHistory = [], activeGame 
 
     // Helper per aggiornare statistiche di un gruppo di giocatori
     const updatePlayersStats = (players, totalScore, clean, semi, dirty, closures, handScores, isWinner) => {
-      players.forEach(p => {
+      (players || []).filter(Boolean).forEach(rawP => {
+        const p = typeof rawP === 'string' ? rawP : rawP?.name || String(rawP);
+        if (!p) return;
         if (!statsMap[p]) {
           statsMap[p] = {
             name: p,

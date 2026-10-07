@@ -187,8 +187,8 @@ export default function RoundCalculatorModal({
       ...(isTrio ? {
         team3Score,
         lonePlayer,
-        loneDetails: entryMode === 'guided' ? loneData : undefined,
-        pairDetails: entryMode === 'guided' ? pairData : undefined,
+        loneDetails: entryMode === 'guided' ? loneData : null,
+        pairDetails: entryMode === 'guided' ? pairData : null,
         team1Details: entryMode === 'guided' 
           ? (lonePlayer === 'team1' ? loneData : pairData)
           : { manualScore: team1Score },

@@ -82,8 +82,8 @@ export const TROPHY_DEFINITIONS = [
     description: 'Vinci una partita superando la soglia con un margine inferiore a 100 pt.',
     check: (stats, games) => {
       let found = false;
-      games.forEach(g => {
-        if (!g.isFinished) return;
+      (games || []).filter(Boolean).forEach(g => {
+        if (!g || !g.isFinished) return;
         const isT1 = (g.team1?.players || []).includes(stats.name);
         const isT2 = (g.team2?.players || []).includes(stats.name);
         if (!isT1 && !isT2) return;
@@ -115,8 +115,8 @@ export const TROPHY_DEFINITIONS = [
     description: 'Vinci una partita senza aver mai subito la penalità del pozzetto non preso.',
     check: (stats, games) => {
       let found = false;
-      games.forEach(g => {
-        if (!g.isFinished) return;
+      (games || []).filter(Boolean).forEach(g => {
+        if (!g || !g.isFinished) return;
         const isT1 = (g.team1?.players || []).includes(stats.name);
         const isT2 = (g.team2?.players || []).includes(stats.name);
         if (!isT1 && !isT2) return;
@@ -125,7 +125,7 @@ export const TROPHY_DEFINITIONS = [
 
         // Verifica che in nessun round abbia avuto penalità pozzetto
         const teamKey = isT1 ? 'team1Details' : 'team2Details';
-        const hadPenalty = (g.rounds || []).some(r => {
+        const hadPenalty = (g.rounds || []).filter(Boolean).some(r => {
           const details = r[teamKey];
           return details && (details.pozzetto === 'non_preso' || details.pozzetto === 'preso_non_giocato');
         });
@@ -232,8 +232,8 @@ export const TROPHY_DEFINITIONS = [
     description: 'Vinci una partita dopo essere stato in svantaggio di almeno 300 punti.',
     check: (stats, games) => {
       let found = false;
-      games.forEach(g => {
-        if (!g.isFinished) return;
+      (games || []).filter(Boolean).forEach(g => {
+        if (!g || !g.isFinished) return;
         const isT1 = (g.team1?.players || []).includes(stats.name);
         const isT2 = (g.team2?.players || []).includes(stats.name);
         if (!isT1 && !isT2) return;
@@ -244,7 +244,7 @@ export const TROPHY_DEFINITIONS = [
         let rT1 = 0;
         let rT2 = 0;
         let wasDeficit300 = false;
-        (g.rounds || []).forEach(r => {
+        (g.rounds || []).filter(Boolean).forEach(r => {
           rT1 += r.team1Score || 0;
           rT2 += r.team2Score || 0;
           const myScore = isT1 ? rT1 : rT2;
