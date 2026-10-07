@@ -8,11 +8,14 @@ import {
   BookOpen, 
   Settings,
   Music,
-  Sun
+  Sun,
+  RotateCw,
+  Sparkles
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { bgMusic, MUSIC_TRACKS } from '../utils/backgroundMusic';
 import { wakeLock } from '../utils/wakeLock';
+import { checkForUpdates, forceAppUpdate, getFormattedBuildDate } from '../utils/versionCheck';
 import AudioSettingsModal from './AudioSettingsModal';
 
 export default function Header({ 
@@ -28,6 +31,8 @@ export default function Header({
   const [volume, setVolume] = useState(Math.round(sound.volume * 100));
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState({ hasUpdate: false });
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [musicState, setMusicState] = useState({
     isPlaying: bgMusic.isPlaying,
     volume: bgMusic.volume,
@@ -41,6 +46,21 @@ export default function Header({
   });
 
   useEffect(() => {
+    let mounted = true;
+    const runCheck = async () => {
+      const res = await checkForUpdates();
+      if (mounted && res?.hasUpdate) {
+        setUpdateInfo(res);
+      }
+    };
+    runCheck();
+
+    const interval = setInterval(runCheck, 45000); // Controlla ogni 45 secondi
+    const onVisChange = () => {
+      if (document.visibilityState === 'visible') runCheck();
+    };
+    document.addEventListener('visibilitychange', onVisChange);
+
     const unsubMusic = bgMusic.subscribe((state) => {
       setMusicState({ ...state });
     });
@@ -48,6 +68,9 @@ export default function Header({
       setWakeLockState({ ...state });
     });
     return () => {
+      mounted = false;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisChange);
       unsubMusic();
       unsubWakeLock();
     };
@@ -136,8 +159,10 @@ export default function Header({
             <button
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
-                isMenuOpen
+              className={`relative h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none border ${
+                updateInfo.hasUpdate
+                  ? 'bg-amber-500/25 text-amber-200 border-amber-400 ring-2 ring-amber-400/40 shadow-md shadow-amber-950/40'
+                  : isMenuOpen
                   ? 'bg-amber-500/20 text-amber-200 border-amber-400/50 ring-1 ring-amber-400/30 shadow-md shadow-amber-950/30'
                   : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
               }`}
@@ -145,6 +170,9 @@ export default function Header({
             >
               <Settings className={`w-4 h-4 text-amber-300 pointer-events-none transition-transform duration-200 ${isMenuOpen ? 'rotate-45 text-amber-200' : ''}`} />
               <span className="hidden sm:inline pointer-events-none">Menu</span>
+              {updateInfo.hasUpdate && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-emerald-950 animate-ping" />
+              )}
             </button>
 
             {/* Menu a tendina Impostazioni & Funzioni */}
@@ -156,7 +184,7 @@ export default function Header({
                   onClick={() => setIsMenuOpen(false)}
                 />
                 
-                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl bg-emerald-950/95 backdrop-blur-md border border-amber-500/40 shadow-2xl p-2 z-50 text-white animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full mt-2 w-68 rounded-2xl bg-emerald-950/95 backdrop-blur-md border border-amber-500/40 shadow-2xl p-2 z-50 text-white animate-in fade-in zoom-in-95 duration-150">
                   
                   {/* Intestazione del menu */}
                   <div className="px-3 py-1.5 border-b border-emerald-800/60 mb-1 flex items-center justify-between text-[11px] font-bold text-amber-400 tracking-wider uppercase">
@@ -164,7 +192,50 @@ export default function Header({
                       <Settings className="w-3.5 h-3.5 text-amber-400" />
                       Menu & Opzioni
                     </span>
+                    <span className="text-[10px] text-emerald-400/80 font-mono font-normal">
+                      {getFormattedBuildDate()}
+                    </span>
                   </div>
+
+                  {/* Pulsante dedicato Aggiornamento / Ricarica PWA iPad */}
+                  <button
+                    onClick={async () => {
+                      setIsCheckingUpdate(true);
+                      const res = await checkForUpdates();
+                      if (res.hasUpdate) {
+                        forceAppUpdate();
+                      } else {
+                        setTimeout(() => {
+                          forceAppUpdate();
+                        }, 200);
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer mb-1 border ${
+                      updateInfo.hasUpdate
+                        ? 'bg-amber-500/25 border-amber-400 text-amber-200 shadow-md ring-1 ring-amber-400/30'
+                        : 'bg-emerald-900/40 border-emerald-700/40 hover:bg-emerald-900/80 text-emerald-100'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <RotateCw className={`w-4 h-4 shrink-0 ${isCheckingUpdate || updateInfo.hasUpdate ? 'text-amber-400 animate-spin' : 'text-emerald-400'}`} />
+                      <div>
+                        <div className="text-white font-bold flex items-center gap-1.5">
+                          <span>{updateInfo.hasUpdate ? 'Nuovo Aggiornamento!' : 'Ricarica / Aggiorna'}</span>
+                          {updateInfo.hasUpdate && (
+                            <span className="px-1.5 py-0.2 rounded bg-amber-400 text-emerald-950 font-black text-[9px]">NUOVO</span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-emerald-300/70 font-normal">
+                          {updateInfo.hasUpdate ? `Tocca per installare` : `Scarica ultima versione`}
+                        </div>
+                      </div>
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${
+                      updateInfo.hasUpdate ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'
+                    }`}>
+                      {updateInfo.hasUpdate ? 'AGGIORNA' : 'RICARICA'}
+                    </span>
+                  </button>
 
                   {/* Voci rapide visibili SOLO su smartphone (perché nascoste dalla barra principale) */}
                   {hasActiveGame && onShareGame && (
@@ -298,6 +369,26 @@ export default function Header({
 
         </div>
       </div>
+
+      {/* Banner Notifica Nuovo Aggiornamento Disponibile (visibile su iPad/mobile/desktop quando c'è una nuova release) */}
+      {updateInfo.hasUpdate && (
+        <div className="max-w-5xl mx-auto mt-2 p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-amber-500/25 via-amber-400/35 to-amber-500/25 border border-amber-400/60 flex items-center justify-between gap-2 shadow-lg animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 text-xs text-amber-100">
+            <Sparkles className="w-4 h-4 text-amber-300 shrink-0 animate-bounce" />
+            <div>
+              <span className="font-bold text-white">Nuova versione disponibile!</span>
+              <span className="hidden sm:inline text-amber-200/90 ml-1">L'app è stata aggiornata. Tocca per applicare le novità.</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => forceAppUpdate()}
+            className="px-3 py-1.5 rounded-lg gold-gradient text-emerald-950 font-black text-xs shrink-0 shadow-md hover:brightness-110 active:scale-95 cursor-pointer whitespace-nowrap"
+          >
+            AGGIORNA ORA
+          </button>
+        </div>
+      )}
 
       {/* Modale Regolazione Volume & Effetti Sonori */}
       <AudioSettingsModal
