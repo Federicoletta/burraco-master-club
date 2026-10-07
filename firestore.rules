@@ -17,13 +17,13 @@ service cloud.firestore {
     //   - targetScore: number (required, 100..10000) - Winning point threshold
     //   - team1: map (required, keys: ['name', 'players'])
     //       - name: string (1-100 chars)
-    //       - players: list of strings (1-4 players, 1-100 chars each)
+    //       - players: list of strings (0-4 players, 1-100 chars each)
     //   - team2: map (required, keys: ['name', 'players'])
     //       - name: string (1-100 chars)
-    //       - players: list of strings (1-4 players, 1-100 chars each)
+    //       - players: list of strings (0-4 players, 1-100 chars each)
     //   - team3: map (optional for pairs/singles, required for trio, keys: ['name', 'players'])
     //       - name: string (1-100 chars)
-    //       - players: list of strings (1-4 players, 1-100 chars each)
+    //       - players: list of strings (0-4 players, 1-100 chars each)
     //   - rounds: list (required, max 100 rounds) - Match rounds history
     //   - winner: string | null (optional, 'team1' | 'team2' | 'team3' | null)
     //   - isFinished: bool (required) - Whether the match has concluded
@@ -59,9 +59,9 @@ service cloud.firestore {
 
     function isValidPlayerList(players) {
       return players is list &&
-             players.size() >= 1 &&
+             players.size() >= 0 &&
              players.size() <= 4 &&
-             isValidPlayerName(players[0]) &&
+             (players.size() < 1 || isValidPlayerName(players[0])) &&
              (players.size() < 2 || isValidPlayerName(players[1])) &&
              (players.size() < 3 || isValidPlayerName(players[2])) &&
              (players.size() < 4 || isValidPlayerName(players[3]));

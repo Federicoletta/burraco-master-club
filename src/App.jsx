@@ -28,7 +28,7 @@ import {
   subscribeToCloudGamesHistory,
   deleteGameFromCloud
 } from './services/firebase';
-import { PlusCircle, Users, Trophy, Sparkles, Cloud, Check } from 'lucide-react';
+import { Cloud } from 'lucide-react';
 
 export default function App() {
   const [activeGame, setActiveGame] = useState(null);
@@ -171,7 +171,8 @@ export default function App() {
           // Se la partita ha giocatori non ancora nella rubrica, aggiungili automaticamente
           const gamePlayers = [
             ...(cloudGame.team1?.players || []),
-            ...(cloudGame.team2?.players || [])
+            ...(cloudGame.team2?.players || []),
+            ...(cloudGame.team3?.players || [])
           ].filter(Boolean);
 
           if (gamePlayers.length > 0) {
@@ -224,7 +225,8 @@ export default function App() {
     // Salva i nomi dei giocatori nella rubrica partecipanti SOLO se sono nomi reali inseriti
     const allPlayers = [
       ...(newGame.team1?.players || []),
-      ...(newGame.team2?.players || [])
+      ...(newGame.team2?.players || []),
+      ...(newGame.team3?.players || [])
     ].map(p => typeof p === 'string' ? p.trim() : '').filter(Boolean);
 
     allPlayers.forEach(p => savePlayerName(p));

@@ -13,7 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
-import { bgMusic, MUSIC_TRACKS } from '../utils/backgroundMusic';
+import { bgMusic } from '../utils/backgroundMusic';
 import { wakeLock } from '../utils/wakeLock';
 import { checkForUpdates, forceAppUpdate, getFormattedBuildDate } from '../utils/versionCheck';
 import AudioSettingsModal from './AudioSettingsModal';

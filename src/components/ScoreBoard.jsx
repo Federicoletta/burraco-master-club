@@ -4,11 +4,6 @@ import {
   Trophy, 
   Edit2, 
   Trash2, 
-  Share2, 
-  AlertCircle, 
-  Info, 
-  ChevronDown, 
-  BookOpen, 
   Sun,
   LayoutList,
   Table
@@ -79,7 +74,7 @@ export default function ScoreBoard({
   onEditRound,
   onDeleteLastRound,
   onEndGame,
-  onShareGame,
+  onShareGame: _onShareGame,
   onOpenRules: _onOpenRules,
   onOpenEditTeams,
 }) {

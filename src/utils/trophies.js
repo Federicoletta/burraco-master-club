@@ -86,14 +86,16 @@ export const TROPHY_DEFINITIONS = [
         if (!g || !g.isFinished) return;
         const isT1 = (g.team1?.players || []).includes(stats.name);
         const isT2 = (g.team2?.players || []).includes(stats.name);
-        if (!isT1 && !isT2) return;
+        const isT3 = (g.team3?.players || []).includes(stats.name);
+        if (!isT1 && !isT2 && !isT3) return;
 
-        const won = (isT1 && g.winner === 'team1') || (isT2 && g.winner === 'team2');
+        const won = (isT1 && g.winner === 'team1') || (isT2 && g.winner === 'team2') || (isT3 && g.winner === 'team3');
         if (won) {
-          const target = g.targetScore || 2005;
+          const target = g.targetScore || 2505;
           const t1Total = (g.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
           const t2Total = (g.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
-          const winnerTotal = isT1 ? t1Total : t2Total;
+          const t3Total = (g.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
+          const winnerTotal = isT1 ? t1Total : isT2 ? t2Total : t3Total;
           if (winnerTotal >= target && (winnerTotal - target) < 100) {
             found = true;
           }
@@ -119,12 +121,13 @@ export const TROPHY_DEFINITIONS = [
         if (!g || !g.isFinished) return;
         const isT1 = (g.team1?.players || []).includes(stats.name);
         const isT2 = (g.team2?.players || []).includes(stats.name);
-        if (!isT1 && !isT2) return;
-        const won = (isT1 && g.winner === 'team1') || (isT2 && g.winner === 'team2');
+        const isT3 = (g.team3?.players || []).includes(stats.name);
+        if (!isT1 && !isT2 && !isT3) return;
+        const won = (isT1 && g.winner === 'team1') || (isT2 && g.winner === 'team2') || (isT3 && g.winner === 'team3');
         if (!won) return;
 
         // Verifica che in nessun round abbia avuto penalità pozzetto
-        const teamKey = isT1 ? 'team1Details' : 'team2Details';
+        const teamKey = isT1 ? 'team1Details' : isT2 ? 'team2Details' : 'team3Details';
         const hadPenalty = (g.rounds || []).filter(Boolean).some(r => {
           const details = r[teamKey];
           return details && (details.pozzetto === 'non_preso' || details.pozzetto === 'preso_non_giocato');
@@ -236,20 +239,24 @@ export const TROPHY_DEFINITIONS = [
         if (!g || !g.isFinished) return;
         const isT1 = (g.team1?.players || []).includes(stats.name);
         const isT2 = (g.team2?.players || []).includes(stats.name);
-        if (!isT1 && !isT2) return;
-        const won = (isT1 && g.winner === 'team1') || (isT2 && g.winner === 'team2');
+        const isT3 = (g.team3?.players || []).includes(stats.name);
+        if (!isT1 && !isT2 && !isT3) return;
+        const won = (isT1 && g.winner === 'team1') || (isT2 && g.winner === 'team2') || (isT3 && g.winner === 'team3');
         if (!won) return;
 
         // Controlla se durante la partita è mai stato sotto di 300 pt
         let rT1 = 0;
         let rT2 = 0;
+        let rT3 = 0;
         let wasDeficit300 = false;
         (g.rounds || []).filter(Boolean).forEach(r => {
           rT1 += r.team1Score || 0;
           rT2 += r.team2Score || 0;
-          const myScore = isT1 ? rT1 : rT2;
-          const oppScore = isT1 ? rT2 : rT1;
-          if (oppScore - myScore >= 300) {
+          rT3 += r.team3Score || 0;
+          const myScore = isT1 ? rT1 : isT2 ? rT2 : rT3;
+          const oppScores = [isT1 ? null : rT1, isT2 ? null : rT2, isT3 ? null : rT3].filter(s => s !== null);
+          const maxOppScore = Math.max(...oppScores);
+          if (maxOppScore - myScore >= 300) {
             wasDeficit300 = true;
           }
         });

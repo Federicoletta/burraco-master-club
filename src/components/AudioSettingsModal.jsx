@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Volume2, VolumeX, Volume1, Bell, Play, Pause, Music, Disc } from 'lucide-react';
+import { X, Volume2, VolumeX, Bell, Play, Pause, Music, Disc } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { bgMusic, MUSIC_TRACKS } from '../utils/backgroundMusic';
 

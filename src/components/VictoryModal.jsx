@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Sparkles, RotateCcw, Home, Share2 } from 'lucide-react';
+import { Trophy, Sparkles, RotateCcw, Home, Share2, X } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 
 export default function VictoryModal({
@@ -108,6 +108,17 @@ export default function VictoryModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-md felt-card rounded-3xl border-2 border-amber-400 p-6 my-4 shadow-2xl text-center animate-in zoom-in-90 duration-300">
         
+        {onClose && (
+          <button 
+            type="button"
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer"
+            title="Chiudi e torna al tabellone"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+
         {/* Trofeo Fluttuante */}
         <div className="relative inline-block my-2">
           <div className="w-20 h-20 rounded-3xl gold-gradient flex items-center justify-center mx-auto shadow-2xl shadow-amber-500/50">

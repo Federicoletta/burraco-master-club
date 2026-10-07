@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calculator, Zap, Plus, Minus, Check, Sparkles, AlertCircle } from 'lucide-react';
+import { X, Calculator, Zap, Plus, Minus, Check, Sparkles } from 'lucide-react';
 import { CARD_VALUES, HONOR_POINTS, calculateTeamRoundScore, calculateCardsPoints } from '../constants/burraco';
 import { sound } from '../utils/soundEffects';
+
+const DEFAULT_ENTITY = {
+  chiusura: false,
+  burracoPulito: 0,
+  burracoSemipulito: 0,
+  burracoSporco: 0,
+  pozzetto: 'preso_giocato', // 'preso_giocato' | 'non_preso' | 'preso_non_giocato'
+  cardsOnTableDirect: '',
+  cardsInHandDirect: '',
+  cardsOnTableCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
+  cardsInHandCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
+  showTableCardPad: false,
+  showHandCardPad: false,
+  manualScore: '',
+};
 
 export default function RoundCalculatorModal({
   isOpen,
@@ -16,33 +31,18 @@ export default function RoundCalculatorModal({
   const [activeTab, setActiveTab] = useState(isTrio ? 'lone' : 'team1'); // 'team1' | 'team2' | 'lone' | 'pair'
   const [lonePlayer, setLonePlayer] = useState('team1'); // 'team1' | 'team2' | 'team3'
 
-  const defaultEntity = {
-    chiusura: false,
-    burracoPulito: 0,
-    burracoSemipulito: 0,
-    burracoSporco: 0,
-    pozzetto: 'preso_giocato', // 'preso_giocato' | 'non_preso' | 'preso_non_giocato'
-    cardsOnTableDirect: '',
-    cardsInHandDirect: '',
-    cardsOnTableCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
-    cardsInHandCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
-    showTableCardPad: false,
-    showHandCardPad: false,
-    manualScore: '',
-  };
-
   // Stato per Squadra 1
-  const [team1Data, setTeam1Data] = useState({ ...defaultEntity });
+  const [team1Data, setTeam1Data] = useState({ ...DEFAULT_ENTITY });
 
   // Stato per Squadra 2
-  const [team2Data, setTeam2Data] = useState({ ...defaultEntity });
+  const [team2Data, setTeam2Data] = useState({ ...DEFAULT_ENTITY });
 
   // Stato per Giocatore 3 (Quick mode a 3)
-  const [team3Data, setTeam3Data] = useState({ ...defaultEntity });
+  const [team3Data, setTeam3Data] = useState({ ...DEFAULT_ENTITY });
 
   // Stato per Burraco a 3 (Modalità Guidata FIBUR: Solitario vs Coppia)
-  const [loneData, setLoneData] = useState({ ...defaultEntity });
-  const [pairData, setPairData] = useState({ ...defaultEntity });
+  const [loneData, setLoneData] = useState({ ...DEFAULT_ENTITY });
+  const [pairData, setPairData] = useState({ ...DEFAULT_ENTITY });
 
   // Caricamento in caso di modifica di una mano
   useEffect(() => {
@@ -59,31 +59,36 @@ export default function RoundCalculatorModal({
         setEntryMode('guided');
         if (isTrio) {
           if (roundToEdit.loneDetails && roundToEdit.pairDetails) {
-            setLoneData({ ...defaultEntity, ...roundToEdit.loneDetails });
-            setPairData({ ...defaultEntity, ...roundToEdit.pairDetails });
+            setLoneData({ ...DEFAULT_ENTITY, ...roundToEdit.loneDetails });
+            setPairData({ ...DEFAULT_ENTITY, ...roundToEdit.pairDetails });
           } else {
             const lp = roundToEdit.lonePlayer || 'team1';
             const loneDet = lp === 'team1' ? roundToEdit.team1Details : lp === 'team2' ? roundToEdit.team2Details : roundToEdit.team3Details;
             const pairDet = lp === 'team1' ? roundToEdit.team2Details : roundToEdit.team1Details;
-            if (loneDet) setLoneData({ ...defaultEntity, ...loneDet });
-            if (pairDet) setPairData({ ...defaultEntity, ...pairDet });
+            if (loneDet) setLoneData({ ...DEFAULT_ENTITY, ...loneDet });
+            if (pairDet) setPairData({ ...DEFAULT_ENTITY, ...pairDet });
           }
         } else {
-          if (roundToEdit.team1Details) setTeam1Data({ ...defaultEntity, ...roundToEdit.team1Details });
-          if (roundToEdit.team2Details) setTeam2Data({ ...defaultEntity, ...roundToEdit.team2Details });
+          if (roundToEdit.team1Details) setTeam1Data({ ...DEFAULT_ENTITY, ...roundToEdit.team1Details });
+          if (roundToEdit.team2Details) setTeam2Data({ ...DEFAULT_ENTITY, ...roundToEdit.team2Details });
         }
       }
     } else {
-      // Reset defaults per nuova mano
-      setTeam1Data({ ...defaultEntity });
-      setTeam2Data({ ...defaultEntity });
-      setTeam3Data({ ...defaultEntity });
-      setLoneData({ ...defaultEntity });
-      setPairData({ ...defaultEntity });
-      setLonePlayer('team1');
+      // Reset defaults per nuova mano con rotazione automatica ufficiale FIBUR
+      setTeam1Data({ ...DEFAULT_ENTITY });
+      setTeam2Data({ ...DEFAULT_ENTITY });
+      setTeam3Data({ ...DEFAULT_ENTITY });
+      setLoneData({ ...DEFAULT_ENTITY });
+      setPairData({ ...DEFAULT_ENTITY });
+      const expectedLone = ((roundNumber - 1) % 3 === 0) 
+        ? 'team1' 
+        : ((roundNumber - 1) % 3 === 1) 
+        ? 'team2' 
+        : 'team3';
+      setLonePlayer(expectedLone);
       setActiveTab(isTrio ? 'lone' : 'team1');
     }
-  }, [roundToEdit, isOpen, isTrio]);
+  }, [roundToEdit, isOpen, isTrio, roundNumber]);
 
   if (!isOpen || !activeGame) return null;
 

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { X, BookOpen, Award, CheckCircle2, AlertCircle, HelpCircle, Sparkles } from 'lucide-react';
-import { CARD_VALUES, HONOR_POINTS } from '../constants/burraco';
+import { X, BookOpen, Award, CheckCircle2, Sparkles } from 'lucide-react';
 
 export default function RulesModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('scores'); // 'scores' | 'basics' | 'faq'

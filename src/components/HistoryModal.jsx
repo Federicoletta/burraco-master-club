@@ -12,9 +12,7 @@ import {
   Upload, 
   Cloud, 
   RefreshCw, 
-  Check, 
-  Search,
-  Sparkles
+  Search
 } from 'lucide-react';
 import { exportBackupData, importBackupData } from '../utils/storage';
 import { loadCloudGamesHistory } from '../services/firebase';
@@ -220,7 +218,7 @@ export default function HistoryModal({
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                     <span>Partita in corso ({selectedGame.rounds?.length || 0} mani registrate)</span>
                   </span>
-                  <span className="text-[11px] text-emerald-300">Traguardo: {selectedGame.targetScore || 2005} pt</span>
+                  <span className="text-[11px] text-emerald-300">Traguardo: {selectedGame.targetScore || 2505} pt</span>
                 </div>
               )}
 
