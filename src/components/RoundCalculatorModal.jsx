@@ -353,6 +353,7 @@ export default function RoundCalculatorModal({
                 <div className="relative">
                   <input
                     type="number"
+                    inputMode="numeric"
                     value={team1Data.manualScore}
                     onChange={(e) => setTeam1Data(p => ({ ...p, manualScore: e.target.value }))}
                     placeholder="0"
@@ -375,6 +376,7 @@ export default function RoundCalculatorModal({
                 <div className="relative">
                   <input
                     type="number"
+                    inputMode="numeric"
                     value={team2Data.manualScore}
                     onChange={(e) => setTeam2Data(p => ({ ...p, manualScore: e.target.value }))}
                     placeholder="0"
@@ -398,6 +400,7 @@ export default function RoundCalculatorModal({
                   <div className="relative">
                     <input
                       type="number"
+                      inputMode="numeric"
                       value={team3Data.manualScore}
                       onChange={(e) => setTeam3Data(p => ({ ...p, manualScore: e.target.value }))}
                       placeholder="0"
@@ -774,16 +777,54 @@ export default function RoundCalculatorModal({
                   </div>
 
                   {!currentData.showTableCardPad ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        placeholder="Es: 135"
-                        value={currentData.cardsOnTableDirect}
-                        onChange={(e) => setCurrentData(p => ({ ...p, cardsOnTableDirect: e.target.value }))}
-                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                        className="w-full text-center text-lg sm:text-xl font-black py-1.5 rounded-xl bg-emerald-900/60 border border-emerald-500/50 text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                      />
-                      <span className="text-xs text-emerald-300 font-bold shrink-0">pt calati</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="0"
+                          value={currentData.cardsOnTableDirect}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, '');
+                            setCurrentData(p => ({ ...p, cardsOnTableDirect: val }));
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                          className="w-full text-center text-lg sm:text-xl font-black py-1.5 rounded-xl bg-emerald-900/60 border border-emerald-500/50 text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        />
+                        <span className="text-xs text-emerald-300 font-bold shrink-0">pt calati</span>
+                      </div>
+
+                      {/* Tasti Rapidi Somma Punti Carte a Terra */}
+                      <div className="flex flex-wrap items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-emerald-800/40">
+                        {[5, 10, 15, 20, 50, 100].map(val => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => {
+                              sound.playTap();
+                              setCurrentData(p => {
+                                const current = Number(p.cardsOnTableDirect) || 0;
+                                return { ...p, cardsOnTableDirect: String(current + val) };
+                              });
+                            }}
+                            className="px-2 py-1 rounded-lg bg-emerald-900/90 hover:bg-emerald-800 active:scale-95 text-emerald-200 hover:text-white border border-emerald-600/50 text-[11px] font-bold transition-all shadow-xs cursor-pointer touch-manipulation"
+                          >
+                            +{val}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.playTap();
+                            setCurrentData(p => ({ ...p, cardsOnTableDirect: '' }));
+                          }}
+                          className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 active:scale-95 text-rose-300 border border-rose-800/50 text-[11px] font-bold transition-all cursor-pointer touch-manipulation"
+                          title="Azzera punti a terra"
+                        >
+                          C
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     /* Tastierino espanso a scomparsa per calcolo carte a terra */
@@ -852,16 +893,54 @@ export default function RoundCalculatorModal({
                   </div>
 
                   {!currentData.showHandCardPad ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        placeholder="Es: 40"
-                        value={currentData.cardsInHandDirect}
-                        onChange={(e) => setCurrentData(p => ({ ...p, cardsInHandDirect: e.target.value }))}
-                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                        className="w-full text-center text-lg sm:text-xl font-black py-1.5 rounded-xl bg-emerald-900/60 border border-rose-500/50 text-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400"
-                      />
-                      <span className="text-xs text-rose-300 font-bold shrink-0">pt da togliere</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="0"
+                          value={currentData.cardsInHandDirect}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, '');
+                            setCurrentData(p => ({ ...p, cardsInHandDirect: val }));
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                          className="w-full text-center text-lg sm:text-xl font-black py-1.5 rounded-xl bg-emerald-900/60 border border-rose-500/50 text-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                        />
+                        <span className="text-xs text-rose-300 font-bold shrink-0">pt da togliere</span>
+                      </div>
+
+                      {/* Tasti Rapidi Somma Punti Carte in Mano */}
+                      <div className="flex flex-wrap items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-emerald-800/40">
+                        {[5, 10, 15, 20, 50, 100].map(val => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => {
+                              sound.playTap();
+                              setCurrentData(p => {
+                                const current = Number(p.cardsInHandDirect) || 0;
+                                return { ...p, cardsInHandDirect: String(current + val) };
+                              });
+                            }}
+                            className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 active:scale-95 text-rose-200 hover:text-white border border-rose-700/50 text-[11px] font-bold transition-all shadow-xs cursor-pointer touch-manipulation"
+                          >
+                            +{val}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.playTap();
+                            setCurrentData(p => ({ ...p, cardsInHandDirect: '' }));
+                          }}
+                          className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 active:scale-95 text-rose-300 border border-rose-800/50 text-[11px] font-bold transition-all cursor-pointer touch-manipulation"
+                          title="Azzera carte in mano"
+                        >
+                          C
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     /* Tastierino espanso a scomparsa per calcolo carte in mano */
