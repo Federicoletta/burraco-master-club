@@ -236,6 +236,47 @@ class SoundManager {
       // Ignora silente
     }
   }
+
+  // Rintocco funebre solenne / campana a lutto tenebrosa (quando un giocatore muore)
+  playDeathBell() {
+    if (!this.enabled || this.volume <= 0) return;
+    try {
+      this.initContext();
+      if (!this.ctx || !this.masterGain) return;
+
+      const now = this.ctx.currentTime;
+      // Frequenze per simulare una pesante campana metallica in bronzo (fondamentale bassa + parziali inarmoniche)
+      const harmonics = [
+        { freq: 110.0, gain: 0.6, decay: 4.8 },   // La 2 (profondo rintocco di campana)
+        { freq: 220.0, gain: 0.35, decay: 3.8 },  // La 3
+        { freq: 277.18, gain: 0.25, decay: 3.2 }, // Terza maggiore
+        { freq: 440.0, gain: 0.2, decay: 2.5 },   // Ottava
+        { freq: 659.25, gain: 0.12, decay: 1.8 }, // Quinta acuta
+        { freq: 880.0, gain: 0.08, decay: 1.2 }   // Tintinnio metallico iniziale
+      ];
+
+      harmonics.forEach(h => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(h.freq, now);
+
+        // Attacco istantaneo per il colpo del battaglio e lungo riverbero
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(h.gain * 0.85, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + h.decay);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(now);
+        osc.stop(now + h.decay);
+      });
+    } catch {
+      // Ignora silente
+    }
+  }
 }
 
 export const sound = new SoundManager();
