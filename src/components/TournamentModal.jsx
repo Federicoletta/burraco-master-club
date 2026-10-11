@@ -45,10 +45,73 @@ export default function TournamentModal({
     { id: 'team_4', name: 'Coppia 4', player1: '', player2: '' },
   ]);
 
-  // Stato inserimento manuale rapido punteggio di un match
   const [editingMatch, setEditingMatch] = useState(null);
   const [manualScore1, setManualScore1] = useState('');
   const [manualScore2, setManualScore2] = useState('');
+
+  // Traccia quale input giocatore è attualmente attivo per assegnare rapidamente con un tocco
+  const [activePlayerField, setActivePlayerField] = useState({ teamIndex: 0, playerSlot: 1 });
+
+  // Assegna un partecipante recente allo slot attivo o al primo slot libero
+  const handleAssignPlayer = (playerName) => {
+    setTeamsForm(prev => {
+      const next = [...prev];
+      let targetIdx = activePlayerField.teamIndex;
+      let targetSlot = activePlayerField.playerSlot;
+
+      // Se lo slot correntemente selezionato è già pieno con questo giocatore, non fare nulla
+      if (next[targetIdx] && next[targetIdx][`player${targetSlot}`] === playerName) {
+        return next;
+      }
+
+      // Se lo slot target ha già un nome, prova a trovare il primo slot vuoto
+      if (next[targetIdx] && next[targetIdx][`player${targetSlot}`] !== '') {
+        let foundEmpty = false;
+        for (let i = 0; i < next.length; i++) {
+          if (!next[i].player1) {
+            targetIdx = i;
+            targetSlot = 1;
+            foundEmpty = true;
+            break;
+          }
+          if (!next[i].player2) {
+            targetIdx = i;
+            targetSlot = 2;
+            foundEmpty = true;
+            break;
+          }
+        }
+        if (!foundEmpty) {
+          // Se sono tutti pieni, sovrascrivi quello attivo
+          targetIdx = activePlayerField.teamIndex;
+          targetSlot = activePlayerField.playerSlot;
+        }
+      }
+
+      if (next[targetIdx]) {
+        next[targetIdx] = {
+          ...next[targetIdx],
+          [`player${targetSlot}`]: playerName,
+        };
+        // Auto-genera il nome della coppia se ancora generico o vuoto
+        const p1 = targetSlot === 1 ? playerName : next[targetIdx].player1;
+        const p2 = targetSlot === 2 ? playerName : next[targetIdx].player2;
+        const combined = [p1, p2].filter(Boolean).join(' & ');
+        if (!next[targetIdx].name || next[targetIdx].name.startsWith('Coppia ')) {
+          next[targetIdx].name = combined || `Coppia ${targetIdx + 1}`;
+        }
+      }
+
+      // Avanza automaticamente al prossimo slot giocatore
+      if (targetSlot === 1) {
+        setActivePlayerField({ teamIndex: targetIdx, playerSlot: 2 });
+      } else if (targetIdx + 1 < next.length) {
+        setActivePlayerField({ teamIndex: targetIdx + 1, playerSlot: 1 });
+      }
+
+      return next;
+    });
+  };
 
   // Sincronizza squadre quando cambia numTeams nel form
   const handleNumTeamsChange = (count) => {
@@ -62,6 +125,7 @@ export default function TournamentModal({
       }
       return next.slice(0, n);
     });
+    setActivePlayerField({ teamIndex: 0, playerSlot: 1 });
   };
 
   // Calcola tutti i match appiattiti
@@ -276,55 +340,115 @@ export default function TournamentModal({
               </div>
             </div>
 
+            {/* PARTECIPANTI RECENTI / RUBRICA PER INSERIMENTO RAPIDO */}
+            {playersList && playersList.length > 0 && (
+              <div className="p-3 rounded-xl bg-emerald-950/90 border border-emerald-600/40">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Partecipanti Recenti Registrati</span>
+                  </span>
+                  <span className="text-[11px] text-emerald-400/80">
+                    Tocca un nome per inserirlo al volo
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                  {playersList.map(name => {
+                    // Controlla se questo partecipante è già assegnato in una delle coppie
+                    const isAssigned = teamsForm.some(
+                      t => t.player1.trim() === name.trim() || t.player2.trim() === name.trim()
+                    );
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => handleAssignPlayer(name)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1 transition-all cursor-pointer active:scale-95 ${
+                          isAssigned
+                            ? 'bg-emerald-900/40 text-emerald-400/60 border-emerald-800/40 opacity-70'
+                            : 'bg-emerald-900/90 hover:bg-emerald-800 text-emerald-100 hover:text-white border-emerald-600/60 hover:border-amber-400 shadow-sm'
+                        }`}
+                        title={isAssigned ? `${name} (già inserito)` : `Inserisci ${name}`}
+                      >
+                        <span className="text-amber-400 text-xs font-black">+</span>
+                        <span>{name}</span>
+                        {isAssigned && <span className="text-[10px] text-emerald-400">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* CONFIGURAZIONE FORMAZIONI COPPIE */}
             <div className="space-y-2.5">
-              <label className="block text-xs font-bold text-amber-300 uppercase tracking-wider">
-                Composizione delle Coppie
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-amber-300 uppercase tracking-wider">
+                  Composizione delle Coppie
+                </label>
+                <span className="text-[11px] text-emerald-400/80">
+                  Compila i giocatori o usa i bottoni rapidi sopra
+                </span>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[38vh] overflow-y-auto pr-1">
-                {teamsForm.map((team, idx) => (
-                  <div key={team.id} className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-700/40 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-amber-300 flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5" /> Coppia #{idx + 1}
-                      </span>
-                      <input
-                        type="text"
-                        placeholder={`Nome Coppia ${idx + 1}`}
-                        value={team.name}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setTeamsForm(prev => prev.map((item, i) => i === idx ? { ...item, name: val } : item));
-                        }}
-                        className="text-right text-xs bg-transparent border-b border-emerald-700/60 text-white placeholder-emerald-500/50 font-bold focus:outline-none focus:border-amber-400 w-36"
-                      />
+                {teamsForm.map((team, idx) => {
+                  const isP1Active = activePlayerField.teamIndex === idx && activePlayerField.playerSlot === 1;
+                  const isP2Active = activePlayerField.teamIndex === idx && activePlayerField.playerSlot === 2;
+
+                  return (
+                    <div key={team.id} className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-700/40 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-amber-300 flex items-center gap-1">
+                          <Users className="w-3.5 h-3.5" /> Coppia #{idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          placeholder={`Nome Coppia ${idx + 1}`}
+                          value={team.name}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setTeamsForm(prev => prev.map((item, i) => i === idx ? { ...item, name: val } : item));
+                          }}
+                          className="text-right text-xs bg-transparent border-b border-emerald-700/60 text-white placeholder-emerald-500/50 font-bold focus:outline-none focus:border-amber-400 w-36"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Giocatore 1"
+                          value={team.player1}
+                          onFocus={() => setActivePlayerField({ teamIndex: idx, playerSlot: 1 })}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setTeamsForm(prev => prev.map((item, i) => i === idx ? { ...item, player1: val } : item));
+                          }}
+                          className={`px-2.5 py-1.5 rounded-lg text-white text-xs placeholder-emerald-500/50 focus:outline-none transition-all ${
+                            isP1Active
+                              ? 'bg-emerald-900 border-2 border-amber-400 ring-2 ring-amber-400/20'
+                              : 'bg-emerald-900/60 border border-emerald-700/50'
+                          }`}
+                          list="tournament-players-datalist"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Giocatore 2"
+                          value={team.player2}
+                          onFocus={() => setActivePlayerField({ teamIndex: idx, playerSlot: 2 })}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setTeamsForm(prev => prev.map((item, i) => i === idx ? { ...item, player2: val } : item));
+                          }}
+                          className={`px-2.5 py-1.5 rounded-lg text-white text-xs placeholder-emerald-500/50 focus:outline-none transition-all ${
+                            isP2Active
+                              ? 'bg-emerald-900 border-2 border-amber-400 ring-2 ring-amber-400/20'
+                              : 'bg-emerald-900/60 border border-emerald-700/50'
+                          }`}
+                          list="tournament-players-datalist"
+                        />
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        placeholder="Giocatore 1"
-                        value={team.player1}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setTeamsForm(prev => prev.map((item, i) => i === idx ? { ...item, player1: val } : item));
-                        }}
-                        className="px-2.5 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/50 text-white text-xs placeholder-emerald-500/50 focus:outline-none focus:border-amber-400"
-                        list="tournament-players-datalist"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Giocatore 2"
-                        value={team.player2}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setTeamsForm(prev => prev.map((item, i) => i === idx ? { ...item, player2: val } : item));
-                        }}
-                        className="px-2.5 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/50 text-white text-xs placeholder-emerald-500/50 focus:outline-none focus:border-amber-400"
-                        list="tournament-players-datalist"
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <datalist id="tournament-players-datalist">
                 {playersList.map(p => (
