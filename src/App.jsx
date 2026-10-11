@@ -9,6 +9,7 @@ import VictoryModal from './components/VictoryModal';
 import CloudSyncModal from './components/CloudSyncModal';
 import RulesModal from './components/RulesModal';
 import EditTeamsModal from './components/EditTeamsModal';
+import TournamentModal from './components/TournamentModal';
 import { 
   getActiveGame, 
   saveActiveGame, 
@@ -26,15 +27,26 @@ import {
   syncPlayersToCloud,
   subscribeToCloudPlayers,
   subscribeToCloudGamesHistory,
-  deleteGameFromCloud
+  deleteGameFromCloud,
+  syncTournamentToCloud,
+  subscribeToCloudTournament
 } from './services/firebase';
-import { Cloud } from 'lucide-react';
+import {
+  getActiveTournament,
+  saveActiveTournament,
+  archiveTournament
+} from './utils/tournament';
+import { Cloud, Trophy } from 'lucide-react';
 
 export default function App() {
   const [activeGame, setActiveGame] = useState(null);
   const [gamesHistory, setGamesHistory] = useState([]);
   const [playersList, setPlayersList] = useState([]);
   const [isCloudJoined, setIsCloudJoined] = useState(false);
+
+  // Tournament state
+  const [activeTournament, setActiveTournament] = useState(null);
+  const [isTournamentOpen, setIsTournamentOpen] = useState(false);
 
   // Modals state
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
@@ -54,6 +66,13 @@ export default function App() {
 
     const storedHistory = getGamesHistory();
     setGamesHistory(storedHistory);
+
+    // Carica eventuale torneo attivo
+    const storedTournament = getActiveTournament();
+    if (storedTournament) {
+      setActiveTournament(storedTournament);
+      syncTournamentToCloud(storedTournament);
+    }
 
     // Controlla se l'utente sta aprendo un link condiviso
     const params = new URLSearchParams(window.location.search);
@@ -211,6 +230,116 @@ export default function App() {
     return () => unsubscribe();
   }, [activeGame?.id]);
 
+  // 4. Ascolto real-time del torneo attivo da Firestore
+  useEffect(() => {
+    if (!activeTournament?.id) return;
+    const unsubTournament = subscribeToCloudTournament(activeTournament.id, (cloudTourn) => {
+      if (cloudTourn && cloudTourn.id === activeTournament.id) {
+        setActiveTournament(cloudTourn);
+        saveActiveTournament(cloudTourn);
+      }
+    });
+    return () => unsubTournament();
+  }, [activeTournament?.id]);
+
+  // Gestione Torneo: Avvio, Aggiornamento, Conclusione
+  const handleStartTournament = (newTournament) => {
+    setActiveTournament(newTournament);
+    saveActiveTournament(newTournament);
+    syncTournamentToCloud(newTournament);
+    // Salva automaticamente tutti i giocatori del torneo in rubrica
+    const allTournPlayers = (newTournament.teams || []).flatMap(t => t.players || []).filter(Boolean);
+    if (allTournPlayers.length > 0) {
+      allTournPlayers.forEach(p => savePlayerName(p));
+      const updated = getStoredPlayers();
+      setPlayersList(updated);
+      syncPlayersToCloud(updated);
+    }
+  };
+
+  const handleUpdateTournament = (updatedTournament) => {
+    setActiveTournament(updatedTournament);
+    saveActiveTournament(updatedTournament);
+    syncTournamentToCloud(updatedTournament);
+  };
+
+  const handleFinishTournament = () => {
+    if (!activeTournament) return;
+    archiveTournament(activeTournament);
+    const finished = {
+      ...activeTournament,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+    };
+    syncTournamentToCloud(finished);
+    setActiveTournament(null);
+    saveActiveTournament(null);
+  };
+
+  // Gioca un incontro di torneo sul tabellone principale
+  const handlePlayTournamentMatch = (match, tournament) => {
+    if (!match || !tournament) return;
+
+    // Se c'è una partita corrente con mani registrate che NON è questa partita di torneo, archiviala prima
+    if (activeGame && activeGame.rounds && activeGame.rounds.length > 0 && activeGame.tournamentMatchId !== match.id) {
+      const updatedHistory = archiveCurrentGame(activeGame);
+      setGamesHistory(updatedHistory);
+      if (updatedHistory && updatedHistory[0]) {
+        syncGameToCloud(updatedHistory[0]);
+      }
+    }
+
+    const tournamentGame = {
+      id: match.gameId || ('game_' + Date.now()),
+      createdAt: new Date().toISOString(),
+      mode: 'pairs',
+      allowSemipulito: true,
+      targetScore: tournament.targetScore || 2505,
+      tournamentId: tournament.id,
+      tournamentName: tournament.name,
+      tournamentMatchId: match.id,
+      tournamentRoundNumber: match.roundNumber,
+      tournamentTableNumber: match.tableNumber,
+      team1: {
+        id: match.team1Id,
+        name: match.team1Name,
+        players: match.team1Players || [],
+      },
+      team2: {
+        id: match.team2Id,
+        name: match.team2Name,
+        players: match.team2Players || [],
+      },
+      rounds: [],
+      winner: null,
+      isFinished: false,
+    };
+
+    // Segna il match come in_progress nel torneo se non completato
+    if (match.status !== 'completed') {
+      const updatedRounds = tournament.rounds.map(r => ({
+        ...r,
+        matches: r.matches.map(m => {
+          if (m.id === match.id) {
+            return {
+              ...m,
+              status: 'in_progress',
+              gameId: tournamentGame.id,
+            };
+          }
+          return m;
+        })
+      }));
+      const updatedTourn = { ...tournament, rounds: updatedRounds };
+      handleUpdateTournament(updatedTourn);
+    }
+
+    setActiveGame(tournamentGame);
+    saveActiveGame(tournamentGame);
+    syncGameToCloud(tournamentGame);
+    setIsTournamentOpen(false);
+  };
+
 
   // Avvio nuova partita
   const handleStartGame = (newGame) => {
@@ -298,6 +427,28 @@ export default function App() {
     saveActiveGame(updatedGame);
     syncGameToCloud(updatedGame);
 
+    // Se questa partita appartiene a un incontro di torneo attivo, aggiorna il torneo
+    if (activeGame.tournamentMatchId && activeTournament?.rounds) {
+      const tournUpdatedRounds = activeTournament.rounds.map(r => ({
+        ...r,
+        matches: r.matches.map(m => {
+          if (m.id === activeGame.tournamentMatchId) {
+            return {
+              ...m,
+              team1Score: t1Total,
+              team2Score: t2Total,
+              status: winner ? 'completed' : 'in_progress',
+              winnerId: winner ? (winner === 'team1' ? m.team1Id : m.team2Id) : null,
+              completedAt: winner ? new Date().toISOString() : m.completedAt,
+            };
+          }
+          return m;
+        })
+      }));
+      const tournUpdated = { ...activeTournament, rounds: tournUpdatedRounds };
+      handleUpdateTournament(tournUpdated);
+    }
+
     if (shouldCelebrate) {
       setIsVictoryOpen(true);
     }
@@ -376,6 +527,29 @@ export default function App() {
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
     syncGameToCloud(updatedGame);
+
+    // Se la partita appartiene a un torneo attivo, contrassegna l'incontro come completato
+    if (activeGame.tournamentMatchId && activeTournament?.rounds) {
+      const winnerTeamId = winner === 'team1' ? activeGame.team1?.id : activeGame.team2?.id;
+      const tournUpdatedRounds = activeTournament.rounds.map(r => ({
+        ...r,
+        matches: r.matches.map(m => {
+          if (m.id === activeGame.tournamentMatchId) {
+            return {
+              ...m,
+              team1Score: t1Total,
+              team2Score: t2Total,
+              status: 'completed',
+              winnerId: t1Total === t2Total ? 'tie' : winnerTeamId,
+              completedAt: new Date().toISOString(),
+            };
+          }
+          return m;
+        })
+      }));
+      const tournUpdated = { ...activeTournament, rounds: tournUpdatedRounds };
+      handleUpdateTournament(tournUpdated);
+    }
 
     const updatedHistory = archiveCurrentGame(updatedGame);
     setGamesHistory(updatedHistory);
@@ -531,6 +705,8 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onOpenPlayers={() => setIsPlayersOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenCloud={() => setIsCloudModalOpen(true)}
+        onOpenTournament={() => setIsTournamentOpen(true)}
+        hasActiveTournament={Boolean(activeTournament)}
         onOpenRules={() => setIsRulesOpen(true)}
         onShareGame={handleShareGame}
         hasActiveGame={Boolean(activeGame)}
@@ -546,6 +722,31 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         }}
       >
         
+        {/* Banner Incontro Torneo Attivo */}
+        {activeGame?.tournamentMatchId && (
+          <div className="mb-2.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-950/90 via-emerald-950/90 to-amber-950/90 backdrop-blur-md border border-amber-500/50 flex items-center justify-between text-xs text-amber-200 shadow-lg">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="p-1.5 rounded-lg bg-amber-400/20 text-amber-300 border border-amber-400/30 shrink-0">
+                <Trophy className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              </span>
+              <div className="truncate">
+                <span className="font-black text-amber-300">
+                  {activeGame.tournamentName || 'Torneo Burraco'}:
+                </span>{' '}
+                <span className="text-white font-medium">
+                  Giornata {activeGame.tournamentRoundNumber} • Tavolo {activeGame.tournamentTableNumber}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsTournamentOpen(true)}
+              className="px-2.5 py-1 rounded-lg gold-gradient text-emerald-950 font-black text-[11px] shadow-sm hover:brightness-110 active:scale-95 cursor-pointer shrink-0 transition-transform"
+            >
+              Classifica 🏆
+            </button>
+          </div>
+        )}
+
         {/* Banner Stato Tavolo Sincronizzato Cloud */}
         {activeGame && (
           <div className="mb-2.5 px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-950/80 backdrop-blur-md border border-emerald-700/40 flex items-center justify-between text-xs text-emerald-200 shadow-md">
@@ -708,6 +909,18 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         activeGame={activeGame}
         playersList={playersList}
         onSave={handleUpdateTeams}
+      />
+
+      {/* 9. Modal Modalità Torneo Burraco */}
+      <TournamentModal
+        isOpen={isTournamentOpen}
+        onClose={() => setIsTournamentOpen(false)}
+        activeTournament={activeTournament}
+        onStartTournament={handleStartTournament}
+        onUpdateTournament={handleUpdateTournament}
+        onFinishTournament={handleFinishTournament}
+        onPlayMatch={(match) => handlePlayTournamentMatch(match, activeTournament)}
+        playersList={playersList}
       />
 
     </div>

@@ -10,7 +10,8 @@ import {
   Music,
   Sun,
   RotateCw,
-  Sparkles
+  Sparkles,
+  Trophy
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
@@ -24,8 +25,10 @@ export default function Header({
   onOpenHistory, 
   onOpenCloud,
   onOpenRules,
+  onOpenTournament,
   onShareGame,
-  hasActiveGame 
+  hasActiveGame,
+  hasActiveTournament
 }) {
   const [soundOn, setSoundOn] = useState(sound.enabled);
   const [volume, setVolume] = useState(Math.round(sound.volume * 100));
@@ -154,6 +157,26 @@ export default function Header({
             <span className="pointer-events-none">Partecipanti</span>
           </button>
 
+          {/* Torneo (visibile da tablet e desktop) */}
+          {onOpenTournament && (
+            <button
+              type="button"
+              onClick={onOpenTournament}
+              className={`hidden sm:flex h-9 sm:h-10 px-3 rounded-xl border transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
+                hasActiveTournament
+                  ? 'bg-amber-500/25 text-amber-200 border-amber-400 ring-2 ring-amber-400/40 shadow-md shadow-amber-950/40 font-black'
+                  : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
+              }`}
+              title="Modalità Torneo a Gironi"
+            >
+              <Trophy className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+              <span className="pointer-events-none">Torneo</span>
+              {hasActiveTournament && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+              )}
+            </button>
+          )}
+
           {/* Menu Impostazioni (Ingranaggio) con Regolamento, Musica, Cloud, Schermo e azioni su mobile */}
           <div className="relative">
             <button
@@ -281,6 +304,28 @@ export default function Header({
                       <div className="text-[10px] text-emerald-300/70 font-normal">Giocatori e statistiche</div>
                     </div>
                   </button>
+
+                  {/* Torneo (Voce menu sempre accessibile) */}
+                  {onOpenTournament && (
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onOpenTournament();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                    >
+                      <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div>
+                        <div className="text-white font-bold flex items-center gap-1.5">
+                          <span>Torneo di Burraco</span>
+                          {hasActiveTournament && (
+                            <span className="px-1.5 py-0.2 rounded bg-amber-400 text-emerald-950 font-black text-[9px]">ATTIVO</span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-emerald-300/70 font-normal">Classifica, gironi e tavoli</div>
+                      </div>
+                    </button>
+                  )}
 
                   {/* Separatore su mobile se ci sono le voci sopra */}
                   <div className="border-t border-emerald-800/40 my-1 md:hidden" />

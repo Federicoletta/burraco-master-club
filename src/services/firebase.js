@@ -172,4 +172,81 @@ export function subscribeToCloudGamesHistory(onUpdate) {
   }
 }
 
+// ==========================================
+// METODI SINCRONIZZAZIONE TORNEI CLOUD
+// ==========================================
+
+/**
+ * Salva o aggiorna un torneo nel cloud database Firestore
+ */
+export async function syncTournamentToCloud(tournament) {
+  if (!db || !tournament?.id) return false;
+  try {
+    const tournamentRef = doc(db, 'burraco_tournaments', tournament.id);
+    await setDoc(tournamentRef, {
+      ...tournament,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn('Errore syncTournamentToCloud:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Ascolta in tempo reale le modifiche del torneo attivo
+ */
+export function subscribeToCloudTournament(tournamentId, onUpdate) {
+  if (!db || !tournamentId) return () => {};
+  try {
+    const tournamentRef = doc(db, 'burraco_tournaments', tournamentId);
+    return onSnapshot(tournamentRef, (docSnap) => {
+      if (docSnap.exists()) {
+        onUpdate(docSnap.data());
+      }
+    }, (err) => {
+      console.warn('Errore listener Firestore tournament:', err.message);
+    });
+  } catch (err) {
+    console.warn('subscribeToCloudTournament error:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Carica lo storico tornei dal cloud
+ */
+export async function loadCloudTournamentsHistory() {
+  if (!db) return [];
+  try {
+    const snapshot = await getDocs(collection(db, 'burraco_tournaments'));
+    const list = [];
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data && data.id) list.push(data);
+    });
+    list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    return list;
+  } catch (err) {
+    console.warn('Errore loadCloudTournamentsHistory:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Elimina un torneo dal cloud
+ */
+export async function deleteTournamentFromCloud(tournamentId) {
+  if (!db || !tournamentId) return false;
+  try {
+    const tournamentRef = doc(db, 'burraco_tournaments', tournamentId);
+    await deleteDoc(tournamentRef);
+    return true;
+  } catch (err) {
+    console.warn('Errore deleteTournamentFromCloud:', err.message);
+    return false;
+  }
+}
+
 

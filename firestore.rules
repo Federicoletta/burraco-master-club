@@ -36,6 +36,19 @@ service cloud.firestore {
     //   - list: list of strings (required, max 200 players)
     //   - updatedAt: timestamp | string (optional)
     //
+    // Collection: burraco_tournaments
+    // Document ID: {tournamentId} (must match data.id)
+    // Fields:
+    //   - id: string (required, immutable) - Unique tournament identifier
+    //   - name: string (required, 1-100 chars) - Tournament name
+    //   - createdAt: string | timestamp (optional, max 50 chars if string, immutable)
+    //   - targetScore: number (optional, >= 100) - Target points per match
+    //   - teams: list (required, 2-64 teams) - Enrolled teams
+    //   - rounds: list (required, max 100 rounds) - Tournament schedule & matches
+    //   - status: string (required, 'in_progress' | 'completed')
+    //   - completedAt: string | timestamp (optional, max 50 chars if string)
+    //   - updatedAt: string | timestamp (optional, max 50 chars if string)
+    //
     // ===============================================================
 
     // Default deny all access
@@ -109,6 +122,32 @@ service cloud.firestore {
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
     }
 
+    function isValidTournament(data, tournamentId) {
+      let allowedFields = [
+        'id', 'name', 'createdAt', 'targetScore', 'teams', 'rounds', 'status', 'completedAt', 'updatedAt'
+      ];
+      let requiredFields = [
+        'id', 'name', 'teams', 'rounds', 'status'
+      ];
+
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.id == tournamentId &&
+             data.name is string &&
+             data.name.size() > 0 &&
+             data.name.size() <= 100 &&
+             data.status in ['in_progress', 'completed'] &&
+             data.teams is list &&
+             data.teams.size() >= 2 &&
+             data.teams.size() <= 64 &&
+             data.rounds is list &&
+             data.rounds.size() <= 100 &&
+             (!('targetScore' in data) || ((data.targetScore is int || data.targetScore is float) && data.targetScore >= 100)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
+             (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50) || data.completedAt is timestamp) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+    }
+
     function isValidPlayersMeta(data) {
       return data.keys().hasAll(['list']) &&
              data.keys().hasOnly(['list', 'updatedAt']) &&
@@ -132,6 +171,16 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isValidGame(request.resource.data, gameId);
       allow update: if isValidGame(request.resource.data, gameId) &&
+                       request.resource.data.id == resource.data.id &&
+                       (!('createdAt' in resource.data) || !('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if true;
+    }
+
+    // Tournaments (Bracket & Round-Robin)
+    match /burraco_tournaments/{tournamentId} {
+      allow read: if true;
+      allow create: if isValidTournament(request.resource.data, tournamentId);
+      allow update: if isValidTournament(request.resource.data, tournamentId) &&
                        request.resource.data.id == resource.data.id &&
                        (!('createdAt' in resource.data) || !('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt);
       allow delete: if true;
