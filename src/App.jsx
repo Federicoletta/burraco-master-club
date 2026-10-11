@@ -19,6 +19,7 @@ import {
   getStoredPlayers,
   savePlayerName,
   deletePlayerName,
+  renamePlayer,
   setStoredPlayers
 } from './utils/storage';
 import { 
@@ -613,6 +614,24 @@ export default function App() {
     syncPlayersToCloud(updated);
   };
 
+  const handleRenamePlayer = (oldName, newName) => {
+    const updated = renamePlayer(oldName, newName);
+    setPlayersList(updated);
+    syncPlayersToCloud(updated);
+
+    // Ricarica la partita attiva aggiornata
+    const currentActive = getActiveGame();
+    if (currentActive) {
+      setActiveGame(currentActive);
+      syncGameToCloud(currentActive);
+    }
+    // Ricarica lo storico aggiornato
+    const currentHistory = getGamesHistory();
+    if (currentHistory) {
+      setGamesHistory(currentHistory);
+    }
+  };
+
   // Scollegati dal tavolo condiviso
   const handleLeaveCloudTable = () => {
     if (window.confirm("Vuoi scollegarti da questo tavolo condiviso e tornare a una tua partita locale?")) {
@@ -864,6 +883,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         playersList={playersList}
         onAddPlayer={handleAddPlayer}
         onDeletePlayer={handleDeletePlayer}
+        onRenamePlayer={handleRenamePlayer}
         gamesHistory={gamesHistory}
         activeGame={activeGame}
       />

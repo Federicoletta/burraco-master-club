@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull } from 'lucide-react';
+import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull, BookUser, Edit2, Check } from 'lucide-react';
 import { calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 import { sound } from '../utils/soundEffects';
@@ -27,6 +27,7 @@ export default function PlayersStatsModal({
   playersList,
   onAddPlayer,
   onDeletePlayer,
+  onRenamePlayer,
   gamesHistory,
   activeGame
 }) {
@@ -35,6 +36,10 @@ export default function PlayersStatsModal({
   const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
   const [selectedPlayerForTrend, setSelectedPlayerForTrend] = useState(null);
   const [selectedPlayerForTrophies, setSelectedPlayerForTrophies] = useState(null);
+
+  // Stato modifica nome giocatore inline
+  const [editingPlayerName, setEditingPlayerName] = useState(null); // nome originale in modifica
+  const [renameInputValue, setRenameInputValue] = useState('');
 
   // Stato per la modalità Morte / Blackout tenebroso
   const [deadPlayerModal, setDeadPlayerModal] = useState(null); // Giocatore in attesa di conferma eliminazione
@@ -80,6 +85,33 @@ export default function PlayersStatsModal({
 
     // Rimuovi definitivamente il giocatore dalla memoria e dal cloud
     onDeletePlayer(playerToKill);
+  };
+
+  // Avvio modifica nome
+  const handleStartRename = (playerName) => {
+    setEditingPlayerName(playerName);
+    setRenameInputValue(playerName);
+  };
+
+  // Salva nuovo nome giocatore
+  const handleSaveRename = (e) => {
+    if (e) e.preventDefault();
+    if (!editingPlayerName || !renameInputValue.trim()) {
+      setEditingPlayerName(null);
+      return;
+    }
+    const cleanNew = renameInputValue.trim();
+    if (cleanNew !== editingPlayerName) {
+      if (onRenamePlayer) {
+        onRenamePlayer(editingPlayerName, cleanNew);
+      }
+    }
+    setEditingPlayerName(null);
+  };
+
+  const handleCancelRename = () => {
+    setEditingPlayerName(null);
+    setRenameInputValue('');
   };
 
   const handleDelete = (playerName) => {
@@ -160,11 +192,11 @@ export default function PlayersStatsModal({
             onClick={() => setActiveTab('roster')}
             className={`min-h-[38px] py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation select-none ${
               activeTab === 'roster'
-                ? 'bg-gradient-to-r from-red-600 to-rose-700 text-white shadow-md font-black ring-1 ring-red-400/50'
+                ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                 : 'text-emerald-300 hover:text-white'
             }`}
           >
-            <Skull className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <BookUser className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">Rubrica Giocatori</span>
           </button>
 
@@ -454,37 +486,83 @@ export default function PlayersStatsModal({
                     const pStat = stats.find(s => s.name.toLowerCase() === playerName.toLowerCase());
                     const gamesCount = pStat ? pStat.gamesPlayed : 0;
                     const pointsCount = pStat ? pStat.totalPoints : 0;
+                    const isEditingThis = editingPlayerName === playerName;
 
                     return (
                       <div
                         key={playerName}
-                        className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/90 via-emerald-950/70 to-zinc-950/80 border border-emerald-800/50 hover:border-red-900/50 transition-all flex items-center justify-between gap-3 shadow-sm group"
+                        className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/90 via-emerald-950/70 to-zinc-950/80 border border-emerald-800/50 hover:border-emerald-600/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-sm group"
                       >
-                        {/* Info Giocatore */}
-                        <div className="flex items-center gap-3 min-w-0">
+                        {/* Info Giocatore / Form Rinomina Inline */}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                           <div className="w-8 h-8 rounded-lg bg-emerald-900/80 border border-emerald-700/50 flex items-center justify-center font-bold text-amber-300 text-sm shrink-0">
                             ♠
                           </div>
-                          <div className="min-w-0">
-                            <h4 className="text-sm font-bold text-white m-0 truncate group-hover:text-red-200 transition-colors">
-                              {playerName}
-                            </h4>
-                            <p className="text-[11px] text-emerald-400/80 m-0 truncate">
-                              {gamesCount} {gamesCount === 1 ? 'partita giocata' : 'partite giocate'} • {pointsCount.toLocaleString('it-IT')} pt
-                            </p>
-                          </div>
+
+                          {isEditingThis ? (
+                            <form onSubmit={handleSaveRename} className="flex items-center gap-1.5 flex-1 min-w-0">
+                              <input
+                                type="text"
+                                autoFocus
+                                value={renameInputValue}
+                                onChange={(e) => setRenameInputValue(e.target.value)}
+                                className="flex-1 max-w-xs px-2.5 py-1 rounded-lg bg-emerald-900 border-2 border-amber-400 text-white font-bold text-xs focus:outline-none"
+                                placeholder="Nuovo nome..."
+                              />
+                              <button
+                                type="submit"
+                                className="p-1.5 rounded-lg gold-gradient text-emerald-950 font-black cursor-pointer shadow-sm hover:brightness-110 active:scale-95"
+                                title="Salva nuovo nome"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelRename}
+                                className="p-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:text-white cursor-pointer transition-colors active:scale-95"
+                                title="Annulla"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-sm font-bold text-white m-0 truncate">
+                                {playerName}
+                              </h4>
+                              <p className="text-[11px] text-emerald-400/80 m-0 truncate">
+                                {gamesCount} {gamesCount === 1 ? 'partita giocata' : 'partite giocate'} • {pointsCount.toLocaleString('it-IT')} pt
+                              </p>
+                            </div>
+                          )}
                         </div>
 
-                        {/* BOTTONE TESCHIO IN ROSSO TENEBROSO */}
-                        <button
-                          type="button"
-                          onClick={() => setDeadPlayerModal(playerName)}
-                          className="px-3 py-1.5 rounded-xl bg-gradient-to-br from-red-950 via-zinc-950 to-red-950 hover:from-red-900 hover:to-red-950 text-red-500 hover:text-red-300 border-2 border-red-700/70 hover:border-red-500 shadow-[0_0_12px_rgba(220,38,38,0.25)] hover:shadow-[0_0_18px_rgba(239,68,68,0.6)] flex items-center gap-1.5 text-xs font-black uppercase tracking-wider cursor-pointer transition-all active:scale-95 shrink-0"
-                          title={`Dichiara la morte di ${playerName}`}
-                        >
-                          <Skull className="w-4 h-4 text-red-500 animate-pulse drop-shadow-[0_0_6px_rgba(239,68,68,0.9)]" />
-                          <span className="hidden sm:inline text-red-400 group-hover:text-red-200">Defunto</span>
-                        </button>
+                        {/* AZIONI GIOCATORE: MODIFICA NOME & TESCHIO TENEBROSO */}
+                        {!isEditingThis && (
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                            {/* TASTO MODIFICA NOME */}
+                            <button
+                              type="button"
+                              onClick={() => handleStartRename(playerName)}
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-amber-300 border border-emerald-700/60 hover:border-amber-400/60 flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-all active:scale-95"
+                              title={`Modifica il nome di ${playerName}`}
+                            >
+                              <Edit2 className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Modifica</span>
+                            </button>
+
+                            {/* BOTTONE TESCHIO IN ROSSO TENEBROSO */}
+                            <button
+                              type="button"
+                              onClick={() => setDeadPlayerModal(playerName)}
+                              className="px-3 py-1.5 rounded-xl bg-gradient-to-br from-red-950 via-zinc-950 to-red-950 hover:from-red-900 hover:to-red-950 text-red-500 hover:text-red-300 border-2 border-red-700/70 hover:border-red-500 shadow-[0_0_12px_rgba(220,38,38,0.25)] hover:shadow-[0_0_18px_rgba(239,68,68,0.6)] flex items-center gap-1.5 text-xs font-black uppercase tracking-wider cursor-pointer transition-all active:scale-95"
+                              title={`Dichiara la morte di ${playerName}`}
+                            >
+                              <Skull className="w-4 h-4 text-red-500 animate-pulse drop-shadow-[0_0_6px_rgba(239,68,68,0.9)]" />
+                              <span className="text-red-400 group-hover:text-red-200">Defunto</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

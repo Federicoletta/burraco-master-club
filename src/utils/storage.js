@@ -50,6 +50,99 @@ export function deletePlayerName(name) {
   return list;
 }
 
+export function renamePlayer(oldName, newName) {
+  if (!oldName || !newName || typeof oldName !== 'string' || typeof newName !== 'string') return getStoredPlayers();
+  const cleanOld = oldName.trim();
+  const cleanNew = newName.trim();
+  if (!cleanNew || cleanOld === cleanNew) return getStoredPlayers();
+
+  // 1. Aggiorna lista giocatori
+  const list = getStoredPlayers();
+  const updatedList = list.map(p => p === cleanOld ? cleanNew : p);
+  // Rimuovi eventuali duplicati e riordina
+  const unique = Array.from(new Set(updatedList)).sort((a, b) => a.localeCompare(b));
+  localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(unique));
+
+  // 2. Aggiorna partita attiva se presente
+  const activeGame = getActiveGame();
+  if (activeGame) {
+    let modified = false;
+    const renameInTeam = (team) => {
+      if (!team) return team;
+      let teamMod = false;
+      const newPlayers = (team.players || []).map(p => {
+        if (p === cleanOld) {
+          teamMod = true;
+          return cleanNew;
+        }
+        return p;
+      });
+      let newName = team.name;
+      if (typeof team.name === 'string' && team.name.includes(cleanOld)) {
+        newName = team.name.replace(new RegExp(`\\b${cleanOld}\\b`, 'g'), cleanNew);
+        teamMod = true;
+      }
+      if (teamMod) {
+        modified = true;
+        return { ...team, name: newName, players: newPlayers };
+      }
+      return team;
+    };
+
+    const newTeam1 = renameInTeam(activeGame.team1);
+    const newTeam2 = renameInTeam(activeGame.team2);
+    const newTeam3 = renameInTeam(activeGame.team3);
+
+    if (modified) {
+      const updatedGame = {
+        ...activeGame,
+        team1: newTeam1,
+        team2: newTeam2,
+        ...(activeGame.team3 ? { team3: newTeam3 } : {}),
+      };
+      saveActiveGame(updatedGame);
+    }
+  }
+
+  // 3. Aggiorna storico partite
+  const history = getGamesHistory();
+  if (history && history.length > 0) {
+    const updatedHistory = history.map(game => {
+      let gMod = false;
+      const renameInTeam = (team) => {
+        if (!team) return team;
+        let tMod = false;
+        const newPlayers = (team.players || []).map(p => {
+          if (p === cleanOld) {
+            tMod = true;
+            return cleanNew;
+          }
+          return p;
+        });
+        let newTeamName = team.name;
+        if (typeof team.name === 'string' && team.name.includes(cleanOld)) {
+          newTeamName = team.name.replace(new RegExp(`\\b${cleanOld}\\b`, 'g'), cleanNew);
+          tMod = true;
+        }
+        if (tMod) {
+          gMod = true;
+          return { ...team, name: newTeamName, players: newPlayers };
+        }
+        return team;
+      };
+
+      const t1 = renameInTeam(game.team1);
+      const t2 = renameInTeam(game.team2);
+      const t3 = renameInTeam(game.team3);
+
+      return gMod ? { ...game, team1: t1, team2: t2, ...(game.team3 ? { team3: t3 } : {}) } : game;
+    });
+    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(updatedHistory));
+  }
+
+  return unique;
+}
+
 export function setStoredPlayers(list) {
   if (!Array.isArray(list)) return [];
   const unique = Array.from(new Set(
