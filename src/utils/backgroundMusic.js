@@ -11,27 +11,43 @@ const MUSIC_TRACK_KEY = 'burraco_music_track';
 export const MUSIC_TRACKS = [
   {
     id: 'lounge',
-    name: 'Jazz Lounge Club',
+    name: 'Rollin at 5 (Swing Club)',
     artist: 'Rollin at 5',
-    subtitle: 'Trio jazz: pianoforte acustico, contrabbasso & spazzole',
+    subtitle: 'Il classico: swing brillante, piano acustico, contrabbasso & fiati',
     icon: '🎷',
     file: '/audio/jazz-lounge.mp3'
   },
   {
-    id: 'vibes',
-    name: 'Vibraphone & Bar Lounge',
-    artist: 'Lobby Time',
-    subtitle: 'Vibrafono raffinato, ritmica felpata da club d\'élite',
-    icon: '🍸',
-    file: '/audio/lounge-vibes.mp3'
+    id: 'bass-walker',
+    name: 'Walking Bass Groove',
+    artist: 'Bass Walker',
+    subtitle: 'Contrabbasso walking incalzante, piano swing e spazzole al tavolo',
+    icon: '🎻',
+    file: '/audio/bass-walker.mp3'
   },
   {
-    id: 'piano',
-    name: 'Soft Grand Piano',
-    artist: 'Autumn Day',
-    subtitle: 'Pianoforte a coda solo, melodia distensiva e romantica',
+    id: 'hot-swing',
+    name: 'Hot Big Band Swing',
+    artist: 'Hot Swing',
+    subtitle: 'Swing vivace anni \'30, fiati trascinanti e ritmo da casinò',
+    icon: '🎺',
+    file: '/audio/hot-swing.mp3'
+  },
+  {
+    id: 'backbay',
+    name: 'Backbay Lounge',
+    artist: 'Backbay Lounge',
+    subtitle: 'Cool jazz raffinato: chitarra jazz, piano e contrabbasso felpato',
+    icon: '🍸',
+    file: '/audio/backbay-lounge.mp3'
+  },
+  {
+    id: 'shades',
+    name: 'Shades of Spring',
+    artist: 'Shades of Spring',
+    subtitle: 'Jazz club acustico distensivo, trio pianoforte e spazzole',
     icon: '🎹',
-    file: '/audio/soft-piano.mp3'
+    file: '/audio/shades-of-spring.mp3'
   }
 ];
 

@@ -162,9 +162,9 @@ export default function AudioSettingsModal({
             {/* Selettore Tracce Jazz */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-emerald-300/90 block">
-                Scegli l'Atmosfera:
+                Scegli la Traccia Jazz (Atmosfera da Circolo):
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                 {MUSIC_TRACKS.map(track => {
                   const isSelected = musicState.trackId === track.id;
                   return (
