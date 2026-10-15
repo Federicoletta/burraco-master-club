@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { X, Cloud, CloudCheck, ExternalLink, QrCode, Copy, Check, Smartphone, Users } from 'lucide-react';
+import { X, Cloud, CloudCheck, ExternalLink, QrCode, Copy, Check, Smartphone, Users, UserPlus } from 'lucide-react';
 
 export default function CloudSyncModal({
   isOpen,
   onClose,
   activeGame,
   cloudStatus, // 'connected' | 'offline' | 'pending'
+  currentUser = null,
+  tablePlayers = [],
+  friendsList = [],
+  onSendFriendRequest
 }) {
   const [copied, setCopied] = useState(false);
+  const [sendingFriendUids, setSendingFriendUids] = useState({});
+  const [sentFriendUids, setSentFriendUids] = useState({});
 
   if (!isOpen) return null;
 
@@ -17,6 +23,20 @@ export default function CloudSyncModal({
     navigator.clipboard.writeText(currentUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleRequestFriendship = async (targetPlayer) => {
+    if (!targetPlayer?.email || !onSendFriendRequest) return;
+    const key = targetPlayer.uid || targetPlayer.email;
+    setSendingFriendUids(prev => ({ ...prev, [key]: true }));
+    try {
+      await onSendFriendRequest(targetPlayer.email);
+      setSentFriendUids(prev => ({ ...prev, [key]: true }));
+    } catch (err) {
+      console.warn('Errore richiesta:', err);
+    } finally {
+      setSendingFriendUids(prev => ({ ...prev, [key]: false }));
+    }
   };
 
   return (
@@ -87,6 +107,75 @@ export default function CloudSyncModal({
 
               <div className="text-[11px] text-emerald-400/80 pt-1 flex items-center justify-between">
                 <span>Codice Tavolo: <strong className="text-amber-300 font-mono">{activeGame.id}</strong></span>
+              </div>
+            </div>
+          )}
+
+          {/* Giocatori Collegati al Tavolo & Amicizia al Volo */}
+          {tablePlayers.length > 0 && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-600/40 space-y-2.5">
+              <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-amber-400" />
+                  <span>Giocatori al Tavolo ({tablePlayers.length})</span>
+                </span>
+                <span className="text-[10px] text-emerald-400 font-normal">Sincronizzazione Live</span>
+              </span>
+
+              <div className="space-y-1.5">
+                {tablePlayers.map((player, idx) => {
+                  const isMe = currentUser && (player.uid === currentUser.uid || player.email?.toLowerCase() === currentUser.email?.toLowerCase());
+                  const isFriend = !isMe && friendsList.some(
+                    f => (f.uid && f.uid === player.uid) || (f.email && player.email && f.email.toLowerCase() === player.email.toLowerCase())
+                  );
+                  const playerKey = player.uid || player.email || `p_${idx}`;
+                  const isSent = sentFriendUids[playerKey];
+                  const isSending = sendingFriendUids[playerKey];
+
+                  return (
+                    <div 
+                      key={playerKey}
+                      className="p-2 rounded-lg bg-emerald-900/40 border border-emerald-700/40 flex items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {player.photoURL ? (
+                          <img src={player.photoURL} alt="" className="w-6 h-6 rounded-full border border-amber-400 object-cover shrink-0" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-amber-400 text-emerald-950 font-black text-[10px] flex items-center justify-center shrink-0">
+                            {(player.displayName || player.email || 'G').slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="text-white font-medium truncate">{player.displayName || player.email}</span>
+                        {isMe && <span className="text-[10px] text-emerald-400 font-bold">(Tu)</span>}
+                        {isFriend && <span className="text-[10px] text-amber-400">⭐ Amico</span>}
+                      </div>
+
+                      <div className="shrink-0">
+                        {isMe ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-800 text-emerald-200">Host/Tu</span>
+                        ) : isFriend ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                            Amico
+                          </span>
+                        ) : isSent ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
+                            ✓ Inviata
+                          </span>
+                        ) : player.email ? (
+                          <button
+                            type="button"
+                            disabled={isSending}
+                            onClick={() => handleRequestFriendship(player)}
+                            className="px-2 py-0.5 rounded-lg gold-gradient text-emerald-950 font-black text-[10px] shadow hover:brightness-110 active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                          >
+                            <UserPlus className="w-3 h-3 text-emerald-950" />
+                            <span>{isSending ? '...' : 'Chiedi Amicizia'}</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

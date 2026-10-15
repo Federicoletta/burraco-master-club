@@ -6,11 +6,15 @@ import {
   Trash2, 
   Sun,
   LayoutList,
-  Table
+  Table,
+  UserPlus,
+  Check,
+  Users
 } from 'lucide-react';
 import { getGamesHistory, calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 import { wakeLock } from '../utils/wakeLock';
+import { sound } from '../utils/soundEffects';
 
 // Componente per renderizzare le pillole/chip degli eventi di gioco (Burrachi, Chiusura, Pozzetto)
 function RoundEventChips({ details }) {
@@ -70,6 +74,11 @@ function RoundEventChips({ details }) {
 export default function ScoreBoard({
   activeGame,
   gamesHistory = [],
+  currentUser = null,
+  tablePlayers = [],
+  friendsList = [],
+  onSendFriendRequest,
+  onOpenLogin,
   onAddRound,
   onEditRound,
   onDeleteLastRound,
@@ -82,6 +91,10 @@ export default function ScoreBoard({
     enabled: wakeLock.enabled,
     active: wakeLock.active
   });
+
+  const [sendingFriendUids, setSendingFriendUids] = useState({});
+  const [sentFriendUids, setSentFriendUids] = useState({});
+  const [friendErrors, setFriendErrors] = useState({});
 
   // Modalità di visualizzazione del foglio segnapunti ('cards' o 'table')
   const [viewMode, setViewMode] = useState(() => {
@@ -96,6 +109,82 @@ export default function ScoreBoard({
       setWakeLockState({ ...state });
     });
   }, []);
+
+  const handleRequestFriendship = async (targetPlayer) => {
+    if (!targetPlayer?.email) return;
+    if (!currentUser) {
+      if (onOpenLogin) onOpenLogin();
+      return;
+    }
+    const key = targetPlayer.uid || targetPlayer.email;
+    setSendingFriendUids(prev => ({ ...prev, [key]: true }));
+    try {
+      if (onSendFriendRequest) {
+        await onSendFriendRequest(targetPlayer.email);
+      }
+      setSentFriendUids(prev => ({ ...prev, [key]: true }));
+      sound.playTrophy();
+    } catch (err) {
+      setFriendErrors(prev => ({ ...prev, [key]: err.message || 'Errore invio' }));
+      setTimeout(() => {
+        setFriendErrors(prev => {
+          const c = { ...prev };
+          delete c[key];
+          return c;
+        });
+      }, 4000);
+    } finally {
+      setSendingFriendUids(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const displayTablePlayers = useMemo(() => {
+    const list = [];
+    const seenUids = new Set();
+    const seenEmails = new Set();
+
+    if (currentUser) {
+      list.push({
+        uid: currentUser.uid,
+        displayName: currentUser.displayName || 'Tu',
+        email: (currentUser.email || '').toLowerCase(),
+        photoURL: currentUser.photoURL,
+        isMe: true
+      });
+      if (currentUser.uid) seenUids.add(currentUser.uid);
+      if (currentUser.email) seenEmails.add(currentUser.email.toLowerCase());
+    }
+
+    if (Array.isArray(tablePlayers)) {
+      tablePlayers.forEach(p => {
+        const pEmail = (p.email || '').toLowerCase();
+        if (p.uid && seenUids.has(p.uid)) return;
+        if (pEmail && seenEmails.has(pEmail)) return;
+        const isMe = currentUser && (p.uid === currentUser.uid || (pEmail && pEmail === currentUser.email?.toLowerCase()));
+        list.push({
+          uid: p.uid,
+          displayName: p.displayName || p.email || 'Giocatore',
+          email: pEmail,
+          photoURL: p.photoURL,
+          isMe
+        });
+        if (p.uid) seenUids.add(p.uid);
+        if (pEmail) seenEmails.add(pEmail);
+      });
+    }
+
+    if (activeGame?.ownerEmail && !seenEmails.has(activeGame.ownerEmail.toLowerCase())) {
+      list.push({
+        uid: activeGame.ownerUid,
+        displayName: activeGame.ownerName || activeGame.ownerEmail,
+        email: activeGame.ownerEmail.toLowerCase(),
+        photoURL: null,
+        isMe: currentUser && activeGame.ownerEmail.toLowerCase() === currentUser.email?.toLowerCase()
+      });
+    }
+
+    return list;
+  }, [tablePlayers, currentUser, activeGame]);
 
   // Calcola titoli dei giocatori della partita
   const isTrio = activeGame?.mode === 'trio';
@@ -205,6 +294,140 @@ export default function ScoreBoard({
           >
             Festeggia & Termina Partita
           </button>
+        </div>
+      )}
+
+      {/* WIDGET TAVOLO MULTIPLAYER LIVE & AMICIZIA AL VOLO */}
+      {activeGame?.id && displayTablePlayers.length > 0 && (
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950 via-emerald-900/60 to-zinc-950 border border-emerald-600/50 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-emerald-800/50">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-3 w-3 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-sm"></span>
+              </span>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-white m-0 flex items-center gap-1.5 uppercase tracking-wider">
+                  <span>Al Tavolo Live</span>
+                  <span className="text-emerald-400 font-mono text-[11px] normal-case font-bold">
+                    ({displayTablePlayers.length} {displayTablePlayers.length === 1 ? 'giocatore collegato' : 'giocatori collegati'})
+                  </span>
+                </h3>
+                <p className="text-[10px] sm:text-[11px] text-emerald-300/80 m-0">
+                  {displayTablePlayers.length > 1
+                    ? 'Puoi chiedere l\'amicizia al volo ai compagni con cui stai giocando!'
+                    : 'Invita i tuoi amici al tavolo condividendo il link del gioco'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs self-start sm:self-auto shrink-0">
+              <span className="text-[11px] text-emerald-300/70 font-medium">Tavolo:</span>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-950 text-amber-300 font-mono font-bold text-xs border border-emerald-700/60">
+                {activeGame.id}
+              </span>
+              {_onShareGame && (
+                <button
+                  type="button"
+                  onClick={_onShareGame}
+                  className="px-2.5 py-1 rounded-lg gold-gradient text-emerald-950 font-black text-[11px] hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                  title="Condividi link tavolo con altri amici"
+                >
+                  <Users className="w-3 h-3 text-emerald-950" />
+                  <span>Invita</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Griglia Giocatori al Tavolo */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {displayTablePlayers.map((player, idx) => {
+              const isMe = player.isMe;
+              const isFriend = !isMe && friendsList.some(
+                f => (f.uid && f.uid === player.uid) || (f.email && player.email && f.email.toLowerCase() === player.email.toLowerCase())
+              );
+              const playerKey = player.uid || player.email || `p_${idx}`;
+              const isSent = sentFriendUids[playerKey];
+              const isSending = sendingFriendUids[playerKey];
+              const err = friendErrors[playerKey];
+
+              return (
+                <div
+                  key={playerKey}
+                  className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 transition-all ${
+                    isMe
+                      ? 'bg-emerald-900/40 border-emerald-500/40'
+                      : isFriend
+                      ? 'bg-amber-950/20 border-amber-500/30'
+                      : 'bg-emerald-950/70 border-emerald-700/40 hover:border-amber-400/50'
+                  }`}
+                >
+                  {/* Avatar & Nome */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="relative shrink-0">
+                      {player.photoURL ? (
+                        <img
+                          src={player.photoURL}
+                          alt=""
+                          className="w-8 h-8 rounded-full border border-amber-400/80 object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-amber-400 text-emerald-950 font-black text-xs flex items-center justify-center">
+                          {(player.displayName || player.email || 'G').slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-emerald-950" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-white truncate flex items-center gap-1">
+                        <span className="truncate">{player.displayName || 'Giocatore'}</span>
+                        {isMe && <span className="text-[10px] text-emerald-400 font-semibold">(Tu)</span>}
+                        {isFriend && <span className="text-[10px] text-amber-400" title="Amico confermato">⭐</span>}
+                      </div>
+                      <div className="text-[10px] text-emerald-300/70 truncate">
+                        {player.email ? player.email : 'Al tavolo da gioco'}
+                      </div>
+                      {err && (
+                        <div className="text-[9px] text-rose-300 font-bold truncate">{err}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Azione: Badge o Tasto Chiedi Amicizia */}
+                  <div className="shrink-0">
+                    {isMe ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600/50">
+                        Tu
+                      </span>
+                    ) : isFriend ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center gap-1 shadow-sm">
+                        <span>⭐</span>
+                        <span>Amici</span>
+                      </span>
+                    ) : isSent ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 flex items-center gap-1 animate-in fade-in">
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span>Inviata!</span>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isSending || !player.email}
+                        onClick={() => handleRequestFriendship(player)}
+                        className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-black text-[11px] shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all disabled:opacity-50"
+                        title={player.email ? `Chiedi l'amicizia a ${player.displayName || player.email}` : 'Email non disponibile per questo partecipante'}
+                      >
+                        <UserPlus className="w-3.5 h-3.5 text-emerald-950" />
+                        <span>{isSending ? 'Invio...' : 'Chiedi Amicizia'}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

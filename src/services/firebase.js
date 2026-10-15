@@ -8,6 +8,7 @@ import {
   collection, 
   getDocs, 
   deleteDoc,
+  updateDoc,
   serverTimestamp 
 } from 'firebase/firestore';
 import {
@@ -418,6 +419,91 @@ export async function deleteTournamentFromCloud(tournamentId) {
   } catch (err) {
     console.warn('Errore deleteTournamentFromCloud:', err.message);
     return false;
+  }
+}
+
+/**
+ * Registra la presenza dell'utente autenticato nella partita cloud (se non già presente)
+ */
+export async function joinCloudGame(gameId, currentUser) {
+  if (!db || !gameId || !currentUser?.uid) return;
+  try {
+    const gameRef = doc(db, 'burraco_games', gameId);
+    const snap = await getDoc(gameRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+    const currentUids = Array.isArray(data.playerUids) ? data.playerUids : [];
+    const currentEmails = Array.isArray(data.playerEmails) ? data.playerEmails : [];
+    
+    const needsUid = !currentUids.includes(currentUser.uid);
+    const userEmail = (currentUser.email || '').toLowerCase();
+    const needsEmail = userEmail && !currentEmails.includes(userEmail);
+    
+    if (needsUid || needsEmail) {
+      const updatedUids = needsUid ? [...currentUids, currentUser.uid] : currentUids;
+      const updatedEmails = (needsEmail && userEmail) ? [...currentEmails, userEmail] : currentEmails;
+      await setDoc(gameRef, {
+        playerUids: updatedUids.slice(0, 10),
+        playerEmails: updatedEmails.slice(0, 10),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+  } catch (err) {
+    console.warn('Errore joinCloudGame:', err.message);
+  }
+}
+
+/**
+ * Recupera i profili pubblici degli utenti collegati al tavolo (per UID ed Email)
+ */
+export async function fetchTablePlayers(uids = [], emails = []) {
+  if (!db) return [];
+  try {
+    const profiles = [];
+    const seenUids = new Set();
+    const seenEmails = new Set();
+
+    if (Array.isArray(uids)) {
+      for (const uid of uids) {
+        if (!uid || seenUids.has(uid)) continue;
+        const userRef = doc(db, 'burraco_users', uid);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const uData = snap.data();
+          profiles.push(uData);
+          seenUids.add(uData.uid);
+          if (uData.email) seenEmails.add(uData.email.toLowerCase());
+        }
+      }
+    }
+
+    if (Array.isArray(emails)) {
+      for (const email of emails) {
+        if (!email) continue;
+        const clean = email.toLowerCase().trim();
+        if (seenEmails.has(clean)) continue;
+        try {
+          const usersRef = collection(db, 'burraco_users');
+          const q = query(usersRef, where('email', '==', clean));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const uData = snap.docs[0].data();
+            if (!seenUids.has(uData.uid)) {
+              profiles.push(uData);
+              seenUids.add(uData.uid);
+              seenEmails.add(clean);
+            }
+          }
+        } catch (e) {
+          // ignore lookup error
+        }
+      }
+    }
+
+    return profiles;
+  } catch (err) {
+    console.warn('Errore fetchTablePlayers:', err.message);
+    return [];
   }
 }
 

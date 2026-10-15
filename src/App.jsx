@@ -48,7 +48,9 @@ import {
   subscribeToAuth,
   syncUserGuestsToCloud,
   subscribeToUserGuests,
-  cleanupLegacyCloudDatabase
+  cleanupLegacyCloudDatabase,
+  joinCloudGame,
+  fetchTablePlayers
 } from './services/firebase';
 import {
   getActiveTournament,
@@ -74,6 +76,7 @@ export default function App() {
   // Social & Notifications state
   const [notifications, setNotifications] = useState([]);
   const [friendsList, setFriendsList] = useState([]);
+  const [tablePlayers, setTablePlayers] = useState([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [toastNotification, setToastNotification] = useState(null);
   const [newGameInitialSetup, setNewGameInitialSetup] = useState(null);
@@ -275,12 +278,26 @@ export default function App() {
       setIsCloudJoined(true);
     }
 
+    // Registra la presenza dell'utente autenticato al tavolo
+    if (currentUser) {
+      joinCloudGame(targetId, currentUser);
+    }
+
     const unsubscribe = subscribeToCloudGame(
       targetId, 
       (cloudGame) => {
         if (cloudGame && cloudGame.id === targetId) {
           setActiveGame(cloudGame);
           saveActiveGame(cloudGame);
+
+          // Recupera i profili degli utenti collegati a questo tavolo in tempo reale
+          if ((cloudGame.playerUids && cloudGame.playerUids.length > 0) || (cloudGame.playerEmails && cloudGame.playerEmails.length > 0)) {
+            fetchTablePlayers(cloudGame.playerUids, cloudGame.playerEmails).then(players => {
+              if (Array.isArray(players) && players.length > 0) {
+                setTablePlayers(players);
+              }
+            });
+          }
 
           // Se la partita ha giocatori non ancora nella rubrica, aggiungili automaticamente
           const gamePlayers = [
@@ -323,7 +340,7 @@ export default function App() {
     );
 
     return () => unsubscribe();
-  }, [activeGame?.id]);
+  }, [activeGame?.id, currentUser]);
 
   // 4. Ascolto real-time del torneo attivo da Firestore
   useEffect(() => {
@@ -1132,6 +1149,11 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
           <ScoreBoard
             activeGame={activeGame}
             gamesHistory={gamesHistory}
+            currentUser={currentUser}
+            tablePlayers={tablePlayers}
+            friendsList={friendsList}
+            onSendFriendRequest={handleSendFriendRequest}
+            onOpenLogin={handleLogin}
             onAddRound={() => {
               setRoundToEdit(null);
               setIsRoundCalcOpen(true);
@@ -1206,10 +1228,6 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         gamesHistory={gamesHistory}
         activeGame={activeGame}
         currentUser={currentUser}
-        friendsList={friendsList}
-        onSendFriendRequest={handleSendFriendRequest}
-        onOpenLogin={handleLogin}
-        onChallengeFriend={handleChallengeFriend}
       />
 
       {/* 4. Modal Storico Partite */}
@@ -1238,6 +1256,10 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         isOpen={isCloudModalOpen}
         onClose={() => setIsCloudModalOpen(false)}
         activeGame={activeGame}
+        currentUser={currentUser}
+        tablePlayers={tablePlayers}
+        friendsList={friendsList}
+        onSendFriendRequest={handleSendFriendRequest}
       />
 
       {/* 7. Modal Regole del Gioco & Valori Carte */}

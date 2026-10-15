@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull, BookUser, Edit2, Check, Users, UserCheck, Mail, Send, Sparkles } from 'lucide-react';
+import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull, BookUser, Edit2, Check } from 'lucide-react';
 import { calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 import { sound } from '../utils/soundEffects';
-import { getFriendOnlineStatus } from '../services/social';
 import StatsCharts from './StatsCharts';
 import TrophiesShowcase from './TrophiesShowcase';
 
@@ -31,23 +30,14 @@ export default function PlayersStatsModal({
   onRenamePlayer,
   gamesHistory,
   activeGame,
-  currentUser,
-  friendsList = [],
-  onSendFriendRequest,
-  onOpenLogin,
-  onChallengeFriend
+  currentUser
 }) {
   const [newPlayerName, setNewPlayerName] = useState('');
-  const [mainCategory, setMainCategory] = useState('stats'); // 'stats' | 'contacts'
-  const [activeTab, setActiveTab] = useState('ranking'); // 'ranking' | 'roster' | 'friends' | 'trend' | 'trophies'
+  const [mainCategory, setMainCategory] = useState('stats'); // 'stats' | 'roster'
+  const [activeTab, setActiveTab] = useState('ranking'); // 'ranking' | 'trend' | 'trophies' | 'roster'
   const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
   const [selectedPlayerForTrend, setSelectedPlayerForTrend] = useState(null);
   const [selectedPlayerForTrophies, setSelectedPlayerForTrophies] = useState(null);
-
-  // Stato amici
-  const [friendEmailInput, setFriendEmailInput] = useState('');
-  const [friendFeedback, setFriendFeedback] = useState(null); // { type: 'success' | 'error', text: '' }
-  const [isSendingFriend, setIsSendingFriend] = useState(false);
 
   // Stato modifica nome giocatore inline
   const [editingPlayerName, setEditingPlayerName] = useState(null); // nome originale in modifica
@@ -77,29 +67,6 @@ export default function PlayersStatsModal({
     if (!newPlayerName.trim()) return;
     onAddPlayer(newPlayerName.trim());
     setNewPlayerName('');
-  };
-
-  const handleSendFriend = async (e) => {
-    e.preventDefault();
-    if (!friendEmailInput.trim()) return;
-    if (!onSendFriendRequest) return;
-    setIsSendingFriend(true);
-    setFriendFeedback(null);
-    try {
-      await onSendFriendRequest(friendEmailInput.trim());
-      setFriendFeedback({
-        type: 'success',
-        text: `Richiesta di amicizia inviata a ${friendEmailInput.trim()}!`
-      });
-      setFriendEmailInput('');
-    } catch (err) {
-      setFriendFeedback({
-        type: 'error',
-        text: err.message || 'Errore durante l\'invio della richiesta'
-      });
-    } finally {
-      setIsSendingFriend(false);
-    }
   };
 
   // Conferma ed esecuzione della morte del giocatore
@@ -197,7 +164,7 @@ export default function PlayersStatsModal({
               {mainCategory === 'stats' ? (
                 <Trophy className="w-5 h-5 text-emerald-950" />
               ) : (
-                <Users className="w-5 h-5 text-emerald-950" />
+                <BookUser className="w-5 h-5 text-emerald-950" />
               )}
             </div>
             <div>
@@ -207,7 +174,7 @@ export default function PlayersStatsModal({
               <p className="text-xs text-emerald-300/80 m-0">
                 {mainCategory === 'stats'
                   ? 'Leaderboard unificata, trend andamento e bacheca trofei'
-                  : 'Amici online registrati con Google e rubrica ospiti locali'}
+                  : 'Membri e ospiti locali salvati al tavolo'}
               </p>
             </div>
           </div>
@@ -219,7 +186,7 @@ export default function PlayersStatsModal({
           </button>
         </div>
 
-        {/* 2 Macro-Aree Principali (Opzione 2) */}
+        {/* 2 Macro-Aree Principali */}
         <div className="mt-3 grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-emerald-950/90 border border-emerald-800/80 shadow-inner">
           <button
             type="button"
@@ -242,112 +209,70 @@ export default function PlayersStatsModal({
           <button
             type="button"
             onClick={() => {
-              setMainCategory('contacts');
-              if (!['friends', 'roster'].includes(activeTab)) {
-                setActiveTab('friends');
-              }
+              setMainCategory('roster');
+              setActiveTab('roster');
             }}
             className={`min-h-[40px] py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98] select-none ${
-              mainCategory === 'contacts'
+              mainCategory === 'roster'
                 ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                 : 'text-emerald-300 hover:text-white hover:bg-emerald-900/50'
             }`}
           >
-            <Users className="w-4 h-4 shrink-0" />
-            <span>Rubrica & Amici</span>
-            {friendsList.length > 0 && (
+            <BookUser className="w-4 h-4 shrink-0" />
+            <span>Rubrica Ospiti</span>
+            {playersList.length > 0 && (
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                mainCategory === 'contacts' ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-800 text-emerald-200'
+                mainCategory === 'roster' ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-800 text-emerald-200'
               }`}>
-                {friendsList.length}
+                {playersList.length}
               </span>
             )}
           </button>
         </div>
 
-        {/* Sotto-Navigazione Segmentata */}
-        <div className="mt-2 flex items-center justify-center gap-1.5 p-1 rounded-xl bg-emerald-900/35 border border-emerald-800/50">
-          {mainCategory === 'stats' ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setActiveTab('ranking')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
-                  activeTab === 'ranking'
-                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
-                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
-                }`}
-              >
-                <Trophy className="w-3.5 h-3.5 shrink-0" />
-                <span>Classifica</span>
-              </button>
+        {/* Sotto-Navigazione Segmentata (solo per Statistiche) */}
+        {mainCategory === 'stats' && (
+          <div className="mt-2 flex items-center justify-center gap-1.5 p-1 rounded-xl bg-emerald-900/35 border border-emerald-800/50">
+            <button
+              type="button"
+              onClick={() => setActiveTab('ranking')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
+                activeTab === 'ranking'
+                  ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
+                  : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5 shrink-0" />
+              <span>Classifica</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('trend')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
-                  activeTab === 'trend'
-                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
-                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
-                }`}
-              >
-                <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-                <span>Andamento</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('trend')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
+                activeTab === 'trend'
+                  ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
+                  : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+              <span>Andamento</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('trophies')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
-                  activeTab === 'trophies'
-                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
-                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
-                }`}
-              >
-                <Award className="w-3.5 h-3.5 shrink-0" />
-                <span>Bacheca Trofei</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => setActiveTab('friends')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
-                  activeTab === 'friends'
-                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
-                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5 shrink-0" />
-                <span>Amici Online ⭐</span>
-                {friendsList.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-950 text-amber-300 text-[10px] font-black">
-                    {friendsList.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('roster')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
-                  activeTab === 'roster'
-                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
-                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
-                }`}
-              >
-                <BookUser className="w-3.5 h-3.5 shrink-0" />
-                <span>Rubrica Ospiti</span>
-                {playersList.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-300 text-[10px] font-bold">
-                    {playersList.length}
-                  </span>
-                )}
-              </button>
-            </>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('trophies')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
+                activeTab === 'trophies'
+                  ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
+                  : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5 shrink-0" />
+              <span>Bacheca Trofei</span>
+            </button>
+          </div>
+        )}
 
         {/* CONTENUTO PRINCIPALE */}
         <div className="my-3.5 max-h-[62vh] overflow-y-auto pr-1">
@@ -579,6 +504,14 @@ export default function PlayersStatsModal({
                 </p>
               </div>
 
+              {/* Info Amici Online Google */}
+              <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-800/40 flex items-center gap-2.5 text-xs text-emerald-300/80">
+                <span className="text-base shrink-0">👥</span>
+                <span className="leading-tight">
+                  I tuoi compagni con account Google e lo stato online si trovano nella sezione <strong>I Miei Amici</strong> sul tuo <strong>Profilo</strong> (icona in alto a destra).
+                </span>
+              </div>
+
               {/* Form Aggiunta Nuovo Membro */}
               <form onSubmit={handleAdd} className="flex gap-1.5 p-2 rounded-xl bg-emerald-950/70 border border-emerald-800/60">
                 <input
@@ -693,173 +626,7 @@ export default function PlayersStatsModal({
             </div>
           )}
 
-          {/* TAB 3: AMICI BURRACO CLUB CON ACCOUNT GOOGLE */}
-          {activeTab === 'friends' && (
-            <div className="space-y-4">
-              
-              {!currentUser ? (
-                <div className="p-6 rounded-2xl bg-emerald-950/80 border border-emerald-600/40 text-center space-y-3 shadow-lg">
-                  <div className="w-12 h-12 mx-auto rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center border border-amber-400/40 shadow-inner">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-white m-0">Connettiti per giocare con gli Amici</h3>
-                    <p className="text-xs text-emerald-300/80 mt-1 max-w-sm mx-auto">
-                      Accedi con il tuo account Google per inviare richieste di amicizia, visualizzare lo stato dei tuoi compagni di gioco e invitarli ai tavoli.
-                    </p>
-                  </div>
-                  {onOpenLogin && (
-                    <button
-                      type="button"
-                      onClick={onOpenLogin}
-                      className="px-4 py-2 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md hover:brightness-110 active:scale-95 transition-all inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4 text-emerald-950" />
-                      <span>Accedi con Google</span>
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <>
-                  {/* Card Invio Richiesta Amicizia */}
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-950 via-emerald-900/40 to-amber-950/30 border border-amber-500/40 shadow-md space-y-2.5">
-                    <div className="flex items-center gap-2">
-                      <UserPlus className="w-4 h-4 text-amber-400" />
-                      <h4 className="text-xs font-black text-amber-300 uppercase tracking-wider m-0">
-                        Aggiungi Nuovo Amico tramite Email
-                      </h4>
-                    </div>
-                    <p className="text-[11px] text-emerald-300/80 m-0">
-                      Inserisci l'indirizzo email Google del tuo amico. Gli comparirà una notifica con il tasto per accettare l'amicizia!
-                    </p>
-
-                    <form onSubmit={handleSendFriend} className="flex gap-2 pt-1">
-                      <div className="relative flex-1">
-                        <Mail className="w-3.5 h-3.5 text-emerald-400/60 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <input
-                          type="email"
-                          required
-                          placeholder="es. mario.rossi@gmail.com"
-                          value={friendEmailInput}
-                          onChange={(e) => setFriendEmailInput(e.target.value)}
-                          className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-600/50 text-white placeholder-emerald-400/50 text-xs focus:outline-none focus:border-amber-400"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={isSendingFriend}
-                        className="px-3.5 py-1.5 rounded-lg gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer shrink-0 disabled:opacity-50"
-                      >
-                        <Send className="w-3.5 h-3.5 text-emerald-950" />
-                        <span>{isSendingFriend ? 'Invio...' : 'Invia Richiesta'}</span>
-                      </button>
-                    </form>
-
-                    {friendFeedback && (
-                      <div className={`p-2 rounded-lg text-xs font-semibold ${
-                        friendFeedback.type === 'success'
-                          ? 'bg-emerald-900/80 text-emerald-200 border border-emerald-500/50'
-                          : 'bg-red-950/80 text-red-200 border border-red-600/50'
-                      }`}>
-                        {friendFeedback.text}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Lista Amici Ufficiali */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5 text-amber-400" />
-                        I Tuoi Amici Burraco Club ({friendsList.length})
-                      </span>
-                    </div>
-
-                    {friendsList.length === 0 ? (
-                      <div className="p-6 rounded-xl bg-emerald-950/50 border border-emerald-800/40 text-center space-y-1 text-emerald-300/70 text-xs">
-                        <p className="m-0 font-medium text-white">Nessun amico confermato ancora.</p>
-                        <p className="m-0 text-[11px]">Invia una richiesta con il form sopra per collegare i tuoi compagni di gioco!</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {friendsList.map((f, i) => {
-                          const presence = getFriendOnlineStatus(f.lastSeen);
-                          return (
-                            <div 
-                              key={f.uid || f.email || i}
-                              className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-600/40 flex items-center justify-between gap-3 shadow-sm hover:border-amber-400/50 transition-all"
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className="relative shrink-0">
-                                  {f.photoURL ? (
-                                    <img 
-                                      src={f.photoURL} 
-                                      alt="" 
-                                      className="w-10 h-10 rounded-full border border-amber-400 shrink-0 object-cover" 
-                                    />
-                                  ) : (
-                                    <div className="w-10 h-10 rounded-full bg-amber-400 text-emerald-950 font-black text-sm flex items-center justify-center shrink-0">
-                                      {(f.displayName || f.email || 'U').slice(0, 1).toUpperCase()}
-                                    </div>
-                                  )}
-                                  {/* Pallino stato presenza */}
-                                  <span 
-                                    className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-emerald-950 ${
-                                      presence.isOnline 
-                                        ? 'bg-emerald-400 animate-pulse' 
-                                        : presence.color === 'amber' 
-                                        ? 'bg-amber-400' 
-                                        : 'bg-slate-500'
-                                    }`} 
-                                    title={presence.label} 
-                                  />
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-xs font-bold text-white truncate">{f.displayName || 'Amico'}</span>
-                                    <span className="text-[10px] text-amber-400" title="Amico Ufficiale">⭐</span>
-                                  </div>
-                                  <div className="text-[10px] text-emerald-300/70 truncate">{f.email}</div>
-                                  
-                                  {/* Etichetta presenza */}
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${
-                                      presence.isOnline ? 'bg-emerald-400' : presence.color === 'amber' ? 'bg-amber-400' : 'bg-slate-500'
-                                    }`} />
-                                    <span className={`text-[10px] ${
-                                      presence.isOnline ? 'text-emerald-300 font-bold' : presence.color === 'amber' ? 'text-amber-300/80 font-medium' : 'text-slate-400'
-                                    }`}>
-                                      {presence.label}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Pulsante Sfida Rapida al Tavolo */}
-                              {onChallengeFriend && (
-                                <button
-                                  onClick={() => onChallengeFriend(f)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-1 shadow-md transition active:scale-95 cursor-pointer shrink-0"
-                                  title={`Sfida ${f.displayName || f.email} al tavolo da gioco`}
-                                >
-                                  <span>🎯</span>
-                                  <span>Sfida</span>
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-            </div>
-          )}
-
-          {/* TAB 4: GRAFICO ANDAMENTO */}
+          {/* TAB: GRAFICO ANDAMENTO */}
           {activeTab === 'trend' && (
             <StatsCharts
               stats={stats}
@@ -868,7 +635,7 @@ export default function PlayersStatsModal({
             />
           )}
 
-          {/* TAB 4: BACHECA TROFEI & TITOLI */}
+          {/* TAB: BACHECA TROFEI & TITOLI */}
           {activeTab === 'trophies' && (
             <TrophiesShowcase
               stats={stats}
@@ -885,7 +652,7 @@ export default function PlayersStatsModal({
           <span className="text-emerald-400/80 text-[11px]">
             {mainCategory === 'stats'
               ? `${stats.length} giocatori con statistiche`
-              : `${friendsList.length} amici registrati • ${playersList.length} ospiti`}
+              : `${playersList.length} ospiti in rubrica`}
           </span>
           <button
             type="button"
