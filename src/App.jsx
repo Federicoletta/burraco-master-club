@@ -235,6 +235,13 @@ export default function App() {
     }
     const unsubNotifs = subscribeToMyNotifications(currentUser, (notifs) => {
       if (Array.isArray(notifs)) {
+        // Se la notifica del toast non è più pendente, chiudi automaticamente il banner
+        setToastNotification(prevToast => {
+          if (!prevToast) return null;
+          const isStillPending = notifs.some(n => n.id === prevToast.id && n.status === 'pending');
+          return isStillPending ? prevToast : null;
+        });
+
         // Controlla se c'è una notifica nuova appena arrivata
         const newPendings = notifs.filter(
           n => !prevNotifIdsRef.current.includes(n.id) && n.status === 'pending'
@@ -945,9 +952,9 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
 
   const handleAcceptFriendRequest = async (notification) => {
     try {
+      setToastNotification(null);
       await respondToFriendRequest(notification, true, currentUser);
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
-      alert(`Amicizia con ${notification.fromName} accettata! Ora siete amici su Burraco Club.`);
     } catch (err) {
       console.error('Errore accettazione amicizia:', err);
       alert('Impossibile accettare la richiesta: ' + (err.message || err));
@@ -956,6 +963,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
 
   const handleDeclineFriendRequest = async (notification) => {
     try {
+      setToastNotification(null);
       await respondToFriendRequest(notification, false, currentUser);
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
     } catch (err) {
@@ -965,6 +973,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
 
   const handleAcceptGameInvite = async (notification) => {
     try {
+      setToastNotification(null);
       await respondToGameInvite(notification, true);
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
       setIsNotificationsOpen(false);
@@ -984,6 +993,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
 
   const handleDeclineGameInvite = async (notification) => {
     try {
+      setToastNotification(null);
       await respondToGameInvite(notification, false);
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
     } catch (err) {
@@ -1015,21 +1025,21 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       {/* Toast Notifiche in tempo reale */}
       <NotificationToast
         notification={toastNotification}
-        onAccept={(notif) => {
-          if (notif.type === 'game_invite') {
-            handleRespondGameInvite(notif, true);
-          } else {
-            handleRespondFriendRequest(notif, true);
-          }
+        onAccept={async (notif) => {
           setToastNotification(null);
+          if (notif.type === 'game_invite') {
+            await handleAcceptGameInvite(notif);
+          } else {
+            await handleAcceptFriendRequest(notif);
+          }
         }}
-        onDecline={(notif) => {
-          if (notif.type === 'game_invite') {
-            handleRespondGameInvite(notif, false);
-          } else {
-            handleRespondFriendRequest(notif, false);
-          }
+        onDecline={async (notif) => {
           setToastNotification(null);
+          if (notif.type === 'game_invite') {
+            await handleDeclineGameInvite(notif);
+          } else {
+            await handleDeclineFriendRequest(notif);
+          }
         }}
         onClose={() => setToastNotification(null)}
       />

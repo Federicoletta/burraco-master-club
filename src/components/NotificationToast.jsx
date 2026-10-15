@@ -109,7 +109,10 @@ export default function NotificationToast({
         {/* Pulsanti Azione Rapida */}
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-800/80">
           <button
-            onClick={() => onAccept(notification)}
+            onClick={() => {
+              onClose?.();
+              onAccept?.(notification);
+            }}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
           >
             <Check className="w-3.5 h-3.5" />
@@ -117,7 +120,10 @@ export default function NotificationToast({
           </button>
 
           <button
-            onClick={() => onDecline(notification)}
+            onClick={() => {
+              onClose?.();
+              onDecline?.(notification);
+            }}
             className="py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-red-950/60 text-slate-300 hover:text-red-400 font-medium text-xs border border-slate-700 hover:border-red-500/40 transition active:scale-95 cursor-pointer"
           >
             Rifiuta
