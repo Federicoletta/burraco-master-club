@@ -10,6 +10,13 @@ import {
   deleteDoc,
   serverTimestamp 
 } from 'firebase/firestore';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
+} from 'firebase/auth';
 
 // Configurazione Firebase del progetto dedicato "burraco-score-fedec"
 const firebaseConfig = {
@@ -24,15 +31,78 @@ const firebaseConfig = {
 
 let app;
 let db;
+let auth;
+const googleProvider = new GoogleAuthProvider();
 
 try {
   app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   db = getFirestore(app);
+  auth = getAuth(app);
 } catch (err) {
   console.error('Firebase initialization error:', err);
 }
 
-export { db };
+export { db, auth };
+
+/**
+ * Accesso con Account Google (Popup)
+ */
+export async function loginWithGoogle() {
+  if (!auth) throw new Error('Firebase Auth non inizializzato');
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    // Registra/aggiorna il profilo utente su Firestore
+    if (db && user) {
+      const userRef = doc(db, 'burraco_users', user.uid);
+      await setDoc(userRef, {
+        uid: user.uid,
+        displayName: user.displayName || 'Giocatore Burraco',
+        email: user.email,
+        photoURL: user.photoURL,
+        lastLogin: new Date().toISOString()
+      }, { merge: true });
+    }
+    return user;
+  } catch (err) {
+    console.error('Errore login Google:', err);
+    throw err;
+  }
+}
+
+/**
+ * Disconnessione utente
+ */
+export async function logoutUser() {
+  if (!auth) return;
+  try {
+    await signOut(auth);
+  } catch (err) {
+    console.error('Errore logout:', err);
+    throw err;
+  }
+}
+
+/**
+ * Ascolta lo stato di autenticazione dell'utente
+ */
+export function subscribeToAuth(onUserChange) {
+  if (!auth) return () => {};
+  return onAuthStateChanged(auth, async (user) => {
+    onUserChange(user);
+    if (user && db) {
+      // Aggiorna ultimo accesso in background
+      try {
+        const userRef = doc(db, 'burraco_users', user.uid);
+        await setDoc(userRef, {
+          lastSeen: new Date().toISOString()
+        }, { merge: true });
+      } catch (err) {
+        console.warn('Errore aggiornamento lastSeen:', err);
+      }
+    }
+  });
+}
 
 /**
  * Salva o aggiorna una partita nel cloud database Firestore

@@ -10,6 +10,7 @@ import CloudSyncModal from './components/CloudSyncModal';
 import RulesModal from './components/RulesModal';
 import EditTeamsModal from './components/EditTeamsModal';
 import TournamentModal from './components/TournamentModal';
+import UserProfileModal from './components/UserProfileModal';
 import { 
   getActiveGame, 
   saveActiveGame, 
@@ -30,7 +31,10 @@ import {
   subscribeToCloudGamesHistory,
   deleteGameFromCloud,
   syncTournamentToCloud,
-  subscribeToCloudTournament
+  subscribeToCloudTournament,
+  loginWithGoogle,
+  logoutUser,
+  subscribeToAuth
 } from './services/firebase';
 import {
   getActiveTournament,
@@ -48,6 +52,10 @@ export default function App() {
   // Tournament state
   const [activeTournament, setActiveTournament] = useState(null);
   const [isTournamentOpen, setIsTournamentOpen] = useState(false);
+
+  // User Auth & Profile state
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Modals state
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
@@ -167,6 +175,24 @@ export default function App() {
       unsubPlayers();
       unsubHistory();
     };
+  }, []);
+
+  // 2b. Ascolto in tempo reale stato autenticazione Google
+  useEffect(() => {
+    const unsubAuth = subscribeToAuth((user) => {
+      setCurrentUser(user);
+      if (user?.displayName) {
+        // Se l'utente ha effettuato l'accesso e non è ancora nella rubrica locale, aggiungilo
+        const currentStored = getStoredPlayers();
+        if (!currentStored.includes(user.displayName)) {
+          savePlayerName(user.displayName);
+          const updated = getStoredPlayers();
+          setPlayersList(updated);
+          syncPlayersToCloud(updated);
+        }
+      }
+    });
+    return () => unsubAuth();
   }, []);
 
   // 3. Ascolto real-time della partita attiva da Firestore (Multi-device live sync)
@@ -715,6 +741,36 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     if (current) setActiveGame(current);
   };
 
+  // Gestione Login / Logout con Google Auth
+  const handleLogin = async () => {
+    try {
+      const user = await loginWithGoogle();
+      if (user?.displayName) {
+        const currentStored = getStoredPlayers();
+        if (!currentStored.includes(user.displayName)) {
+          savePlayerName(user.displayName);
+          const updated = getStoredPlayers();
+          setPlayersList(updated);
+          syncPlayersToCloud(updated);
+        }
+      }
+    } catch (err) {
+      console.error("Login fallito:", err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        alert("Accesso con Google non completato: " + (err.message || err));
+      }
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setIsProfileOpen(false);
+    } catch (err) {
+      console.error("Logout fallito:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen felt-bg flex flex-col selection:bg-amber-400 selection:text-emerald-950">
       
@@ -729,6 +785,9 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onOpenRules={() => setIsRulesOpen(true)}
         onShareGame={handleShareGame}
         hasActiveGame={Boolean(activeGame)}
+        currentUser={currentUser}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onLogin={handleLogin}
       />
 
       {/* Contenuto Principale */}
@@ -941,6 +1000,17 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onFinishTournament={handleFinishTournament}
         onPlayMatch={(match) => handlePlayTournamentMatch(match, activeTournament)}
         playersList={playersList}
+      />
+
+      {/* 10. Modal Profilo Personale & Google Account */}
+      <UserProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        currentUser={currentUser}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        gamesHistory={gamesHistory}
+        activeGame={activeGame}
       />
 
     </div>

@@ -11,7 +11,9 @@ import {
   Sun,
   RotateCw,
   Sparkles,
-  Trophy
+  Trophy,
+  User,
+  LogIn
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
@@ -28,7 +30,10 @@ export default function Header({
   onOpenTournament,
   onShareGame,
   hasActiveGame,
-  hasActiveTournament
+  hasActiveTournament,
+  currentUser,
+  onOpenProfile,
+  onLogin
 }) {
   const [soundOn, setSoundOn] = useState(sound.enabled);
   const [volume, setVolume] = useState(Math.round(sound.volume * 100));
@@ -119,50 +124,15 @@ export default function Header({
           </div>
         </div>
 
-        {/* Azioni barra superiore */}
-        <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
+        {/* Azioni barra superiore - Pulite, ordinate e intuitive */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           
-          {/* Condividi Punteggio (visibile su tablet e desktop >= md) */}
-          {hasActiveGame && onShareGame && (
-            <button
-              type="button"
-              onClick={onShareGame}
-              className="hidden md:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-800/70 hover:bg-emerald-700 text-emerald-200 border border-emerald-600/50 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-              title="Condividi punteggio su WhatsApp"
-            >
-              <Share2 className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
-              <span className="pointer-events-none">Condividi</span>
-            </button>
-          )}
-
-          {/* Archivio Partite (visibile su tablet e desktop >= md) */}
-          <button
-            type="button"
-            onClick={onOpenHistory}
-            className="hidden md:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-            title="Archivio partite passate"
-          >
-            <History className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-            <span className="pointer-events-none">Archivio</span>
-          </button>
-
-          {/* Partecipanti (visibile su tablet e desktop >= md) */}
-          <button
-            type="button"
-            onClick={onOpenPlayers}
-            className="hidden md:flex h-9 sm:h-10 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-            title="Partecipanti & Statistiche"
-          >
-            <Users className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-            <span className="pointer-events-none">Partecipanti</span>
-          </button>
-
-          {/* Torneo (visibile da tablet e desktop) */}
+          {/* 1. Modalità Torneo (Visibile e valorizzato) */}
           {onOpenTournament && (
             <button
               type="button"
               onClick={onOpenTournament}
-              className={`hidden sm:flex h-9 sm:h-10 px-3 rounded-xl border transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
+              className={`h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
                 hasActiveTournament
                   ? 'bg-amber-500/25 text-amber-200 border-amber-400 ring-2 ring-amber-400/40 shadow-md shadow-amber-950/40 font-black'
                   : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
@@ -170,14 +140,42 @@ export default function Header({
               title="Modalità Torneo a Gironi"
             >
               <Trophy className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-              <span className="pointer-events-none">Torneo</span>
+              <span className="hidden xs:inline pointer-events-none">Torneo</span>
               {hasActiveTournament && (
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
               )}
             </button>
           )}
 
-          {/* Menu Impostazioni (Ingranaggio) con Regolamento, Musica, Cloud, Schermo e azioni su mobile */}
+          {/* 2. Archivio Partite (sempre a portata di tocco per controllare passate) */}
+          <button
+            type="button"
+            onClick={onOpenHistory}
+            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
+            title="Archivio partite passate"
+          >
+            <History className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
+            <span className="hidden sm:inline pointer-events-none">Archivio</span>
+          </button>
+
+          {/* 3. Tasto Rapido Audio / Jazz (Immediato: un tocco per aprire le impostazioni musicali) */}
+          <button
+            type="button"
+            onClick={() => setIsAudioModalOpen(true)}
+            className={`h-9 sm:h-10 px-2 sm:px-2.5 rounded-xl border transition-all flex items-center justify-center gap-1 text-xs cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
+              musicState.isPlaying
+                ? 'bg-amber-400/20 border-amber-400/60 text-amber-300 shadow-sm shadow-amber-950/30'
+                : 'bg-emerald-900/70 hover:bg-emerald-800 border-emerald-600/40 text-emerald-300'
+            }`}
+            title="Regola musica jazz e volume"
+          >
+            <Music className={`w-4 h-4 ${musicState.isPlaying ? 'text-amber-400 animate-pulse' : 'text-emerald-400'}`} />
+            {musicState.isPlaying && (
+              <span className="hidden md:inline font-bold text-[11px] text-amber-300">Jazz ON</span>
+            )}
+          </button>
+
+          {/* 4. Menu Compatto "Altro" (Tutto il resto racchiuso elegantemente qui) */}
           <div className="relative">
             <button
               type="button"
@@ -189,10 +187,10 @@ export default function Header({
                   ? 'bg-amber-500/20 text-amber-200 border-amber-400/50 ring-1 ring-amber-400/30 shadow-md shadow-amber-950/30'
                   : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
               }`}
-              title="Menu & Impostazioni"
+              title="Menu, Partecipanti e Opzioni"
             >
               <Settings className={`w-4 h-4 text-amber-300 pointer-events-none transition-transform duration-200 ${isMenuOpen ? 'rotate-45 text-amber-200' : ''}`} />
-              <span className="hidden sm:inline pointer-events-none">Menu</span>
+              <span className="hidden sm:inline pointer-events-none">Altro</span>
               {updateInfo.hasUpdate && (
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-emerald-950 animate-ping" />
               )}
@@ -207,18 +205,127 @@ export default function Header({
                   onClick={() => setIsMenuOpen(false)}
                 />
                 
-                <div className="absolute right-0 top-full mt-2 w-68 rounded-2xl bg-emerald-950/95 backdrop-blur-md border border-amber-500/40 shadow-2xl p-2 z-50 text-white animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-emerald-950/95 backdrop-blur-md border border-amber-500/40 shadow-2xl p-2 z-50 text-white animate-in fade-in zoom-in-95 duration-150">
                   
                   {/* Intestazione del menu */}
                   <div className="px-3 py-1.5 border-b border-emerald-800/60 mb-1 flex items-center justify-between text-[11px] font-bold text-amber-400 tracking-wider uppercase">
                     <span className="flex items-center gap-1.5">
                       <Settings className="w-3.5 h-3.5 text-amber-400" />
-                      Menu & Opzioni
+                      Opzioni & Strumenti
                     </span>
                     <span className="text-[10px] text-emerald-400/80 font-mono font-normal">
                       {getFormattedBuildDate()}
                     </span>
                   </div>
+
+                  {/* Profilo & Account Personale */}
+                  {onOpenProfile && (
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onOpenProfile();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer border border-amber-500/30 mb-1.5"
+                    >
+                      {currentUser?.photoURL ? (
+                        <img 
+                          src={currentUser.photoURL} 
+                          alt="" 
+                          className="w-6 h-6 rounded-full border border-amber-400 shrink-0 object-cover" 
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-amber-400 text-emerald-950 font-black text-xs flex items-center justify-center shrink-0">
+                          {currentUser ? (currentUser.displayName || currentUser.email || 'U').slice(0, 1).toUpperCase() : <User className="w-3.5 h-3.5" />}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-white font-bold truncate">
+                          {currentUser ? (currentUser.displayName || 'Account Personale') : 'Accedi con Google'}
+                        </div>
+                        <div className="text-[10px] text-amber-300/80 font-normal truncate">
+                          {currentUser ? (currentUser.email || 'Statistiche personali') : 'Carriera, trofei & statistiche'}
+                        </div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Partecipanti & Rubrica Club */}
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenPlayers();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                  >
+                    <Users className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <div className="text-white font-bold">Rubrica & Partecipanti</div>
+                      <div className="text-[10px] text-emerald-300/70 font-normal">Statistiche, trofei e membri</div>
+                    </div>
+                  </button>
+
+                  {/* Condividi Punteggio (se partita attiva) */}
+                  {hasActiveGame && onShareGame && (
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onShareGame();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                    >
+                      <Share2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                      <div>
+                        <div className="text-white font-bold">Condividi Punteggio</div>
+                        <div className="text-[10px] text-emerald-300/70 font-normal">Invia riepilogo su WhatsApp</div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Cloud Database & Invita al Tavolo */}
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenCloud();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                  >
+                    <Cloud className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <div className="text-white font-bold">Invita al Tavolo (Cloud)</div>
+                      <div className="text-[10px] text-emerald-300/70 font-normal">Sincronizzazione in tempo reale</div>
+                    </div>
+                  </button>
+
+                  {/* Regolamento del Burraco */}
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenRules();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer border-t border-emerald-800/40 my-1 pt-2"
+                  >
+                    <BookOpen className="w-4 h-4 text-amber-300 shrink-0" />
+                    <div>
+                      <div className="text-white font-bold">Regole del Burraco</div>
+                      <div className="text-[10px] text-emerald-300/70 font-normal">Punteggi carte, combinazioni, chiusure</div>
+                    </div>
+                  </button>
+
+                  {/* Schermo Sempre Acceso (iPad / Mobile) */}
+                  <button
+                    onClick={() => {
+                      wakeLock.toggle();
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Sun className={`w-4 h-4 shrink-0 ${wakeLockState.enabled ? 'text-amber-400' : 'text-emerald-400/60'}`} />
+                      <span>Schermo Sempre Acceso</span>
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${wakeLockState.enabled ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'}`}>
+                      {wakeLockState.enabled ? '☀️ ATTIVO' : 'OFF'}
+                    </span>
+                  </button>
 
                   {/* Pulsante dedicato Aggiornamento / Ricarica PWA iPad */}
                   <button
@@ -233,7 +340,7 @@ export default function Header({
                         }, 200);
                       }
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer mb-1 border ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer mt-1 border ${
                       updateInfo.hasUpdate
                         ? 'bg-amber-500/25 border-amber-400 text-amber-200 shadow-md ring-1 ring-amber-400/30'
                         : 'bg-emerald-900/40 border-emerald-700/40 hover:bg-emerald-900/80 text-emerald-100'
@@ -260,156 +367,51 @@ export default function Header({
                     </span>
                   </button>
 
-                  {/* Voci rapide visibili SOLO su smartphone (perché nascoste dalla barra principale) */}
-                  {hasActiveGame && onShareGame && (
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onShareGame();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer md:hidden"
-                    >
-                      <Share2 className="w-4 h-4 text-emerald-300 shrink-0" />
-                      <div>
-                        <div className="text-white font-bold">Condividi Punteggio</div>
-                        <div className="text-[10px] text-emerald-300/70 font-normal">Invia riepilogo su WhatsApp</div>
-                      </div>
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onOpenHistory();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer md:hidden"
-                  >
-                    <History className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div>
-                      <div className="text-white font-bold">Archivio Partite</div>
-                      <div className="text-[10px] text-emerald-300/70 font-normal">Storico partite passate</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onOpenPlayers();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer md:hidden"
-                  >
-                    <Users className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div>
-                      <div className="text-white font-bold">Partecipanti</div>
-                      <div className="text-[10px] text-emerald-300/70 font-normal">Giocatori e statistiche</div>
-                    </div>
-                  </button>
-
-                  {/* Torneo (Voce menu sempre accessibile) */}
-                  {onOpenTournament && (
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onOpenTournament();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                    >
-                      <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
-                      <div>
-                        <div className="text-white font-bold flex items-center gap-1.5">
-                          <span>Torneo di Burraco</span>
-                          {hasActiveTournament && (
-                            <span className="px-1.5 py-0.2 rounded bg-amber-400 text-emerald-950 font-black text-[9px]">ATTIVO</span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-emerald-300/70 font-normal">Classifica, gironi e tavoli</div>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Separatore su mobile se ci sono le voci sopra */}
-                  <div className="border-t border-emerald-800/40 my-1 md:hidden" />
-
-                  {/* Regolamento del Burraco */}
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onOpenRules();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                  >
-                    <BookOpen className="w-4 h-4 text-amber-300 shrink-0" />
-                    <div>
-                      <div className="text-white font-bold">Regole del Burraco</div>
-                      <div className="text-[10px] text-emerald-300/70 font-normal">Punteggi carte, combinazioni, chiusure</div>
-                    </div>
-                  </button>
-
-                  {/* Schermo Sempre Acceso (iPad / Mobile) */}
-                  <button
-                    onClick={() => {
-                      wakeLock.toggle();
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Sun className={`w-4 h-4 shrink-0 ${wakeLockState.enabled ? 'text-amber-400' : 'text-emerald-400/60'}`} />
-                      <span>Schermo Sempre Acceso</span>
-                    </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${wakeLockState.enabled ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'}`}>
-                      {wakeLockState.enabled ? '☀️ ATTIVO' : 'OFF'}
-                    </span>
-                  </button>
-
-                  {/* Musica (Unico tasto per musica e volumi) */}
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      setIsAudioModalOpen(true);
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Music className={`w-4 h-4 shrink-0 ${musicState.isPlaying ? 'text-amber-400 animate-pulse' : 'text-emerald-400/70'}`} />
-                      <div>
-                        <div className="text-white font-bold">Musica</div>
-                        <div className="text-[10px] text-emerald-300/70 font-normal">Brani d'atmosfera e volume</div>
-                      </div>
-                    </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${musicState.isPlaying ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' : 'bg-white/10 text-white/50'}`}>
-                      {musicState.isPlaying ? '▶ ON' : 'OFF'}
-                    </span>
-                  </button>
-
-                  {/* Cloud Database & Condivisione Tavolo */}
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onOpenCloud();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer border-t border-emerald-800/60 mt-1 pt-2"
-                  >
-                    <Cloud className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <div>
-                      <div className="text-white font-bold">Database Cloud & Tavolo</div>
-                      <div className="text-[10px] text-emerald-300/70 font-normal">Sincronizzazione partite online</div>
-                    </div>
-                  </button>
-
                 </div>
               </>
             )}
           </div>
 
-          {/* Nuova Partita (Pulsante Principale - sempre visibile, shrink-0, mai tagliato) */}
+          {/* 5. Profilo & Account Utente Google (Avatar / Tasto Accedi) */}
+          {onOpenProfile && (
+            <button
+              type="button"
+              onClick={onOpenProfile}
+              className={`h-9 sm:h-10 px-2 sm:px-2.5 rounded-xl border transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
+                currentUser
+                  ? 'bg-emerald-950/80 hover:bg-emerald-900 text-amber-200 border-amber-400/50 shadow-sm'
+                  : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
+              }`}
+              title={currentUser ? `Profilo: ${currentUser.displayName || currentUser.email}` : "Accedi con Google"}
+            >
+              {currentUser?.photoURL ? (
+                <img
+                  src={currentUser.photoURL}
+                  alt={currentUser.displayName || 'Avatar'}
+                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-amber-400 shrink-0 object-cover"
+                />
+              ) : currentUser ? (
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-400 text-emerald-950 font-black text-[11px] flex items-center justify-center shrink-0">
+                  {(currentUser.displayName || currentUser.email || 'U').slice(0, 1).toUpperCase()}
+                </div>
+              ) : (
+                <User className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
+              )}
+              <span className="hidden sm:inline pointer-events-none max-w-[85px] truncate">
+                {currentUser ? (currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Profilo') : 'Accedi'}
+              </span>
+            </button>
+          )}
+
+          {/* 6. Nuova Partita (Il Bottone Principale Dorato - sempre ben visibile e protetto) */}
           <button
             type="button"
             onClick={onNewGame}
-            className="h-9 sm:h-10 px-3 sm:px-3.5 py-1.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-md shadow-amber-950/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap touch-manipulation select-none"
+            className="h-9 sm:h-10 px-3 sm:px-4 py-1.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-md shadow-amber-950/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap touch-manipulation select-none"
             title="Inizia una nuova partita"
           >
             <PlusCircle className="w-4 h-4 text-emerald-950 shrink-0 pointer-events-none" />
-            <span className="pointer-events-none">+ Nuova<span className="hidden sm:inline"> Partita</span></span>
+            <span className="pointer-events-none">+ Nuova Partita</span>
           </button>
 
         </div>
