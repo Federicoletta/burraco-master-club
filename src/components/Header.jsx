@@ -15,7 +15,9 @@ import {
   User,
   LogIn,
   Bell,
-  BarChart3
+  BarChart3,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
@@ -202,13 +204,13 @@ export default function Header({
             {/* Menu a tendina Impostazioni & Funzioni */}
             {isMenuOpen && (
               <>
-                {/* Overlay trasparente per chiudere cliccando fuori */}
+                {/* Overlay scuro per chiudere cliccando fuori */}
                 <div 
-                  className="fixed inset-0 z-40 bg-transparent"
+                  className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] sm:bg-transparent"
                   onClick={() => setIsMenuOpen(false)}
                 />
                 
-                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-emerald-950/95 backdrop-blur-md border border-amber-500/40 shadow-2xl p-2 z-50 text-white animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                <div className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-14 sm:top-full mt-2 sm:w-72 max-w-[340px] sm:max-w-none mx-auto sm:mx-0 rounded-2xl bg-emerald-950/95 backdrop-blur-md border border-amber-500/40 shadow-2xl p-2.5 z-50 text-white animate-in fade-in zoom-in-95 duration-150 space-y-1 max-h-[85vh] overflow-y-auto">
                   
                   {/* Intestazione del menu */}
                   <div className="px-3 py-1.5 border-b border-emerald-800/60 flex items-center justify-between text-[11px] font-bold text-amber-400 tracking-wider uppercase">
@@ -354,6 +356,32 @@ export default function Header({
                     <div className="px-2 pb-1 text-[10px] font-bold text-amber-400/80 uppercase tracking-wider flex items-center gap-1">
                       <span>⚙️ Impostazioni</span>
                     </div>
+
+                    {/* Volume & Effetti Sonori */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsAudioModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        {soundOn && volume > 0 ? (
+                          <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
+                        ) : (
+                          <VolumeX className="w-4 h-4 text-emerald-400/50 shrink-0" />
+                        )}
+                        <span>Volume & Effetti Sonori</span>
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-black ${
+                        soundOn && volume > 0 
+                          ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' 
+                          : 'bg-rose-950/80 text-rose-300 border border-rose-800/60'
+                      }`}>
+                        {soundOn && volume > 0 ? `${volume}%` : 'MUTATO'}
+                      </span>
+                    </button>
 
                     {/* Schermo Sempre Acceso */}
                     <button

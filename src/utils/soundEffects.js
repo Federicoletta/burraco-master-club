@@ -11,13 +11,18 @@ class SoundManager {
     this.enabled = this.loadPreference();
     this.volume = this.loadVolume();
 
-    // Auto-unlock automatico per Safari e iPadOS al primo tocco sullo schermo
+    // Auto-unlock automatico per Safari, iOS e Android al primo tocco sullo schermo
     if (typeof window !== 'undefined') {
       const unlockAudio = () => {
         this.initContext();
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
       };
-      window.addEventListener('pointerdown', unlockAudio, { once: true, passive: true });
-      window.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+      window.addEventListener('click', unlockAudio, { passive: true });
+      window.addEventListener('pointerdown', unlockAudio, { passive: true });
+      window.addEventListener('touchstart', unlockAudio, { passive: true });
+      window.addEventListener('touchend', unlockAudio, { passive: true });
     }
   }
 
@@ -69,20 +74,42 @@ class SoundManager {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
   }
 
-  // Click chiaro (tap su pulsanti, bottoni e contatori)
-  playTap() {
+  /**
+   * Helper sicuro per eseguire qualsiasi suono:
+   * Se il contesto audio è 'suspended' (politica browser mobile), esegue resume() prima di lanciare la sintesi
+   */
+  _playSound(fn) {
     if (!this.enabled || this.volume <= 0) return;
     try {
       this.initContext();
       if (!this.ctx || !this.masterGain) return;
 
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().then(() => {
+          try {
+            fn(this.ctx, this.masterGain);
+          } catch (e) {
+            console.warn('Errore sintesi sonora:', e);
+          }
+        }).catch(() => {});
+      } else {
+        fn(this.ctx, this.masterGain);
+      }
+    } catch {
+      // Ignora silente
+    }
+  }
+
+  // Click chiaro (tap su pulsanti, bottoni e contatori)
+  playTap() {
+    this._playSound((ctx, masterGain) => {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
       osc.type = 'sine';
       osc.frequency.setValueAtTime(750, now);
@@ -93,54 +120,48 @@ class SoundManager {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
       osc.connect(gain);
-      gain.connect(this.masterGain);
+      gain.connect(masterGain);
 
       osc.start(now);
       osc.stop(now + 0.06);
-    } catch {
-      // Ignora silente
-    }
+    });
   }
 
   // Suono carte scivolate sul panno verde (fruscio + tocco panno)
   playCardDeal() {
-    if (!this.enabled || this.volume <= 0) return;
-    try {
-      this.initContext();
-      if (!this.ctx || !this.masterGain) return;
-
-      const now = this.ctx.currentTime;
+    this._playSound((ctx, masterGain) => {
+      const now = ctx.currentTime;
 
       // 1. Fruscio carta (rumore bianco filtrato)
-      const bufferSize = Math.floor(this.ctx.sampleRate * 0.16);
-      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const bufferSize = Math.floor(ctx.sampleRate * 0.16);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = buffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
         output[i] = Math.random() * 2 - 1;
       }
 
-      const whiteNoise = this.ctx.createBufferSource();
+      const whiteNoise = ctx.createBufferSource();
       whiteNoise.buffer = buffer;
 
-      const filter = this.ctx.createBiquadFilter();
+      const filter = ctx.createBiquadFilter();
       filter.type = 'bandpass';
       filter.frequency.setValueAtTime(1600, now);
       filter.frequency.exponentialRampToValueAtTime(450, now + 0.16);
       filter.Q.setValueAtTime(1.8, now);
 
-      const noiseGain = this.ctx.createGain();
+      const noiseGain = ctx.createGain();
       noiseGain.gain.setValueAtTime(0.55, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
 
       whiteNoise.connect(filter);
       filter.connect(noiseGain);
-      noiseGain.connect(this.masterGain);
+      noiseGain.connect(masterGain);
 
       whiteNoise.start(now);
 
       // 2. Tocco morbido sul panno da gioco (basso profondo)
-      const thud = this.ctx.createOscillator();
-      const thudGain = this.ctx.createGain();
+      const thud = ctx.createOscillator();
+      const thudGain = ctx.createGain();
       thud.type = 'triangle';
       thud.frequency.setValueAtTime(140, now);
       thud.frequency.exponentialRampToValueAtTime(40, now + 0.12);
@@ -149,29 +170,23 @@ class SoundManager {
       thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
       thud.connect(thudGain);
-      thudGain.connect(this.masterGain);
+      thudGain.connect(masterGain);
 
       thud.start(now);
       thud.stop(now + 0.12);
-    } catch {
-      // Ignora silente
-    }
+    });
   }
 
   // Rintocco dorato brillante (quando si aggiunge un Burraco o si chiude la mano)
   playBurracoChime() {
-    if (!this.enabled || this.volume <= 0) return;
-    try {
-      this.initContext();
-      if (!this.ctx || !this.masterGain) return;
-
-      const now = this.ctx.currentTime;
+    this._playSound((ctx, masterGain) => {
+      const now = ctx.currentTime;
       // Accordo brillante C5, E5, G5, C6 (Do, Mi, Sol, Do alto)
       const notes = [523.25, 659.25, 783.99, 1046.50];
 
       notes.forEach((freq, idx) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
         // Onde triangolari ricche di armoniche
         osc.type = 'triangle';
@@ -182,24 +197,18 @@ class SoundManager {
         gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.045 + 0.55);
 
         osc.connect(gain);
-        gain.connect(this.masterGain);
+        gain.connect(masterGain);
 
         osc.start(now + idx * 0.045);
         osc.stop(now + idx * 0.045 + 0.55);
       });
-    } catch {
-      // Ignora silente
-    }
+    });
   }
 
   // Fanfara trionfale di vittoria (quando una squadra vince la partita)
   playVictoryFanfare() {
-    if (!this.enabled || this.volume <= 0) return;
-    try {
-      this.initContext();
-      if (!this.ctx || !this.masterGain) return;
-
-      const now = this.ctx.currentTime;
+    this._playSound((ctx, masterGain) => {
+      const now = ctx.currentTime;
       const melody = [
         { freq: 392.00, time: 0.0, dur: 0.18 }, // Sol 4
         { freq: 523.25, time: 0.19, dur: 0.18 }, // Do 5
@@ -210,14 +219,14 @@ class SoundManager {
       ];
 
       melody.forEach(note => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(note.freq, now + note.time);
 
         // Filtro passa-basso per timbro caldo di tromba/ottoni
-        const filter = this.ctx.createBiquadFilter();
+        const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(2400, now + note.time);
 
@@ -227,24 +236,48 @@ class SoundManager {
 
         osc.connect(filter);
         filter.connect(gain);
-        gain.connect(this.masterGain);
+        gain.connect(masterGain);
 
         osc.start(now + note.time);
         osc.stop(now + note.time + note.dur);
       });
-    } catch {
-      // Ignora silente
-    }
+    });
+  }
+
+  // Fanfara trofeo / invito inviato / richiesta amicizia completata
+  playTrophy() {
+    this._playSound((ctx, masterGain) => {
+      const now = ctx.currentTime;
+      const notes = [
+        { freq: 739.99, time: 0.0, dur: 0.12 },
+        { freq: 932.33, time: 0.09, dur: 0.12 },
+        { freq: 1108.73, time: 0.18, dur: 0.16 },
+        { freq: 1479.98, time: 0.28, dur: 0.55 },
+      ];
+
+      notes.forEach(n => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(n.freq, now + n.time);
+
+        gain.gain.setValueAtTime(0.65, now + n.time);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + n.time + n.dur);
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+
+        osc.start(now + n.time);
+        osc.stop(now + n.time + n.dur);
+      });
+    });
   }
 
   // Rintocco funebre solenne / campana a lutto tenebrosa (quando un giocatore muore)
   playDeathBell() {
-    if (!this.enabled || this.volume <= 0) return;
-    try {
-      this.initContext();
-      if (!this.ctx || !this.masterGain) return;
-
-      const now = this.ctx.currentTime;
+    this._playSound((ctx, masterGain) => {
+      const now = ctx.currentTime;
       // Frequenze per simulare una pesante campana metallica in bronzo (fondamentale bassa + parziali inarmoniche)
       const harmonics = [
         { freq: 110.0, gain: 0.6, decay: 4.8 },   // La 2 (profondo rintocco di campana)
@@ -256,8 +289,8 @@ class SoundManager {
       ];
 
       harmonics.forEach(h => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
         osc.type = 'sine';
         osc.frequency.setValueAtTime(h.freq, now);
@@ -268,24 +301,18 @@ class SoundManager {
         gain.gain.exponentialRampToValueAtTime(0.0001, now + h.decay);
 
         osc.connect(gain);
-        gain.connect(this.masterGain);
+        gain.connect(masterGain);
 
         osc.start(now);
         osc.stop(now + h.decay);
       });
-    } catch {
-      // Ignora silente
-    }
+    });
   }
 
   // Chime melodico cristallino per notifica in arrivo (invito partita o richiesta amicizia)
   playNotification() {
-    if (!this.enabled || this.volume <= 0) return;
-    try {
-      this.initContext();
-      if (!this.ctx || !this.masterGain) return;
-
-      const now = this.ctx.currentTime;
+    this._playSound((ctx, masterGain) => {
+      const now = ctx.currentTime;
       // Due note armoniche scintillanti: Mi 5 (659.25 Hz) -> Sol# 5 (830.61 Hz)
       const notes = [
         { freq: 659.25, time: 0.0, dur: 0.28 },
@@ -293,8 +320,8 @@ class SoundManager {
       ];
 
       notes.forEach(n => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
         osc.type = 'sine';
         osc.frequency.setValueAtTime(n.freq, now + n.time);
@@ -303,14 +330,12 @@ class SoundManager {
         gain.gain.exponentialRampToValueAtTime(0.001, now + n.time + n.dur);
 
         osc.connect(gain);
-        gain.connect(this.masterGain);
+        gain.connect(masterGain);
 
         osc.start(now + n.time);
         osc.stop(now + n.time + n.dur);
       });
-    } catch {
-      // Ignora silente
-    }
+    });
   }
 }
 
