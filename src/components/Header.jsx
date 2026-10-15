@@ -150,17 +150,6 @@ export default function Header({
             </button>
           )}
 
-          {/* 2. Archivio Partite (sempre a portata di tocco per controllare passate) */}
-          <button
-            type="button"
-            onClick={onOpenHistory}
-            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none"
-            title="Archivio partite passate"
-          >
-            <History className="w-4 h-4 text-amber-400 shrink-0 pointer-events-none" />
-            <span className="hidden sm:inline pointer-events-none">Archivio</span>
-          </button>
-
           {/* 3. Tasto Rapido Audio / Jazz (Immediato: un tocco per aprire le impostazioni musicali) */}
           <button
             type="button"
@@ -279,6 +268,21 @@ export default function Header({
                       )}
                     </button>
                   )}
+
+                  {/* Archivio Partite */}
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenHistory();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                  >
+                    <History className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <div className="text-white font-bold">Archivio Partite</div>
+                      <div className="text-[10px] text-emerald-300/70 font-normal">Cronologia partite passate e statistiche</div>
+                    </div>
+                  </button>
 
                   {/* Partecipanti & Rubrica Club */}
                   <button
