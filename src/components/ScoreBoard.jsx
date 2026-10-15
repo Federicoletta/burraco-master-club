@@ -9,7 +9,8 @@ import {
   Table,
   UserPlus,
   Check,
-  Users
+  Users,
+  LogOut
 } from 'lucide-react';
 import { getGamesHistory, calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
@@ -77,6 +78,8 @@ export default function ScoreBoard({
   currentUser = null,
   tablePlayers = [],
   friendsList = [],
+  isCloudJoined = false,
+  onLeaveCloudTable = null,
   onSendFriendRequest,
   onOpenLogin,
   onAddRound,
@@ -298,34 +301,49 @@ export default function ScoreBoard({
       )}
 
       {/* WIDGET TAVOLO MULTIPLAYER LIVE & AMICIZIA AL VOLO */}
-      {activeGame?.id && displayTablePlayers.length > 0 && (
+      {activeGame?.id && (displayTablePlayers.length > 0 || isCloudJoined) && (
         <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950 via-emerald-900/60 to-zinc-950 border border-emerald-600/50 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-emerald-800/50">
-            <div className="flex items-center gap-2.5">
-              <span className="relative flex h-3 w-3 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 mb-2.5 border-b border-emerald-800/50">
+            <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+              <span className="relative flex h-3 w-3 shrink-0 mt-1 sm:mt-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-sm"></span>
               </span>
-              <div>
-                <h3 className="text-xs sm:text-sm font-black text-white m-0 flex items-center gap-1.5 uppercase tracking-wider">
-                  <span>Al Tavolo Live</span>
-                  <span className="text-emerald-400 font-mono text-[11px] normal-case font-bold">
-                    ({displayTablePlayers.length} {displayTablePlayers.length === 1 ? 'giocatore collegato' : 'giocatori collegati'})
-                  </span>
-                </h3>
-                <p className="text-[10px] sm:text-[11px] text-emerald-300/80 m-0">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-xs sm:text-sm font-black text-white m-0 flex items-center gap-1.5 uppercase tracking-wider">
+                    <span>Tavolo Live:</span>
+                    <span className="text-amber-300 normal-case font-bold">
+                      {activeGame.team1?.name || 'Squadra 1'} vs {activeGame.team2?.name || 'Squadra 2'}
+                      {isTrio && activeGame.team3?.name ? ` vs ${activeGame.team3.name}` : ''}
+                    </span>
+                  </h3>
+                  {isCloudJoined && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                      Collegato
+                    </span>
+                  )}
+                  {displayTablePlayers.length > 0 && (
+                    <span className="text-emerald-400 font-mono text-[11px] font-bold">
+                      ({displayTablePlayers.length} {displayTablePlayers.length === 1 ? 'collegato' : 'collegati'})
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-emerald-300/80 m-0 mt-0.5">
                   {displayTablePlayers.length > 1
-                    ? 'Puoi chiedere l\'amicizia al volo ai compagni con cui stai giocando!'
-                    : 'Invita i tuoi amici al tavolo condividendo il link del gioco'}
+                    ? "Puoi chiedere l'amicizia al volo ai compagni con cui stai giocando!"
+                    : "Invita i tuoi amici al tavolo condividendo il codice partita!"}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs self-start sm:self-auto shrink-0">
-              <span className="text-[11px] text-emerald-300/70 font-medium">Tavolo:</span>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-950 text-amber-300 font-mono font-bold text-xs border border-emerald-700/60">
-                {activeGame.id}
-              </span>
+            <div className="flex flex-wrap items-center gap-2 text-xs self-start sm:self-auto shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-emerald-300/70 font-medium">Tavolo:</span>
+                <span className="px-2 py-0.5 rounded-md bg-emerald-950 text-amber-300 font-mono font-bold text-xs border border-emerald-700/60">
+                  {activeGame.id}
+                </span>
+              </div>
               {_onShareGame && (
                 <button
                   type="button"
@@ -335,6 +353,17 @@ export default function ScoreBoard({
                 >
                   <UserPlus className="w-3.5 h-3.5 text-emerald-950" />
                   <span>Invita Amici</span>
+                </button>
+              )}
+              {isCloudJoined && onLeaveCloudTable && (
+                <button
+                  type="button"
+                  onClick={onLeaveCloudTable}
+                  className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-[11px] hover:text-white active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  title="Esci dal tavolo sincronizzato online"
+                >
+                  <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Scollegati</span>
                 </button>
               )}
             </div>

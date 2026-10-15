@@ -1116,54 +1116,6 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
           </div>
         )}
 
-        {/* Banner Stato Tavolo Sincronizzato Cloud */}
-        {activeGame && (
-          <div className="mb-2.5 px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-950/80 backdrop-blur-md border border-emerald-700/40 flex items-center justify-between text-xs text-emerald-200 shadow-md">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="truncate text-xs">
-                <strong className="text-emerald-100 font-bold">Tavolo Cloud:</strong>{' '}
-                <span className="text-amber-300 font-bold">{activeGame.team1?.name}</span>{' '}
-                <span className="text-emerald-400/80 font-normal">vs</span>{' '}
-                <span className="text-blue-300 font-bold">{activeGame.team2?.name}</span>
-                {activeGame.mode === 'trio' && (
-                  <>
-                    {' '}<span className="text-emerald-400/80 font-normal">vs</span>{' '}
-                    <span className="text-rose-300 font-bold">{activeGame.team3?.name || 'Giocatore 3'}</span>
-                  </>
-                )}
-              </span>
-              {isCloudJoined && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/40 shrink-0">
-                  Collegato
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={() => setIsCloudModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg bg-emerald-800/80 hover:bg-emerald-700 text-amber-300 font-bold text-[11px] border border-amber-500/35 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm"
-                title="Condividi o vedi dettagli del tavolo"
-              >
-                <Cloud className="w-3.5 h-3.5" />
-                <span>Invita al Tavolo</span>
-              </button>
-              {isCloudJoined && (
-                <button
-                  onClick={handleLeaveCloudTable}
-                  className="px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-semibold text-[11px] border border-rose-800/50 cursor-pointer transition-colors active:scale-95"
-                  title="Scollegati da questo tavolo condiviso"
-                >
-                  Scollegati
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         {activeGame ? (
           <ScoreBoard
             activeGame={activeGame}
@@ -1171,6 +1123,8 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
             currentUser={currentUser}
             tablePlayers={tablePlayers}
             friendsList={friendsList}
+            isCloudJoined={isCloudJoined}
+            onLeaveCloudTable={handleLeaveCloudTable}
             onSendFriendRequest={handleSendFriendRequest}
             onOpenLogin={handleLogin}
             onAddRound={() => {
