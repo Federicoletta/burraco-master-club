@@ -202,7 +202,7 @@ export default function PlayersStatsModal({
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-white m-0">
-                {mainCategory === 'stats' ? 'Statistiche & Classifica' : 'Rubrica & Giocatori'}
+                Statistiche & Rubrica
               </h2>
               <p className="text-xs text-emerald-300/80 m-0">
                 {mainCategory === 'stats'

@@ -284,7 +284,7 @@ export default function Header({
                     </div>
                   </button>
 
-                  {/* Partecipanti & Rubrica Club */}
+                  {/* Statistiche & Rubrica */}
                   <button
                     onClick={() => {
                       setIsMenuOpen(false);
@@ -294,8 +294,8 @@ export default function Header({
                   >
                     <Users className="w-4 h-4 text-amber-400 shrink-0" />
                     <div>
-                      <div className="text-white font-bold">Rubrica & Partecipanti</div>
-                      <div className="text-[10px] text-emerald-300/70 font-normal">Statistiche, trofei e membri</div>
+                      <div className="text-white font-bold">Statistiche & Rubrica</div>
+                      <div className="text-[10px] text-emerald-300/70 font-normal">Classifiche, trofei, amici e ospiti</div>
                     </div>
                   </button>
 
