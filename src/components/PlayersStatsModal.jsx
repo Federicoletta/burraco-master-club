@@ -38,6 +38,7 @@ export default function PlayersStatsModal({
   onChallengeFriend
 }) {
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [mainCategory, setMainCategory] = useState('stats'); // 'stats' | 'contacts'
   const [activeTab, setActiveTab] = useState('ranking'); // 'ranking' | 'roster' | 'friends' | 'trend' | 'trophies'
   const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
   const [selectedPlayerForTrend, setSelectedPlayerForTrend] = useState(null);
@@ -154,11 +155,13 @@ export default function PlayersStatsModal({
 
   const handleViewTrend = (playerName) => {
     setSelectedPlayerForTrend(playerName);
+    setMainCategory('stats');
     setActiveTab('trend');
   };
 
   const handleViewTrophies = (playerName) => {
     setSelectedPlayerForTrophies(playerName);
+    setMainCategory('stats');
     setActiveTab('trophies');
   };
 
@@ -191,11 +194,21 @@ export default function PlayersStatsModal({
         <div className="flex items-center justify-between pb-3 border-b border-emerald-700/50">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md shrink-0">
-              <Trophy className="w-5 h-5 text-emerald-950" />
+              {mainCategory === 'stats' ? (
+                <Trophy className="w-5 h-5 text-emerald-950" />
+              ) : (
+                <Users className="w-5 h-5 text-emerald-950" />
+              )}
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white m-0">Statistiche & Classifica</h2>
-              <p className="text-xs text-emerald-300/80 m-0">Leaderboard unificata, trend andamento e bacheca trofei</p>
+              <h2 className="text-lg sm:text-xl font-bold text-white m-0">
+                {mainCategory === 'stats' ? 'Statistiche & Classifica' : 'Rubrica & Giocatori'}
+              </h2>
+              <p className="text-xs text-emerald-300/80 m-0">
+                {mainCategory === 'stats'
+                  ? 'Leaderboard unificata, trend andamento e bacheca trofei'
+                  : 'Amici online registrati con Google e rubrica ospiti locali'}
+              </p>
             </div>
           </div>
           <button 
@@ -206,77 +219,134 @@ export default function PlayersStatsModal({
           </button>
         </div>
 
-        {/* Barra di Navigazione a 4 Tab (Classifica, Rubrica Membri, Andamento, Trofei) */}
-        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-xl bg-emerald-950/80 border border-emerald-800/60">
+        {/* 2 Macro-Aree Principali (Opzione 2) */}
+        <div className="mt-3 grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-emerald-950/90 border border-emerald-800/80 shadow-inner">
           <button
             type="button"
-            onClick={() => setActiveTab('ranking')}
-            className={`min-h-[38px] py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation select-none ${
-              activeTab === 'ranking'
+            onClick={() => {
+              setMainCategory('stats');
+              if (!['ranking', 'trend', 'trophies'].includes(activeTab)) {
+                setActiveTab('ranking');
+              }
+            }}
+            className={`min-h-[40px] py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98] select-none ${
+              mainCategory === 'stats'
                 ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                : 'text-emerald-300 hover:text-white'
+                : 'text-emerald-300 hover:text-white hover:bg-emerald-900/50'
             }`}
           >
-            <Trophy className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Classifica</span>
+            <Trophy className="w-4 h-4 shrink-0" />
+            <span>Statistiche</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab('roster')}
-            className={`min-h-[38px] py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation select-none ${
-              activeTab === 'roster'
+            onClick={() => {
+              setMainCategory('contacts');
+              if (!['friends', 'roster'].includes(activeTab)) {
+                setActiveTab('friends');
+              }
+            }}
+            className={`min-h-[40px] py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98] select-none ${
+              mainCategory === 'contacts'
                 ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                : 'text-emerald-300 hover:text-white'
+                : 'text-emerald-300 hover:text-white hover:bg-emerald-900/50'
             }`}
           >
-            <BookUser className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Rubrica Ospiti</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('friends')}
-            className={`min-h-[38px] py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation select-none ${
-              activeTab === 'friends'
-                ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                : 'text-emerald-300 hover:text-white'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Amici Online ⭐</span>
+            <Users className="w-4 h-4 shrink-0" />
+            <span>Rubrica & Amici</span>
             {friendsList.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-emerald-900 text-amber-300 text-[10px] font-black">
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                mainCategory === 'contacts' ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-800 text-emerald-200'
+              }`}>
                 {friendsList.length}
               </span>
             )}
           </button>
+        </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('trend')}
-            className={`min-h-[38px] py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation select-none ${
-              activeTab === 'trend'
-                ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                : 'text-emerald-300 hover:text-white'
-            }`}
-          >
-            <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Andamento</span>
-          </button>
+        {/* Sotto-Navigazione Segmentata */}
+        <div className="mt-2 flex items-center justify-center gap-1.5 p-1 rounded-xl bg-emerald-900/35 border border-emerald-800/50">
+          {mainCategory === 'stats' ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setActiveTab('ranking')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
+                  activeTab === 'ranking'
+                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
+                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
+                }`}
+              >
+                <Trophy className="w-3.5 h-3.5 shrink-0" />
+                <span>Classifica</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('trophies')}
-            className={`min-h-[38px] py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation select-none ${
-              activeTab === 'trophies'
-                ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                : 'text-emerald-300 hover:text-white'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Trofei</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('trend')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
+                  activeTab === 'trend'
+                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
+                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+                <span>Andamento</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('trophies')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
+                  activeTab === 'trophies'
+                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
+                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
+                }`}
+              >
+                <Award className="w-3.5 h-3.5 shrink-0" />
+                <span>Bacheca Trofei</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setActiveTab('friends')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
+                  activeTab === 'friends'
+                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
+                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 shrink-0" />
+                <span>Amici Online ⭐</span>
+                {friendsList.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-950 text-amber-300 text-[10px] font-black">
+                    {friendsList.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('roster')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none ${
+                  activeTab === 'roster'
+                    ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700/60'
+                    : 'text-emerald-300/70 hover:text-emerald-100 hover:bg-emerald-800/30'
+                }`}
+              >
+                <BookUser className="w-3.5 h-3.5 shrink-0" />
+                <span>Rubrica Ospiti</span>
+                {playersList.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-300 text-[10px] font-bold">
+                    {playersList.length}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
         </div>
 
         {/* CONTENUTO PRINCIPALE */}
@@ -813,7 +883,9 @@ export default function PlayersStatsModal({
         {/* Footer Modale Pulito e Discreto */}
         <div className="mt-3 pt-2.5 border-t border-emerald-700/50 flex items-center justify-between text-xs">
           <span className="text-emerald-400/80 text-[11px]">
-            {stats.length} giocatori registrati
+            {mainCategory === 'stats'
+              ? `${stats.length} giocatori con statistiche`
+              : `${friendsList.length} amici registrati • ${playersList.length} ospiti`}
           </span>
           <button
             type="button"
