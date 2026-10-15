@@ -182,7 +182,31 @@ export function subscribeToMyNotifications(currentUser, onNotificationsChange) {
 }
 
 /**
- * Ascolta in tempo reale la lista degli amici confermati per l'utente
+ * Calcola lo stato online di un utente in base a lastSeen
+ */
+export function getFriendOnlineStatus(lastSeen) {
+  if (!lastSeen) return { isOnline: false, label: 'Offline', color: 'slate' };
+  try {
+    const diffMs = Date.now() - new Date(lastSeen).getTime();
+    const diffMins = Math.floor(diffMs / (60 * 1000));
+
+    if (diffMins < 3) {
+      return { isOnline: true, label: 'Online adesso', color: 'emerald' };
+    } else if (diffMins < 60) {
+      return { isOnline: false, label: `Attivo ${diffMins} min fa`, color: 'amber' };
+    } else if (diffMins < 1440) {
+      const hours = Math.floor(diffMins / 60);
+      return { isOnline: false, label: `Attivo ${hours}h fa`, color: 'slate' };
+    } else {
+      return { isOnline: false, label: 'Offline', color: 'slate' };
+    }
+  } catch {
+    return { isOnline: false, label: 'Offline', color: 'slate' };
+  }
+}
+
+/**
+ * Ascolta in tempo reale la lista degli amici confermati per l'utente, arricchita con lo stato di presenza live
  */
 export function subscribeToMyFriends(currentUser, onFriendsChange) {
   if (!db || !currentUser?.uid) return () => {};
@@ -194,19 +218,70 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
     where('status', '==', 'accepted')
   );
 
-  return onSnapshot(q, (snapshot) => {
-    const friends = [];
-    snapshot.docs.forEach(doc => {
-      const data = doc.data();
-      // Estrai l'altro amico (non me stesso)
+  const userUnsubs = {};
+  let friendsBase = [];
+  const userProfiles = {};
+
+  const notify = () => {
+    const enriched = friendsBase.map(f => {
+      const live = f?.uid ? userProfiles[f.uid] : null;
+      return {
+        ...f,
+        ...(live || {})
+      };
+    });
+    onFriendsChange(enriched);
+  };
+
+  const unsubFriends = onSnapshot(q, (snapshot) => {
+    friendsBase = [];
+    const activeUids = new Set();
+
+    snapshot.docs.forEach(docSnap => {
+      const data = docSnap.data();
+      let other = null;
       if (data.user1?.uid === currentUser.uid) {
-        friends.push(data.user2);
+        other = data.user2;
       } else if (data.user2?.uid === currentUser.uid) {
-        friends.push(data.user1);
+        other = data.user1;
+      }
+      if (other) {
+        friendsBase.push(other);
+        if (other.uid) activeUids.add(other.uid);
       }
     });
-    onFriendsChange(friends);
+
+    // Rimuovi listener per amici non più presenti
+    Object.keys(userUnsubs).forEach(uid => {
+      if (!activeUids.has(uid)) {
+        userUnsubs[uid]();
+        delete userUnsubs[uid];
+        delete userProfiles[uid];
+      }
+    });
+
+    // Iscriviti ai profili live per lastSeen e avatar in tempo reale
+    activeUids.forEach(uid => {
+      if (!userUnsubs[uid]) {
+        const uRef = doc(db, 'burraco_users', uid);
+        userUnsubs[uid] = onSnapshot(uRef, (uSnap) => {
+          if (uSnap.exists()) {
+            userProfiles[uid] = uSnap.data();
+            notify();
+          }
+        }, (err) => {
+          console.warn('Avviso ascolto presenza amico:', err.message);
+        });
+      }
+    });
+
+    notify();
   }, (err) => {
     console.warn('Avviso: ascolto amici confermati:', err.message);
   });
+
+  return () => {
+    unsubFriends();
+    Object.values(userUnsubs).forEach(unsub => unsub());
+  };
 }

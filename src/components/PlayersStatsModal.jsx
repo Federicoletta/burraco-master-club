@@ -3,6 +3,7 @@ import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull, BookUser, Edit2,
 import { calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 import { sound } from '../utils/soundEffects';
+import { getFriendOnlineStatus } from '../services/social';
 import StatsCharts from './StatsCharts';
 import TrophiesShowcase from './TrophiesShowcase';
 
@@ -33,7 +34,8 @@ export default function PlayersStatsModal({
   currentUser,
   friendsList = [],
   onSendFriendRequest,
-  onOpenLogin
+  onOpenLogin,
+  onChallengeFriend
 }) {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [activeTab, setActiveTab] = useState('ranking'); // 'ranking' | 'roster' | 'friends' | 'trend' | 'trophies'
@@ -710,32 +712,74 @@ export default function PlayersStatsModal({
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {friendsList.map((f, i) => (
-                          <div 
-                            key={f.uid || f.email || i}
-                            className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-600/40 flex items-center gap-3 shadow-sm hover:border-amber-400/50 transition-all"
-                          >
-                            {f.photoURL ? (
-                              <img 
-                                src={f.photoURL} 
-                                alt="" 
-                                className="w-10 h-10 rounded-full border border-amber-400 shrink-0 object-cover" 
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-amber-400 text-emerald-950 font-black text-sm flex items-center justify-center shrink-0">
-                                {(f.displayName || f.email || 'U').slice(0, 1).toUpperCase()}
+                        {friendsList.map((f, i) => {
+                          const presence = getFriendOnlineStatus(f.lastSeen);
+                          return (
+                            <div 
+                              key={f.uid || f.email || i}
+                              className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-600/40 flex items-center justify-between gap-3 shadow-sm hover:border-amber-400/50 transition-all"
+                            >
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="relative shrink-0">
+                                  {f.photoURL ? (
+                                    <img 
+                                      src={f.photoURL} 
+                                      alt="" 
+                                      className="w-10 h-10 rounded-full border border-amber-400 shrink-0 object-cover" 
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-amber-400 text-emerald-950 font-black text-sm flex items-center justify-center shrink-0">
+                                      {(f.displayName || f.email || 'U').slice(0, 1).toUpperCase()}
+                                    </div>
+                                  )}
+                                  {/* Pallino stato presenza */}
+                                  <span 
+                                    className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-emerald-950 ${
+                                      presence.isOnline 
+                                        ? 'bg-emerald-400 animate-pulse' 
+                                        : presence.color === 'amber' 
+                                        ? 'bg-amber-400' 
+                                        : 'bg-slate-500'
+                                    }`} 
+                                    title={presence.label} 
+                                  />
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs font-bold text-white truncate">{f.displayName || 'Amico'}</span>
+                                    <span className="text-[10px] text-amber-400" title="Amico Ufficiale">⭐</span>
+                                  </div>
+                                  <div className="text-[10px] text-emerald-300/70 truncate">{f.email}</div>
+                                  
+                                  {/* Etichetta presenza */}
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className={`w-1.5 h-1.5 rounded-full ${
+                                      presence.isOnline ? 'bg-emerald-400' : presence.color === 'amber' ? 'bg-amber-400' : 'bg-slate-500'
+                                    }`} />
+                                    <span className={`text-[10px] ${
+                                      presence.isOnline ? 'text-emerald-300 font-bold' : presence.color === 'amber' ? 'text-amber-300/80 font-medium' : 'text-slate-400'
+                                    }`}>
+                                      {presence.label}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1">
-                                <span className="text-xs font-bold text-white truncate">{f.displayName || 'Amico'}</span>
-                                <span className="text-[10px] text-amber-400" title="Amico Ufficiale">⭐</span>
-                              </div>
-                              <div className="text-[10px] text-emerald-300/70 truncate">{f.email}</div>
-                              <div className="text-[9px] text-amber-300/90 font-semibold mt-0.5">Account Collegato</div>
+
+                              {/* Pulsante Sfida Rapida al Tavolo */}
+                              {onChallengeFriend && (
+                                <button
+                                  onClick={() => onChallengeFriend(f)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-1 shadow-md transition active:scale-95 cursor-pointer shrink-0"
+                                  title={`Sfida ${f.displayName || f.email} al tavolo da gioco`}
+                                >
+                                  <span>🎯</span>
+                                  <span>Sfida</span>
+                                </button>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>

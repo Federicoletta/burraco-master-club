@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import ScoreBoard from './components/ScoreBoard';
 import NewGameModal from './components/NewGameModal';
@@ -12,6 +12,8 @@ import EditTeamsModal from './components/EditTeamsModal';
 import TournamentModal from './components/TournamentModal';
 import UserProfileModal from './components/UserProfileModal';
 import NotificationsModal from './components/NotificationsModal';
+import NotificationToast from './components/NotificationToast';
+import { sound } from './utils/soundEffects';
 import { 
   sendFriendRequest,
   respondToFriendRequest,
@@ -73,6 +75,9 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const [friendsList, setFriendsList] = useState([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [toastNotification, setToastNotification] = useState(null);
+  const [newGameInitialSetup, setNewGameInitialSetup] = useState(null);
+  const prevNotifIdsRef = useRef([]);
 
   // Modals state
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
@@ -219,14 +224,27 @@ export default function App() {
     };
   }, [currentUser]);
 
-  // 2c. Ascolto in tempo reale Notifiche Pendenti e Amici Confermati
+  // 2c. Ascolto in tempo reale Notifiche Pendenti e Amici Confermati con Suono e Toast
   useEffect(() => {
     if (!currentUser) {
       setNotifications([]);
       setFriendsList([]);
+      setToastNotification(null);
+      prevNotifIdsRef.current = [];
       return;
     }
     const unsubNotifs = subscribeToMyNotifications(currentUser, (notifs) => {
+      if (Array.isArray(notifs)) {
+        // Controlla se c'è una notifica nuova appena arrivata
+        const newPendings = notifs.filter(
+          n => !prevNotifIdsRef.current.includes(n.id) && n.status === 'pending'
+        );
+        if (newPendings.length > 0) {
+          sound.playNotification();
+          setToastNotification(newPendings[0]);
+        }
+        prevNotifIdsRef.current = notifs.map(n => n.id);
+      }
       setNotifications(notifs);
     });
     const unsubFriends = subscribeToMyFriends(currentUser, (friends) => {
@@ -736,6 +754,25 @@ export default function App() {
       }
     }
     setIsVictoryOpen(false);
+    handleOpenNewGame();
+  };
+
+  const handleOpenNewGame = () => {
+    setNewGameInitialSetup(null);
+    setIsNewGameOpen(true);
+  };
+
+  const handleChallengeFriend = (friend) => {
+    setIsPlayersOpen(false);
+    const myName = currentUser?.displayName || 'Io';
+    const friendName = friend.displayName || friend.email || 'Amico';
+    setNewGameInitialSetup({
+      mode: 'pairs',
+      p1A: myName,
+      p2A: friendName,
+      team1Name: `Coppia ${myName}`,
+      team2Name: `Coppia ${friendName}`
+    });
     setIsNewGameOpen(true);
   };
 
@@ -959,7 +996,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       
       {/* Barra Superiore */}
       <Header
-        onNewGame={() => setIsNewGameOpen(true)}
+        onNewGame={handleOpenNewGame}
         onOpenPlayers={() => setIsPlayersOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenCloud={() => setIsCloudModalOpen(true)}
@@ -973,6 +1010,28 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onLogin={handleLogin}
         notificationCount={notifications.length}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
+      />
+
+      {/* Toast Notifiche in tempo reale */}
+      <NotificationToast
+        notification={toastNotification}
+        onAccept={(notif) => {
+          if (notif.type === 'game_invite') {
+            handleRespondGameInvite(notif, true);
+          } else {
+            handleRespondFriendRequest(notif, true);
+          }
+          setToastNotification(null);
+        }}
+        onDecline={(notif) => {
+          if (notif.type === 'game_invite') {
+            handleRespondGameInvite(notif, false);
+          } else {
+            handleRespondFriendRequest(notif, false);
+          }
+          setToastNotification(null);
+        }}
+        onClose={() => setToastNotification(null)}
       />
 
       {/* Contenuto Principale */}
@@ -1087,7 +1146,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
               Tieni traccia dei punteggi per coppia o singolo, calcola automaticamente carte, burrachi e pozzetti, e consulta le statistiche di ogni partecipante.
             </p>
             <button
-              onClick={() => setIsNewGameOpen(true)}
+              onClick={handleOpenNewGame}
               className="mt-2 w-full py-3.5 rounded-2xl gold-gradient text-emerald-950 font-black text-sm shadow-xl hover:brightness-110 active:scale-95 cursor-pointer"
             >
               Inizia la Prima Partita
@@ -1101,11 +1160,15 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       {/* 1. Modal Nuova Partita */}
       <NewGameModal
         isOpen={isNewGameOpen}
-        onClose={() => setIsNewGameOpen(false)}
+        onClose={() => {
+          setIsNewGameOpen(false);
+          setNewGameInitialSetup(null);
+        }}
         onStartGame={handleStartGame}
         availablePlayers={playersList}
         friendsList={friendsList}
         hasActiveGame={Boolean(activeGame && activeGame.rounds && activeGame.rounds.length > 0)}
+        initialSetup={newGameInitialSetup}
       />
 
       {/* 2. Modal Calcolatore Mano */}
@@ -1135,6 +1198,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         friendsList={friendsList}
         onSendFriendRequest={handleSendFriendRequest}
         onOpenLogin={handleLogin}
+        onChallengeFriend={handleChallengeFriend}
       />
 
       {/* 4. Modal Storico Partite */}

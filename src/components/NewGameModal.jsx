@@ -9,7 +9,8 @@ export default function NewGameModal({
   onStartGame, 
   availablePlayers = [],
   friendsList = [],
-  hasActiveGame
+  hasActiveGame,
+  initialSetup = null
 }) {
   const [mode, setMode] = useState('pairs'); // 'pairs' (2v2) | 'singles' (1v1) | 'trio' (A 3)
   const [team1Name, setTeam1Name] = useState('');
@@ -26,20 +27,34 @@ export default function NewGameModal({
   const [customTarget, setCustomTarget] = useState('');
   const [allowSemipulito, setAllowSemipulito] = useState(true);
 
-  // Resetta i campi ogni volta che si apre il modale
+  // Inizializza o resetta i campi ogni volta che si apre il modale
   useEffect(() => {
     if (isOpen) {
-      setTeam1Name('');
-      setTeam2Name('');
-      setP1A('');
-      setP1B('');
-      setP2A('');
-      setP2B('');
-      setP3A('');
-      setTargetScore(2505);
-      setCustomTarget('');
+      if (initialSetup) {
+        setMode(initialSetup.mode || 'pairs');
+        setTeam1Name(initialSetup.team1Name || '');
+        setTeam2Name(initialSetup.team2Name || '');
+        setP1A(initialSetup.p1A || '');
+        setP1B(initialSetup.p1B || '');
+        setP2A(initialSetup.p2A || '');
+        setP2B(initialSetup.p2B || '');
+        setP3A(initialSetup.p3A || '');
+        setTargetScore(initialSetup.targetScore || 2505);
+        setCustomTarget('');
+      } else {
+        setMode('pairs');
+        setTeam1Name('');
+        setTeam2Name('');
+        setP1A('');
+        setP1B('');
+        setP2A('');
+        setP2B('');
+        setP3A('');
+        setTargetScore(2505);
+        setCustomTarget('');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialSetup]);
 
   if (!isOpen) return null;
   if (typeof document === 'undefined') return null;

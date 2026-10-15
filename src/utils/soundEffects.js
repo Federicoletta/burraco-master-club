@@ -277,6 +277,41 @@ class SoundManager {
       // Ignora silente
     }
   }
+
+  // Chime melodico cristallino per notifica in arrivo (invito partita o richiesta amicizia)
+  playNotification() {
+    if (!this.enabled || this.volume <= 0) return;
+    try {
+      this.initContext();
+      if (!this.ctx || !this.masterGain) return;
+
+      const now = this.ctx.currentTime;
+      // Due note armoniche scintillanti: Mi 5 (659.25 Hz) -> Sol# 5 (830.61 Hz)
+      const notes = [
+        { freq: 659.25, time: 0.0, dur: 0.28 },
+        { freq: 830.61, time: 0.1, dur: 0.45 },
+      ];
+
+      notes.forEach(n => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(n.freq, now + n.time);
+
+        gain.gain.setValueAtTime(0.55, now + n.time);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + n.time + n.dur);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(now + n.time);
+        osc.stop(now + n.time + n.dur);
+      });
+    } catch {
+      // Ignora silente
+    }
+  }
 }
 
 export const sound = new SoundManager();
