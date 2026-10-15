@@ -43,7 +43,10 @@ import {
   subscribeToCloudTournament,
   loginWithGoogle,
   logoutUser,
-  subscribeToAuth
+  subscribeToAuth,
+  syncUserGuestsToCloud,
+  subscribeToUserGuests,
+  cleanupLegacyCloudDatabase
 } from './services/firebase';
 import {
   getActiveTournament,
@@ -161,53 +164,60 @@ export default function App() {
     }
   }, []);
 
-  // 2. Ascolto in tempo reale Partecipanti e Storico da Firestore
-  useEffect(() => {
-    // Sincronizzazione automatica lista partecipanti
-    const unsubPlayers = subscribeToCloudPlayers((cloudPlayers) => {
-      if (cloudPlayers && cloudPlayers.length > 0) {
-        const merged = setStoredPlayers(cloudPlayers);
-        setPlayersList(merged || cloudPlayers);
-      } else {
-        // Se il cloud non ha ancora giocatori, invia i partecipanti locali
-        const local = getStoredPlayers();
-        if (local && local.length > 0) {
-          syncPlayersToCloud(local);
-        }
-      }
-    });
-
-    // Sincronizzazione automatica storico partite archiviate
-    const unsubHistory = subscribeToCloudGamesHistory((cloudHistory) => {
-      if (Array.isArray(cloudHistory)) {
-        setGamesHistory(cloudHistory);
-        localStorage.setItem('burraco_history_v1', JSON.stringify(cloudHistory));
-      }
-    });
-
-    return () => {
-      unsubPlayers();
-      unsubHistory();
-    };
-  }, []);
-
-  // 2b. Ascolto in tempo reale stato autenticazione Google
+  // 2. Ascolto in tempo reale stato autenticazione Google
   useEffect(() => {
     const unsubAuth = subscribeToAuth((user) => {
       setCurrentUser(user);
-      if (user?.displayName) {
-        // Se l'utente ha effettuato l'accesso e non è ancora nella rubrica locale, aggiungilo
-        const currentStored = getStoredPlayers();
-        if (!currentStored.includes(user.displayName)) {
-          savePlayerName(user.displayName);
-          const updated = getStoredPlayers();
-          setPlayersList(updated);
-          syncPlayersToCloud(updated);
-        }
-      }
     });
     return () => unsubAuth();
   }, []);
+
+  // 2b. Isolamento dati per account (Storico e Rubrica Ospiti)
+  useEffect(() => {
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    setPlayersList(getStoredPlayers(userKey));
+    setGamesHistory(getGamesHistory(userKey));
+
+    // Pulizia cloud automatica una-tantum dei vecchi dati legacy senza proprietario
+    if (currentUser) {
+      if (localStorage.getItem('burraco_legacy_cleaned_v2') !== 'done') {
+        cleanupLegacyCloudDatabase().then((ok) => {
+          if (ok) {
+            localStorage.setItem('burraco_legacy_cleaned_v2', 'done');
+            setGamesHistory([]);
+            setPlayersList([]);
+          }
+        });
+      }
+    }
+
+    // 1. Ascolto real-time storico partite isolato per l'utente loggato
+    const unsubHistory = subscribeToCloudGamesHistory(currentUser, (cloudHistory) => {
+      if (Array.isArray(cloudHistory)) {
+        setGamesHistory(cloudHistory);
+        localStorage.setItem(currentUser ? `burraco_history_${currentUser.uid}` : 'burraco_history_guest', JSON.stringify(cloudHistory));
+      }
+    });
+
+    // 2. Ascolto real-time rubrica ospiti isolata per l'account
+    let unsubGuests = () => {};
+    if (currentUser) {
+      unsubGuests = subscribeToUserGuests(currentUser.uid, (cloudGuests) => {
+        const merged = setStoredPlayers(cloudGuests, currentUser.uid);
+        setPlayersList(merged || cloudGuests);
+      });
+    } else {
+      unsubGuests = subscribeToCloudPlayers((cloudPlayers) => {
+        const merged = setStoredPlayers(cloudPlayers, 'guest');
+        setPlayersList(merged || cloudPlayers);
+      });
+    }
+
+    return () => {
+      unsubHistory();
+      unsubGuests();
+    };
+  }, [currentUser]);
 
   // 2c. Ascolto in tempo reale Notifiche Pendenti e Amici Confermati
   useEffect(() => {
@@ -307,13 +317,18 @@ export default function App() {
     setActiveTournament(newTournament);
     saveActiveTournament(newTournament);
     syncTournamentToCloud(newTournament);
-    // Salva automaticamente tutti i giocatori del torneo in rubrica
+    // Salva automaticamente tutti i giocatori del torneo in rubrica isolata
     const allTournPlayers = (newTournament.teams || []).flatMap(t => t.players || []).filter(Boolean);
     if (allTournPlayers.length > 0) {
-      allTournPlayers.forEach(p => savePlayerName(p));
-      const updated = getStoredPlayers();
+      const userKey = currentUser ? currentUser.uid : 'guest';
+      allTournPlayers.forEach(p => savePlayerName(p, userKey));
+      const updated = getStoredPlayers(userKey);
       setPlayersList(updated);
-      syncPlayersToCloud(updated);
+      if (currentUser) {
+        syncUserGuestsToCloud(currentUser.uid, updated);
+      } else {
+        syncPlayersToCloud(updated);
+      }
     }
   };
 
@@ -403,11 +418,12 @@ export default function App() {
 
   // Avvio nuova partita
   const handleStartGame = (newGame) => {
+    const userKey = currentUser ? currentUser.uid : 'guest';
     if (activeGame && activeGame.rounds && activeGame.rounds.length > 0) {
-      const updatedHistory = archiveCurrentGame(activeGame);
+      const updatedHistory = archiveCurrentGame(activeGame, userKey);
       setGamesHistory(updatedHistory);
       if (updatedHistory && updatedHistory[0]) {
-        syncGameToCloud(updatedHistory[0]);
+        syncGameToCloud(updatedHistory[0], currentUser);
       }
     }
 
@@ -418,14 +434,44 @@ export default function App() {
       ...(newGame.team3?.players || [])
     ].map(p => typeof p === 'string' ? p.trim() : '').filter(Boolean);
 
-    allPlayers.forEach(p => savePlayerName(p));
-    const updatedPlayers = getStoredPlayers();
+    allPlayers.forEach(p => savePlayerName(p, userKey));
+    const updatedPlayers = getStoredPlayers(userKey);
     setPlayersList(updatedPlayers);
-    syncPlayersToCloud(updatedPlayers);
+    if (currentUser) {
+      syncUserGuestsToCloud(currentUser.uid, updatedPlayers);
+    } else {
+      syncPlayersToCloud(updatedPlayers);
+    }
 
-    setActiveGame(newGame);
-    saveActiveGame(newGame);
-    syncGameToCloud(newGame);
+    // Costruisci l'elenco dei partecipanti Google registrati
+    const registeredPlayerUids = currentUser ? [currentUser.uid] : [];
+    const registeredPlayerEmails = currentUser?.email ? [currentUser.email] : [];
+
+    if (currentUser && friendsList.length > 0) {
+      friendsList.forEach(friend => {
+        const friendName = friend.displayName || friend.email;
+        const isInGame = allPlayers.some(
+          p => p.toLowerCase() === friendName.toLowerCase() || p.toLowerCase() === (friend.email || '').toLowerCase()
+        );
+        if (isInGame) {
+          if (friend.uid && !registeredPlayerUids.includes(friend.uid)) registeredPlayerUids.push(friend.uid);
+          if (friend.email && !registeredPlayerEmails.includes(friend.email)) registeredPlayerEmails.push(friend.email);
+        }
+      });
+    }
+
+    const gameWithOwnership = {
+      ...newGame,
+      ownerUid: currentUser ? currentUser.uid : null,
+      ownerEmail: currentUser?.email || null,
+      ownerName: currentUser?.displayName || null,
+      playerUids: registeredPlayerUids,
+      playerEmails: registeredPlayerEmails
+    };
+
+    setActiveGame(gameWithOwnership);
+    saveActiveGame(gameWithOwnership);
+    syncGameToCloud(gameWithOwnership, currentUser);
 
     // Se l'utente è loggato e ci sono amici registrati in questa partita, invia loro un invito automatico!
     if (currentUser && friendsList.length > 0) {
@@ -441,7 +487,7 @@ export default function App() {
             ? newGame.team2?.name
             : newGame.team3?.name || 'In Partita';
 
-          sendGameInvite(currentUser, friend, newGame, teamName).catch(err => {
+          sendGameInvite(currentUser, friend, gameWithOwnership, teamName).catch(err => {
             console.warn('Avviso invio notifica partita:', err);
           });
         }
@@ -557,17 +603,22 @@ export default function App() {
   const handleUpdateTeams = (updatedTeam1, updatedTeam2, updatedTeam3) => {
     if (!activeGame) return;
 
-    // Aggiungi eventuali nuovi partecipanti alla rubrica
+    // Aggiungi eventuali nuovi partecipanti alla rubrica isolata
     const allPlayers = [
       ...(updatedTeam1.players || []),
       ...(updatedTeam2.players || []),
       ...(updatedTeam3?.players || [])
     ].filter(Boolean);
 
-    allPlayers.forEach(p => savePlayerName(p));
-    const updatedPlayers = getStoredPlayers();
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    allPlayers.forEach(p => savePlayerName(p, userKey));
+    const updatedPlayers = getStoredPlayers(userKey);
     setPlayersList(updatedPlayers);
-    syncPlayersToCloud(updatedPlayers);
+    if (currentUser) {
+      syncUserGuestsToCloud(currentUser.uid, updatedPlayers);
+    } else {
+      syncPlayersToCloud(updatedPlayers);
+    }
 
     const updatedGame = {
       ...activeGame,
@@ -578,7 +629,7 @@ export default function App() {
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
-    syncGameToCloud(updatedGame);
+    syncGameToCloud(updatedGame, currentUser);
   };
 
   // Conclude la partita e festeggia
@@ -632,7 +683,8 @@ export default function App() {
       handleUpdateTournament(tournUpdated);
     }
 
-    const updatedHistory = archiveCurrentGame(updatedGame);
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const updatedHistory = archiveCurrentGame(updatedGame, userKey);
     setGamesHistory(updatedHistory);
 
     setIsVictoryOpen(true);
@@ -641,10 +693,11 @@ export default function App() {
   // Rivincita con gli stessi giocatori
   const handleRematch = () => {
     if (!activeGame) return;
-    const updatedHistory = archiveCurrentGame(activeGame);
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const updatedHistory = archiveCurrentGame(activeGame, userKey);
     setGamesHistory(updatedHistory);
     if (updatedHistory && updatedHistory[0]) {
-      syncGameToCloud(updatedHistory[0]);
+      syncGameToCloud(updatedHistory[0], currentUser);
     }
 
     const rematchGame = {
@@ -659,54 +712,75 @@ export default function App() {
       rounds: [],
       winner: null,
       isFinished: false,
+      ownerUid: activeGame.ownerUid || (currentUser ? currentUser.uid : null),
+      ownerEmail: activeGame.ownerEmail || currentUser?.email || null,
+      ownerName: activeGame.ownerName || currentUser?.displayName || null,
+      playerUids: activeGame.playerUids || (currentUser ? [currentUser.uid] : []),
+      playerEmails: activeGame.playerEmails || (currentUser?.email ? [currentUser.email] : []),
     };
 
     setActiveGame(rematchGame);
     saveActiveGame(rematchGame);
-    syncGameToCloud(rematchGame);
+    syncGameToCloud(rematchGame, currentUser);
     setIsVictoryOpen(false);
   };
 
   // Archivia e apri modal per nuova partita
   const handleArchiveAndNew = () => {
     if (activeGame) {
-      const updatedHistory = archiveCurrentGame(activeGame);
+      const userKey = currentUser ? currentUser.uid : 'guest';
+      const updatedHistory = archiveCurrentGame(activeGame, userKey);
       setGamesHistory(updatedHistory);
       if (updatedHistory && updatedHistory[0]) {
-        syncGameToCloud(updatedHistory[0]);
+        syncGameToCloud(updatedHistory[0], currentUser);
       }
     }
     setIsVictoryOpen(false);
     setIsNewGameOpen(true);
   };
 
-  // Gestione giocatori (sincronizzata in tempo reale con Firestore)
+  // Gestione giocatori (sincronizzata in tempo reale con Firestore e isolata per account)
   const handleAddPlayer = (name) => {
-    savePlayerName(name);
-    const updated = getStoredPlayers();
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    savePlayerName(name, userKey);
+    const updated = getStoredPlayers(userKey);
     setPlayersList(updated);
-    syncPlayersToCloud(updated);
+    if (currentUser) {
+      syncUserGuestsToCloud(currentUser.uid, updated);
+    } else {
+      syncPlayersToCloud(updated);
+    }
   };
 
   const handleDeletePlayer = (name) => {
-    const updated = deletePlayerName(name);
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const updated = deletePlayerName(name, userKey);
     setPlayersList(updated);
-    syncPlayersToCloud(updated);
+    if (currentUser) {
+      syncUserGuestsToCloud(currentUser.uid, updated);
+    } else {
+      syncPlayersToCloud(updated);
+    }
   };
 
   const handleRenamePlayer = (oldName, newName) => {
-    const updated = renamePlayer(oldName, newName);
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const updated = renamePlayer(oldName, newName, userKey);
     setPlayersList(updated);
-    syncPlayersToCloud(updated);
+    if (currentUser) {
+      syncUserGuestsToCloud(currentUser.uid, updated);
+    } else {
+      syncPlayersToCloud(updated);
+    }
 
     // Ricarica la partita attiva aggiornata
     const currentActive = getActiveGame();
     if (currentActive) {
       setActiveGame(currentActive);
-      syncGameToCloud(currentActive);
+      syncGameToCloud(currentActive, currentUser);
     }
     // Ricarica lo storico aggiornato
-    const currentHistory = getGamesHistory();
+    const currentHistory = getGamesHistory(userKey);
     if (currentHistory) {
       setGamesHistory(currentHistory);
     }
@@ -740,13 +814,14 @@ export default function App() {
       };
       setActiveGame(newLocalGame);
       saveActiveGame(newLocalGame);
-      syncGameToCloud(newLocalGame);
+      syncGameToCloud(newLocalGame, currentUser);
     }
   };
 
-  // Gestione archivio (sincronizzato sia in locale che su Firestore)
+  // Gestione archivio (sincronizzato sia in locale che su Firestore per utente)
   const handleDeleteGameHistory = (gameId) => {
-    const updated = deleteGameFromHistory(gameId);
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const updated = deleteGameFromHistory(gameId, userKey);
     setGamesHistory(updated);
     deleteGameFromCloud(gameId);
   };

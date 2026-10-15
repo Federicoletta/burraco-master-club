@@ -12,9 +12,17 @@ const DEFAULT_PLAYERS = [];
 const MOCK_NAMES = ['Marco', 'Anna', 'Luca', 'Sofia'];
 const GENERIC_LABELS = ['coppia 1', 'coppia 2', 'giocatore 1', 'giocatore 2', 'squadra 1', 'squadra 2'];
 
-export function getStoredPlayers() {
+function getPlayersKey(userKey) {
+  return userKey ? `burraco_players_${userKey}` : STORAGE_KEYS.PLAYERS;
+}
+
+function getHistoryKey(userKey) {
+  return userKey ? `burraco_history_${userKey}` : STORAGE_KEYS.HISTORY;
+}
+
+export function getStoredPlayers(userKey) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.PLAYERS);
+    const raw = localStorage.getItem(getPlayersKey(userKey));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -22,7 +30,7 @@ export function getStoredPlayers() {
     // Rimuove eventuali residui dei vecchi 4 nomi di prova
     const cleaned = parsed.filter(p => !MOCK_NAMES.includes(p) && !GENERIC_LABELS.includes(String(p).toLowerCase()));
     if (cleaned.length !== parsed.length) {
-      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(cleaned));
+      localStorage.setItem(getPlayersKey(userKey), JSON.stringify(cleaned));
     }
     return cleaned;
   } catch {
@@ -30,38 +38,38 @@ export function getStoredPlayers() {
   }
 }
 
-export function savePlayerName(name) {
+export function savePlayerName(name, userKey) {
   if (!name || typeof name !== 'string') return;
   const clean = name.trim();
   if (!clean) return;
   if (MOCK_NAMES.includes(clean) || GENERIC_LABELS.includes(clean.toLowerCase())) return;
 
-  const list = getStoredPlayers();
+  const list = getStoredPlayers(userKey);
   if (!list.includes(clean)) {
     list.push(clean);
     list.sort((a, b) => a.localeCompare(b));
-    localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(list));
+    localStorage.setItem(getPlayersKey(userKey), JSON.stringify(list));
   }
 }
 
-export function deletePlayerName(name) {
-  const list = getStoredPlayers().filter(p => p !== name);
-  localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(list));
+export function deletePlayerName(name, userKey) {
+  const list = getStoredPlayers(userKey).filter(p => p !== name);
+  localStorage.setItem(getPlayersKey(userKey), JSON.stringify(list));
   return list;
 }
 
-export function renamePlayer(oldName, newName) {
-  if (!oldName || !newName || typeof oldName !== 'string' || typeof newName !== 'string') return getStoredPlayers();
+export function renamePlayer(oldName, newName, userKey) {
+  if (!oldName || !newName || typeof oldName !== 'string' || typeof newName !== 'string') return getStoredPlayers(userKey);
   const cleanOld = oldName.trim();
   const cleanNew = newName.trim();
-  if (!cleanNew || cleanOld === cleanNew) return getStoredPlayers();
+  if (!cleanNew || cleanOld === cleanNew) return getStoredPlayers(userKey);
 
   // 1. Aggiorna lista giocatori
-  const list = getStoredPlayers();
+  const list = getStoredPlayers(userKey);
   const updatedList = list.map(p => p === cleanOld ? cleanNew : p);
   // Rimuovi eventuali duplicati e riordina
   const unique = Array.from(new Set(updatedList)).sort((a, b) => a.localeCompare(b));
-  localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(unique));
+  localStorage.setItem(getPlayersKey(userKey), JSON.stringify(unique));
 
   // 2. Aggiorna partita attiva se presente
   const activeGame = getActiveGame();
@@ -143,7 +151,7 @@ export function renamePlayer(oldName, newName) {
   return unique;
 }
 
-export function setStoredPlayers(list) {
+export function setStoredPlayers(list, userKey) {
   if (!Array.isArray(list)) return [];
   const unique = Array.from(new Set(
     list
@@ -151,7 +159,7 @@ export function setStoredPlayers(list) {
       .map(p => String(p).trim())
       .filter(p => p && !MOCK_NAMES.includes(p) && !GENERIC_LABELS.includes(p.toLowerCase()))
   )).sort((a, b) => a.localeCompare(b));
-  localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(unique));
+  localStorage.setItem(getPlayersKey(userKey), JSON.stringify(unique));
   return unique;
 }
 
@@ -173,18 +181,18 @@ export function saveActiveGame(game) {
   }
 }
 
-export function getGamesHistory() {
+export function getGamesHistory(userKey) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    const raw = localStorage.getItem(getHistoryKey(userKey));
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-export function archiveCurrentGame(game) {
+export function archiveCurrentGame(game, userKey) {
   if (!game) return;
-  const history = getGamesHistory();
+  const history = getGamesHistory(userKey);
   const completedGame = {
     ...game,
     completedAt: new Date().toISOString(),
@@ -192,13 +200,13 @@ export function archiveCurrentGame(game) {
   };
   // Aggiungi all'inizio dello storico
   const updated = [completedGame, ...history.filter(g => g.id !== game.id)];
-  localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(updated));
+  localStorage.setItem(getHistoryKey(userKey), JSON.stringify(updated));
   return updated;
 }
 
-export function deleteGameFromHistory(gameId) {
-  const history = getGamesHistory().filter(g => g.id !== gameId);
-  localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+export function deleteGameFromHistory(gameId, userKey) {
+  const history = getGamesHistory(userKey).filter(g => g.id !== gameId);
+  localStorage.setItem(getHistoryKey(userKey), JSON.stringify(history));
   return history;
 }
 

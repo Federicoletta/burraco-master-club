@@ -29,6 +29,11 @@ service cloud.firestore {
     //   - isFinished: bool (required) - Whether the match has concluded
     //   - completedAt: string | timestamp (optional, max 50 chars if string)
     //   - updatedAt: timestamp | string (optional) - Server sync timestamp
+    //   - ownerUid: string | null (optional, max 128 chars)
+    //   - ownerEmail: string | null (optional, max 150 chars)
+    //   - ownerName: string | null (optional, max 100 chars)
+    //   - playerUids: list of strings (optional, max 10 items)
+    //   - playerEmails: list of strings (optional, max 10 items)
     //
     // Collection: burraco_meta
     // Document ID: {docId} (e.g., 'players')
@@ -58,6 +63,7 @@ service cloud.firestore {
     //   - lastLogin: string | timestamp (optional, max 50 chars if string)
     //   - lastSeen: string | timestamp (optional, max 50 chars if string)
     //   - updatedAt: string | timestamp (optional, max 50 chars if string)
+    //   - guests: list (optional, max 200 items)
     //
     // Collection: burraco_notifications
     // Document ID: {notificationId}
@@ -124,7 +130,8 @@ service cloud.firestore {
     function isValidGame(data, gameId) {
       let allowedFields = [
         'id', 'createdAt', 'mode', 'allowSemipulito', 'targetScore',
-        'team1', 'team2', 'team3', 'rounds', 'winner', 'isFinished', 'completedAt', 'updatedAt'
+        'team1', 'team2', 'team3', 'rounds', 'winner', 'isFinished', 'completedAt', 'updatedAt',
+        'ownerUid', 'ownerEmail', 'ownerName', 'playerUids', 'playerEmails'
       ];
       let requiredFields = [
         'id', 'mode', 'allowSemipulito', 'targetScore', 'team1', 'team2', 'rounds', 'isFinished'
@@ -151,7 +158,12 @@ service cloud.firestore {
              (!('winner' in data) || data.winner == null || data.winner == 'team1' || data.winner == 'team2' || data.winner == 'team3') &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
              (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50) || data.completedAt is timestamp) &&
-             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp) &&
+             (!('ownerUid' in data) || data.ownerUid == null || (data.ownerUid is string && data.ownerUid.size() <= 128)) &&
+             (!('ownerEmail' in data) || data.ownerEmail == null || (data.ownerEmail is string && data.ownerEmail.size() <= 150)) &&
+             (!('ownerName' in data) || data.ownerName == null || (data.ownerName is string && data.ownerName.size() <= 100)) &&
+             (!('playerUids' in data) || (data.playerUids is list && data.playerUids.size() <= 10)) &&
+             (!('playerEmails' in data) || (data.playerEmails is list && data.playerEmails.size() <= 10));
     }
 
     function isValidTournament(data, tournamentId) {
@@ -196,7 +208,8 @@ service cloud.firestore {
 
     function isValidUser(data, userId) {
       let allowedFields = [
-        'uid', 'displayName', 'email', 'photoURL', 'lastLogin', 'lastSeen', 'updatedAt'
+        'uid', 'displayName', 'email', 'photoURL', 'lastLogin', 'lastSeen', 'updatedAt',
+        'guests'
       ];
       let requiredFields = [
         'uid', 'displayName', 'email'
@@ -214,7 +227,8 @@ service cloud.firestore {
              (!('photoURL' in data) || data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
              (!('lastLogin' in data) || (data.lastLogin is string && data.lastLogin.size() <= 50) || data.lastLogin is timestamp) &&
              (!('lastSeen' in data) || (data.lastSeen is string && data.lastSeen.size() <= 50) || data.lastSeen is timestamp) &&
-             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp) &&
+             (!('guests' in data) || (data.guests is list && data.guests.size() <= 200));
     }
 
     // ===============================================================

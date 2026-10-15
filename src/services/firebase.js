@@ -108,16 +108,22 @@ export function subscribeToAuth(onUserChange) {
 }
 
 /**
- * Salva o aggiorna una partita nel cloud database Firestore
+ * Salva o aggiorna una partita nel cloud database Firestore con tracciamento proprietario
  */
-export async function syncGameToCloud(game) {
+export async function syncGameToCloud(game, currentUser = null) {
   if (!db || !game?.id) return false;
   try {
     const gameRef = doc(db, 'burraco_games', game.id);
-    await setDoc(gameRef, {
+    const payload = {
       ...game,
+      ownerUid: game.ownerUid !== undefined ? game.ownerUid : (currentUser?.uid || null),
+      ownerEmail: game.ownerEmail !== undefined ? game.ownerEmail : (currentUser?.email || null),
+      ownerName: game.ownerName !== undefined ? game.ownerName : (currentUser?.displayName || null),
+      playerUids: Array.isArray(game.playerUids) ? game.playerUids : (currentUser?.uid ? [currentUser.uid] : []),
+      playerEmails: Array.isArray(game.playerEmails) ? game.playerEmails : (currentUser?.email ? [currentUser.email] : []),
       updatedAt: serverTimestamp(),
-    }, { merge: true });
+    };
+    await setDoc(gameRef, payload, { merge: true });
     return true;
   } catch (err) {
     console.warn('Errore syncGameToCloud:', err.message);
@@ -148,17 +154,26 @@ export function subscribeToCloudGame(gameId, onUpdate, onNotFound) {
 }
 
 /**
- * Carica tutte le partite archiviate dal cloud
+ * Carica le partite archiviate dal cloud per l'utente specificato
  */
-export async function loadCloudGamesHistory() {
+export async function loadCloudGamesHistory(currentUser = null) {
   if (!db) return [];
   try {
     const snapshot = await getDocs(collection(db, 'burraco_games'));
     const games = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
       if (data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0))) {
-        games.push(data);
+        if (!currentUser) {
+          // Se non autenticato, carica solo partite locali/senza owner
+          if (!data.ownerUid) games.push(data);
+        } else {
+          // Se autenticato, solo le partite dell'utente o in cui è invitato
+          const isMine = data.ownerUid === currentUser.uid ||
+            (Array.isArray(data.playerUids) && data.playerUids.includes(currentUser.uid)) ||
+            (currentUser.email && Array.isArray(data.playerEmails) && data.playerEmails.includes(currentUser.email));
+          if (isMine) games.push(data);
+        }
       }
     });
     games.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -185,7 +200,7 @@ export async function deleteGameFromCloud(gameId) {
 }
 
 /**
- * Salva la lista dei partecipanti sul cloud
+ * Salva la lista dei partecipanti sul cloud (globale/fallback)
  */
 export async function syncPlayersToCloud(players) {
   if (!db || !players) return false;
@@ -200,7 +215,44 @@ export async function syncPlayersToCloud(players) {
 }
 
 /**
- * Ascolta in tempo reale le modifiche alla lista partecipanti su Firestore
+ * Salva la rubrica ospiti specifica per l'utente loggato nel suo documento profilo
+ */
+export async function syncUserGuestsToCloud(userId, guests) {
+  if (!db || !userId) return false;
+  try {
+    const userRef = doc(db, 'burraco_users', userId);
+    await setDoc(userRef, { guests: guests || [] }, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn('Errore syncUserGuestsToCloud:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Ascolta in tempo reale la rubrica ospiti dell'utente
+ */
+export function subscribeToUserGuests(userId, onUpdate) {
+  if (!db || !userId) return () => {};
+  try {
+    const userRef = doc(db, 'burraco_users', userId);
+    return onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists() && Array.isArray(docSnap.data().guests)) {
+        onUpdate(docSnap.data().guests);
+      } else {
+        onUpdate([]);
+      }
+    }, (err) => {
+      console.warn('Errore subscribeToUserGuests:', err.message);
+    });
+  } catch (err) {
+    console.warn('subscribeToUserGuests error:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Ascolta in tempo reale le modifiche alla lista partecipanti su Firestore (fallback ospite)
  */
 export function subscribeToCloudPlayers(onUpdate) {
   if (!db) return () => {};
@@ -220,9 +272,9 @@ export function subscribeToCloudPlayers(onUpdate) {
 }
 
 /**
- * Ascolta in tempo reale lo storico partite da Firestore
+ * Ascolta in tempo reale lo storico partite da Firestore con isolamento utente
  */
-export function subscribeToCloudGamesHistory(onUpdate) {
+export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
   if (!db) return () => {};
   try {
     const colRef = collection(db, 'burraco_games');
@@ -231,7 +283,16 @@ export function subscribeToCloudGamesHistory(onUpdate) {
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0))) {
-          games.push(data);
+          if (!currentUser) {
+            // Modalità anonima / ospite: solo partite locali o senza owner
+            if (!data.ownerUid) games.push(data);
+          } else {
+            // Modalità autenticata: mostra solo le partite appartenenti a questo utente
+            const isMine = data.ownerUid === currentUser.uid ||
+              (Array.isArray(data.playerUids) && data.playerUids.includes(currentUser.uid)) ||
+              (currentUser.email && Array.isArray(data.playerEmails) && data.playerEmails.includes(currentUser.email));
+            if (isMine) games.push(data);
+          }
         }
       });
       games.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -242,6 +303,38 @@ export function subscribeToCloudGamesHistory(onUpdate) {
   } catch (err) {
     console.warn('subscribeToCloudGamesHistory error:', err);
     return () => {};
+  }
+}
+
+/**
+ * Esegue la pulizia delle vecchie partite legacy e della vecchia rubrica globale
+ */
+export async function cleanupLegacyCloudDatabase() {
+  if (!db) return false;
+  try {
+    const snapshot = await getDocs(collection(db, 'burraco_games'));
+    const deletePromises = [];
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (!data?.ownerUid) {
+        deletePromises.push(deleteDoc(doc(db, 'burraco_games', docSnap.id)));
+      }
+    });
+    await Promise.all(deletePromises);
+
+    // Resetta la vecchia lista globale di burraco_meta/players
+    const metaRef = doc(db, 'burraco_meta', 'players');
+    await setDoc(metaRef, { list: [], updatedAt: serverTimestamp() }, { merge: true });
+
+    // Rimuove chiavi locali obsolete
+    localStorage.removeItem('burraco_history_v1');
+    localStorage.removeItem('burraco_players_v1');
+    localStorage.removeItem('burraco_active_game_v1');
+
+    return true;
+  } catch (err) {
+    console.error('Errore durante pulizia legacy cloud database:', err);
+    return false;
   }
 }
 
