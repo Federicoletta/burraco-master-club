@@ -8,6 +8,7 @@ export default function NewGameModal({
   onClose, 
   onStartGame, 
   availablePlayers = [],
+  friendsList = [],
   hasActiveGame
 }) {
   const [mode, setMode] = useState('pairs'); // 'pairs' (2v2) | 'singles' (1v1) | 'trio' (A 3)
@@ -301,31 +302,72 @@ export default function NewGameModal({
 
           </div>
 
-          {/* Suggerimenti veloci dai giocatori salvati (se ce ne sono) */}
-          {availablePlayers && availablePlayers.length > 0 && (
-            <div className="text-xs">
-              <span className="text-emerald-300/70 mr-2">I tuoi giocatori registrati:</span>
-              <div className="inline-flex flex-wrap gap-1.5 mt-1">
-                {availablePlayers.slice(0, 10).map(name => (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => {
-                      if (!p1A) setP1A(name);
-                      else if (mode === 'pairs' && !p1B) setP1B(name);
-                      else if (!p2A) setP2A(name);
-                      else if (mode === 'pairs' && !p2B) setP2B(name);
-                      else if (mode === 'trio' && !p3A) setP3A(name);
-                      else setP1A(name);
-                    }}
-                    className="px-2 py-0.5 rounded-md bg-emerald-900/80 text-emerald-200 border border-emerald-700/40 text-[11px] hover:border-amber-400 hover:text-white transition-colors cursor-pointer"
-                  >
-                    + {name}
-                  </button>
-                ))}
+          {/* Suggerimenti veloci Amici Registrati & Giocatori Locali */}
+          <div className="space-y-2">
+            {/* 1. Amici Burraco Club con Account Google */}
+            {friendsList && friendsList.length > 0 && (
+              <div className="text-xs">
+                <span className="text-amber-300 font-bold mr-2 flex items-center gap-1 mb-1">
+                  <span>⭐ Amici Burraco Club (Google):</span>
+                </span>
+                <div className="inline-flex flex-wrap gap-1.5">
+                  {friendsList.map(f => {
+                    const friendName = f.displayName || f.email;
+                    return (
+                      <button
+                        key={f.uid || f.email}
+                        type="button"
+                        onClick={() => {
+                          if (!p1A) setP1A(friendName);
+                          else if (mode === 'pairs' && !p1B) setP1B(friendName);
+                          else if (!p2A) setP2A(friendName);
+                          else if (mode === 'pairs' && !p2B) setP2B(friendName);
+                          else if (mode === 'trio' && !p3A) setP3A(friendName);
+                          else setP1A(friendName);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-950/90 text-amber-200 border border-amber-400/50 text-[11px] font-semibold hover:border-amber-300 hover:brightness-110 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                      >
+                        {f.photoURL ? (
+                          <img src={f.photoURL} alt="" className="w-4 h-4 rounded-full border border-amber-400 object-cover" />
+                        ) : (
+                          <span className="w-4 h-4 rounded-full bg-amber-400 text-emerald-950 font-black text-[9px] flex items-center justify-center">
+                            {friendName.slice(0, 1).toUpperCase()}
+                          </span>
+                        )}
+                        <span>{friendName}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* 2. Giocatori Locali (Ospiti) */}
+            {availablePlayers && availablePlayers.length > 0 && (
+              <div className="text-xs">
+                <span className="text-emerald-300/70 mr-2 block mb-1">Giocatori Locali (Ospiti):</span>
+                <div className="inline-flex flex-wrap gap-1.5">
+                  {availablePlayers.slice(0, 12).map(name => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        if (!p1A) setP1A(name);
+                        else if (mode === 'pairs' && !p1B) setP1B(name);
+                        else if (!p2A) setP2A(name);
+                        else if (mode === 'pairs' && !p2B) setP2B(name);
+                        else if (mode === 'trio' && !p3A) setP3A(name);
+                        else setP1A(name);
+                      }}
+                      className="px-2 py-0.5 rounded-md bg-emerald-900/80 text-emerald-200 border border-emerald-700/40 text-[11px] hover:border-amber-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      + {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Punteggio Obiettivo */}
           <div>

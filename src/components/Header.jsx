@@ -13,7 +13,8 @@ import {
   Sparkles,
   Trophy,
   User,
-  LogIn
+  LogIn,
+  Bell
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
@@ -33,7 +34,9 @@ export default function Header({
   hasActiveTournament,
   currentUser,
   onOpenProfile,
-  onLogin
+  onLogin,
+  notificationCount = 0,
+  onOpenNotifications
 }) {
   const [soundOn, setSoundOn] = useState(sound.enabled);
   const [volume, setVolume] = useState(Math.round(sound.volume * 100));
@@ -225,7 +228,7 @@ export default function Header({
                         setIsMenuOpen(false);
                         onOpenProfile();
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer border border-amber-500/30 mb-1.5"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer border border-amber-500/30 mb-1"
                     >
                       {currentUser?.photoURL ? (
                         <img 
@@ -246,6 +249,34 @@ export default function Header({
                           {currentUser ? (currentUser.email || 'Statistiche personali') : 'Carriera, trofei & statistiche'}
                         </div>
                       </div>
+                    </button>
+                  )}
+
+                  {/* Notifiche & Inviti alle partite */}
+                  {onOpenNotifications && currentUser && (
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onOpenNotifications();
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-colors cursor-pointer mb-1.5 border ${
+                        notificationCount > 0
+                          ? 'bg-amber-500/20 text-amber-200 border-amber-400/50'
+                          : 'hover:bg-emerald-900/70 text-emerald-100 border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Bell className={`w-4 h-4 ${notificationCount > 0 ? 'text-amber-400 animate-bounce' : 'text-emerald-400'}`} />
+                        <div>
+                          <div className="text-white font-bold">Notifiche & Inviti</div>
+                          <div className="text-[10px] text-emerald-300/70 font-normal">Richieste amicizia e tavoli</div>
+                        </div>
+                      </div>
+                      {notificationCount > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-400 text-emerald-950 text-[10px] font-black shadow-sm">
+                          {notificationCount} {notificationCount === 1 ? 'nuova' : 'nuove'}
+                        </span>
+                      )}
                     </button>
                   )}
 
@@ -403,7 +434,28 @@ export default function Header({
             </button>
           )}
 
-          {/* 6. Nuova Partita (Il Bottone Principale Dorato - sempre ben visibile e protetto) */}
+          {/* 6. Campanella Notifiche & Inviti */}
+          {currentUser && onOpenNotifications && (
+            <button
+              type="button"
+              onClick={onOpenNotifications}
+              className={`relative h-9 sm:h-10 px-2 sm:px-2.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
+                notificationCount > 0
+                  ? 'bg-amber-500/25 border-amber-400 text-amber-200 ring-2 ring-amber-400/40 shadow-md shadow-amber-950/40'
+                  : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-300 border-emerald-600/40'
+              }`}
+              title={notificationCount > 0 ? `${notificationCount} notifiche non lette` : "Notifiche & Inviti"}
+            >
+              <Bell className={`w-4 h-4 ${notificationCount > 0 ? 'text-amber-300 animate-bounce' : 'text-emerald-300'}`} />
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-400 text-emerald-950 text-[10px] font-black flex items-center justify-center shadow-md border-2 border-emerald-950 animate-pulse">
+                  {notificationCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* 7. Nuova Partita (Il Bottone Principale Dorato - sempre ben visibile e protetto) */}
           <button
             type="button"
             onClick={onNewGame}

@@ -11,6 +11,15 @@ import RulesModal from './components/RulesModal';
 import EditTeamsModal from './components/EditTeamsModal';
 import TournamentModal from './components/TournamentModal';
 import UserProfileModal from './components/UserProfileModal';
+import NotificationsModal from './components/NotificationsModal';
+import { 
+  sendFriendRequest,
+  respondToFriendRequest,
+  sendGameInvite,
+  respondToGameInvite,
+  subscribeToMyNotifications,
+  subscribeToMyFriends
+} from './services/social';
 import { 
   getActiveGame, 
   saveActiveGame, 
@@ -56,6 +65,11 @@ export default function App() {
   // User Auth & Profile state
   const [currentUser, setCurrentUser] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Social & Notifications state
+  const [notifications, setNotifications] = useState([]);
+  const [friendsList, setFriendsList] = useState([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // Modals state
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
@@ -194,6 +208,25 @@ export default function App() {
     });
     return () => unsubAuth();
   }, []);
+
+  // 2c. Ascolto in tempo reale Notifiche Pendenti e Amici Confermati
+  useEffect(() => {
+    if (!currentUser) {
+      setNotifications([]);
+      setFriendsList([]);
+      return;
+    }
+    const unsubNotifs = subscribeToMyNotifications(currentUser, (notifs) => {
+      setNotifications(notifs);
+    });
+    const unsubFriends = subscribeToMyFriends(currentUser, (friends) => {
+      setFriendsList(friends);
+    });
+    return () => {
+      unsubNotifs();
+      unsubFriends();
+    };
+  }, [currentUser]);
 
   // 3. Ascolto real-time della partita attiva da Firestore (Multi-device live sync)
   useEffect(() => {
@@ -393,6 +426,27 @@ export default function App() {
     setActiveGame(newGame);
     saveActiveGame(newGame);
     syncGameToCloud(newGame);
+
+    // Se l'utente è loggato e ci sono amici registrati in questa partita, invia loro un invito automatico!
+    if (currentUser && friendsList.length > 0) {
+      friendsList.forEach(friend => {
+        const friendName = friend.displayName || friend.email;
+        const isInGame = allPlayers.some(
+          p => p.toLowerCase() === friendName.toLowerCase() || p.toLowerCase() === (friend.email || '').toLowerCase()
+        );
+        if (isInGame) {
+          const teamName = (newGame.team1?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
+            ? newGame.team1?.name
+            : (newGame.team2?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
+            ? newGame.team2?.name
+            : newGame.team3?.name || 'In Partita';
+
+          sendGameInvite(currentUser, friend, newGame, teamName).catch(err => {
+            console.warn('Avviso invio notifica partita:', err);
+          });
+        }
+      });
+    }
   };
 
   // Salva o aggiorna una mano
@@ -771,6 +825,60 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     }
   };
 
+  // Gestione Social & Notifiche (Amicizie e Inviti alle Partite)
+  const handleSendFriendRequest = async (email) => {
+    if (!currentUser) throw new Error('Devi prima accedere con il tuo account Google');
+    return await sendFriendRequest(currentUser, email);
+  };
+
+  const handleAcceptFriendRequest = async (notification) => {
+    try {
+      await respondToFriendRequest(notification, true, currentUser);
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      alert(`Amicizia con ${notification.fromName} accettata! Ora siete amici su Burraco Club.`);
+    } catch (err) {
+      console.error('Errore accettazione amicizia:', err);
+      alert('Impossibile accettare la richiesta: ' + (err.message || err));
+    }
+  };
+
+  const handleDeclineFriendRequest = async (notification) => {
+    try {
+      await respondToFriendRequest(notification, false, currentUser);
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    } catch (err) {
+      console.error('Errore rifiuto amicizia:', err);
+    }
+  };
+
+  const handleAcceptGameInvite = async (notification) => {
+    try {
+      await respondToGameInvite(notification, true);
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      setIsNotificationsOpen(false);
+
+      // Entra direttamente nel tavolo dell'amico!
+      if (notification.gameId) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('game', notification.gameId);
+        window.history.pushState({}, '', url.pathname + '?' + url.searchParams.toString());
+        setIsCloudJoined(true);
+      }
+    } catch (err) {
+      console.error('Errore accettazione partita:', err);
+      alert('Impossibile entrare al tavolo: ' + (err.message || err));
+    }
+  };
+
+  const handleDeclineGameInvite = async (notification) => {
+    try {
+      await respondToGameInvite(notification, false);
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    } catch (err) {
+      console.error('Errore rifiuto partita:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen felt-bg flex flex-col selection:bg-amber-400 selection:text-emerald-950">
       
@@ -788,6 +896,8 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         currentUser={currentUser}
         onOpenProfile={() => setIsProfileOpen(true)}
         onLogin={handleLogin}
+        notificationCount={notifications.length}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
       />
 
       {/* Contenuto Principale */}
@@ -919,6 +1029,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onClose={() => setIsNewGameOpen(false)}
         onStartGame={handleStartGame}
         availablePlayers={playersList}
+        friendsList={friendsList}
         hasActiveGame={Boolean(activeGame && activeGame.rounds && activeGame.rounds.length > 0)}
       />
 
@@ -945,6 +1056,10 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onRenamePlayer={handleRenamePlayer}
         gamesHistory={gamesHistory}
         activeGame={activeGame}
+        currentUser={currentUser}
+        friendsList={friendsList}
+        onSendFriendRequest={handleSendFriendRequest}
+        onOpenLogin={handleLogin}
       />
 
       {/* 4. Modal Storico Partite */}
@@ -1011,6 +1126,17 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onLogout={handleLogout}
         gamesHistory={gamesHistory}
         activeGame={activeGame}
+      />
+
+      {/* 11. Modal Notifiche & Inviti Amici */}
+      <NotificationsModal
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        notifications={notifications}
+        onAcceptFriendRequest={handleAcceptFriendRequest}
+        onDeclineFriendRequest={handleDeclineFriendRequest}
+        onAcceptGameInvite={handleAcceptGameInvite}
+        onDeclineGameInvite={handleDeclineGameInvite}
       />
 
     </div>
