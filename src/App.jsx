@@ -995,16 +995,35 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
       setIsNotificationsOpen(false);
 
-      // Entra direttamente nel tavolo dell'amico!
+      // Entra direttamente nel tavolo dell'amico caricando la partita
       if (notification.gameId) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('game', notification.gameId);
-        window.history.pushState({}, '', url.pathname + '?' + url.searchParams.toString());
         setIsCloudJoined(true);
+        window.location.href = window.location.origin + '?game=' + notification.gameId;
       }
     } catch (err) {
       console.error('Errore accettazione partita:', err);
       alert('Impossibile entrare al tavolo: ' + (err.message || err));
+    }
+  };
+
+  // Invita un amico al tavolo attivo in corso
+  const handleInviteFriendToActiveGame = async (friend) => {
+    if (!currentUser || !activeGame || !friend) return;
+    try {
+      let teamName = 'Al Tavolo';
+      const t1Count = activeGame.team1?.players?.length || 0;
+      const t2Count = activeGame.team2?.players?.length || 0;
+      if (t1Count < 2) {
+        teamName = activeGame.team1?.name || 'Squadra 1';
+      } else if (t2Count < 2) {
+        teamName = activeGame.team2?.name || 'Squadra 2';
+      }
+      await sendGameInvite(currentUser, friend, activeGame, teamName);
+      sound.playTrophy();
+      return { success: true };
+    } catch (err) {
+      console.error('Errore invio invito al tavolo attivo:', err);
+      throw err;
     }
   };
 
@@ -1164,7 +1183,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
             }}
             onDeleteLastRound={handleDeleteLastRound}
             onEndGame={handleEndGame}
-            onShareGame={handleShareGame}
+            onShareGame={() => setIsCloudModalOpen(true)}
             onOpenRules={() => setIsRulesOpen(true)}
             onOpenEditTeams={() => setIsEditTeamsOpen(true)}
           />
@@ -1260,6 +1279,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         tablePlayers={tablePlayers}
         friendsList={friendsList}
         onSendFriendRequest={handleSendFriendRequest}
+        onInviteFriendToGame={handleInviteFriendToActiveGame}
       />
 
       {/* 7. Modal Regole del Gioco & Valori Carte */}
@@ -1298,9 +1318,11 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onLogout={handleLogout}
         gamesHistory={gamesHistory}
         activeGame={activeGame}
+        tablePlayers={tablePlayers}
         friendsList={friendsList}
         onSendFriendRequest={handleSendFriendRequest}
         onChallengeFriend={handleChallengeFriend}
+        onInviteFriendToActiveGame={handleInviteFriendToActiveGame}
       />
 
       {/* 11. Modal Notifiche & Inviti Amici */}

@@ -9,11 +9,14 @@ export default function CloudSyncModal({
   currentUser = null,
   tablePlayers = [],
   friendsList = [],
-  onSendFriendRequest
+  onSendFriendRequest,
+  onInviteFriendToGame
 }) {
   const [copied, setCopied] = useState(false);
   const [sendingFriendUids, setSendingFriendUids] = useState({});
   const [sentFriendUids, setSentFriendUids] = useState({});
+  const [invitingFriendUids, setInvitingFriendUids] = useState({});
+  const [invitedFriendUids, setInvitedFriendUids] = useState({});
 
   if (!isOpen) return null;
 
@@ -24,6 +27,26 @@ export default function CloudSyncModal({
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
+
+  const handleInviteFriend = async (friend) => {
+    if (!onInviteFriendToGame || !friend) return;
+    const key = friend.uid || friend.email;
+    setInvitingFriendUids(prev => ({ ...prev, [key]: true }));
+    try {
+      await onInviteFriendToGame(friend);
+      setInvitedFriendUids(prev => ({ ...prev, [key]: true }));
+    } catch (err) {
+      console.warn('Errore invito amico al tavolo:', err);
+    } finally {
+      setInvitingFriendUids(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const friendsNotAtTable = (friendsList || []).filter(f => {
+    const fUid = f.uid;
+    const fEmail = (f.email || '').toLowerCase();
+    return !tablePlayers.some(p => (fUid && p.uid === fUid) || (fEmail && p.email?.toLowerCase() === fEmail));
+  });
 
   const handleRequestFriendship = async (targetPlayer) => {
     if (!targetPlayer?.email || !onSendFriendRequest) return;
@@ -177,6 +200,82 @@ export default function CloudSyncModal({
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Sezione: Invita i Tuoi Amici a questo Tavolo (per Valerio o qualsiasi compagno al tavolo) */}
+          {activeGame && currentUser && (
+            <div className="p-3.5 rounded-xl bg-gradient-to-br from-emerald-950 via-emerald-900/60 to-amber-950/30 border border-amber-500/40 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4 text-amber-400" />
+                  <span>Invita i tuoi Amici a questo Tavolo</span>
+                </span>
+                <span className="text-[10px] text-emerald-300 font-semibold">
+                  {friendsNotAtTable.length} disponibili
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-300/80 m-0">
+                Vuoi far entrare i tuoi amici nella partita? Premi "Invita al Tavolo" per inviare loro una notifica istantanea!
+              </p>
+
+              {friendsNotAtTable.length === 0 ? (
+                <div className="p-3 rounded-lg bg-emerald-950/50 border border-emerald-800/40 text-center text-xs text-emerald-300/70">
+                  {friendsList.length === 0 ? (
+                    <span>Non hai ancora amici nella tua rubrica Google. Aggiungili dal tuo Profilo o condividi il link del tavolo.</span>
+                  ) : (
+                    <span>Tutti i tuoi amici registrati sono già presenti al tavolo! 🎉</span>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {friendsNotAtTable.map((friend) => {
+                    const fKey = friend.uid || friend.email;
+                    const isInvited = invitedFriendUids[fKey];
+                    const isInviting = invitingFriendUids[fKey];
+
+                    return (
+                      <div
+                        key={fKey}
+                        className="p-2 rounded-xl bg-emerald-950/80 border border-emerald-700/50 flex items-center justify-between gap-2 text-xs hover:border-amber-400/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {friend.photoURL ? (
+                            <img src={friend.photoURL} alt="" className="w-7 h-7 rounded-full border border-amber-400 object-cover shrink-0" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-amber-400 text-emerald-950 font-black text-xs flex items-center justify-center shrink-0">
+                              {(friend.displayName || friend.email || 'A').slice(0, 1).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-white truncate">{friend.displayName || 'Amico'}</div>
+                            <div className="text-[10px] text-emerald-300/70 truncate">{friend.email}</div>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0">
+                          {isInvited ? (
+                            <span className="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-500/40 flex items-center gap-1 shadow-sm">
+                              <Check className="w-3 h-3 text-emerald-400" />
+                              <span>Invito Inviato!</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={isInviting}
+                              onClick={() => handleInviteFriend(friend)}
+                              className="px-3 py-1.5 rounded-xl gold-gradient text-emerald-950 font-black text-[11px] shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
+                            >
+                              <span>🎯</span>
+                              <span>{isInviting ? 'Invio...' : 'Invita al Tavolo'}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

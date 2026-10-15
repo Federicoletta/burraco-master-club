@@ -10,15 +10,19 @@ export default function UserProfileModal({
   onLogout,
   gamesHistory = [],
   activeGame,
+  tablePlayers = [],
   friendsList = [],
   onSendFriendRequest,
   onChallengeFriend,
+  onInviteFriendToActiveGame,
   initialTab = 'profile'
 }) {
   const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'friends'
   const [friendEmailInput, setFriendEmailInput] = useState('');
   const [friendFeedback, setFriendFeedback] = useState(null);
   const [isSendingFriend, setIsSendingFriend] = useState(false);
+  const [invitingFriendUids, setInvitingFriendUids] = useState({});
+  const [invitedFriendUids, setInvitedFriendUids] = useState({});
 
   if (!isOpen) return null;
 
@@ -84,6 +88,20 @@ export default function UserProfileModal({
       });
     } finally {
       setIsSendingFriend(false);
+    }
+  };
+
+  const handleInviteToActiveGame = async (friend) => {
+    if (!onInviteFriendToActiveGame || !friend) return;
+    const key = friend.uid || friend.email;
+    setInvitingFriendUids(prev => ({ ...prev, [key]: true }));
+    try {
+      await onInviteFriendToActiveGame(friend);
+      setInvitedFriendUids(prev => ({ ...prev, [key]: true }));
+    } catch (err) {
+      console.warn('Errore invito attivo:', err);
+    } finally {
+      setInvitingFriendUids(prev => ({ ...prev, [key]: false }));
     }
   };
 
@@ -387,16 +405,45 @@ export default function UserProfileModal({
                               </div>
                             </div>
 
-                            {/* Tasto Sfida Rapida */}
-                            <button
-                              type="button"
-                              onClick={() => handleChallenge(friend)}
-                              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-emerald-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer shrink-0 flex items-center gap-1"
-                              title={`Inizia subito una partita sfidando ${friend.displayName}`}
-                            >
-                              <span>🎯</span>
-                              <span>Sfida</span>
-                            </button>
+                            {/* Tasti Azione: Invita al Tavolo Attivo oppure Nuova Sfida */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {activeGame && activeGame.id && onInviteFriendToActiveGame && (
+                                tablePlayers.some(p => (friend.uid && p.uid === friend.uid) || (friend.email && p.email?.toLowerCase() === friend.email?.toLowerCase())) ? (
+                                  <span className="px-2 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-400/40">
+                                    Al Tavolo 🟢
+                                  </span>
+                                ) : invitedFriendUids[friend.uid || friend.email] ? (
+                                  <span className="px-2 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-400/40 flex items-center gap-1">
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                    <span>Inviato!</span>
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={invitingFriendUids[friend.uid || friend.email]}
+                                    onClick={() => handleInviteToActiveGame(friend)}
+                                    className="px-2.5 py-1.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1 hover:brightness-110 disabled:opacity-50"
+                                    title={`Invita subito ${friend.displayName || friend.email} a questo tavolo da gioco`}
+                                  >
+                                    <span>🎯</span>
+                                    <span>{invitingFriendUids[friend.uid || friend.email] ? '...' : 'Invita al Tavolo'}</span>
+                                  </button>
+                                )
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleChallenge(friend)}
+                                className={`px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1 ${
+                                  activeGame && activeGame.id
+                                    ? 'bg-emerald-900/80 hover:bg-emerald-800 text-amber-300 border border-amber-500/30'
+                                    : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-emerald-950 font-black'
+                                }`}
+                                title={`Inizia una nuova partita con ${friend.displayName}`}
+                              >
+                                {activeGame && activeGame.id ? <span>Nuova Sfida</span> : <><span>🎯</span><span>Sfida</span></>}
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
