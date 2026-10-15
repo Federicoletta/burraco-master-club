@@ -51,6 +51,7 @@ export async function loginWithGoogle() {
   if (!auth) throw new Error('Firebase Auth non inizializzato');
   try {
     const result = await signInWithPopup(auth, googleProvider);
+    const user = result?.user;
     // Registra/aggiorna il profilo utente su Firestore in background
     if (db && user) {
       try {
@@ -58,9 +59,10 @@ export async function loginWithGoogle() {
         await setDoc(userRef, {
           uid: user.uid,
           displayName: user.displayName || 'Giocatore Burraco',
-          email: user.email,
-          photoURL: user.photoURL,
-          lastLogin: new Date().toISOString()
+          email: user.email || '',
+          photoURL: user.photoURL || null,
+          lastLogin: new Date().toISOString(),
+          lastSeen: new Date().toISOString()
         }, { merge: true });
       } catch (firestoreErr) {
         console.warn('Avviso: impossibile salvare profilo su Firestore (regole di sicurezza o offline):', firestoreErr);
@@ -94,10 +96,14 @@ export function subscribeToAuth(onUserChange) {
   return onAuthStateChanged(auth, async (user) => {
     onUserChange(user);
     if (user && db) {
-      // Aggiorna ultimo accesso in background
+      // Aggiorna ultimo accesso garantendo tutti i campi richiesti dalle regole
       try {
         const userRef = doc(db, 'burraco_users', user.uid);
         await setDoc(userRef, {
+          uid: user.uid,
+          displayName: user.displayName || 'Giocatore Burraco',
+          email: user.email || '',
+          photoURL: user.photoURL || null,
           lastSeen: new Date().toISOString()
         }, { merge: true });
       } catch (err) {
