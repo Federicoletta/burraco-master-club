@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull, BookUser, Edit2, Check } from 'lucide-react';
+import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull, BookUser, Edit2, Check, BarChart3 } from 'lucide-react';
 import { calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 import { sound } from '../utils/soundEffects';
@@ -162,7 +162,7 @@ export default function PlayersStatsModal({
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md shrink-0">
               {mainCategory === 'stats' ? (
-                <Trophy className="w-5 h-5 text-emerald-950" />
+                <BarChart3 className="w-5 h-5 text-emerald-950" />
               ) : (
                 <BookUser className="w-5 h-5 text-emerald-950" />
               )}
@@ -202,7 +202,7 @@ export default function PlayersStatsModal({
                 : 'text-emerald-300 hover:text-white hover:bg-emerald-900/50'
             }`}
           >
-            <Trophy className="w-4 h-4 shrink-0" />
+            <BarChart3 className="w-4 h-4 shrink-0" />
             <span>Statistiche</span>
           </button>
 
