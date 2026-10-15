@@ -1020,6 +1020,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onLogin={handleLogin}
         notificationCount={notifications.length}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
+        friendsList={friendsList}
       />
 
       {/* Toast Notifiche in tempo reale */}
@@ -1275,6 +1276,9 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onLogout={handleLogout}
         gamesHistory={gamesHistory}
         activeGame={activeGame}
+        friendsList={friendsList}
+        onSendFriendRequest={handleSendFriendRequest}
+        onChallengeFriend={handleChallengeFriend}
       />
 
       {/* 11. Modal Notifiche & Inviti Amici */}

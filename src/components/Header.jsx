@@ -20,6 +20,7 @@ import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
 import { wakeLock } from '../utils/wakeLock';
 import { checkForUpdates, forceAppUpdate, getFormattedBuildDate } from '../utils/versionCheck';
+import { getFriendOnlineStatus } from '../services/social';
 import AudioSettingsModal from './AudioSettingsModal';
 
 export default function Header({ 
@@ -36,7 +37,8 @@ export default function Header({
   onOpenProfile,
   onLogin,
   notificationCount = 0,
-  onOpenNotifications
+  onOpenNotifications,
+  friendsList = []
 }) {
   const [soundOn, setSoundOn] = useState(sound.enabled);
   const [volume, setVolume] = useState(Math.round(sound.volume * 100));
@@ -55,6 +57,14 @@ export default function Header({
     enabled: wakeLock.enabled,
     active: wakeLock.active
   });
+
+  const onlineFriendsCount = (friendsList || []).filter(f => {
+    try {
+      return getFriendOnlineStatus(f.lastSeen).isOnline;
+    } catch {
+      return false;
+    }
+  }).length;
 
   useEffect(() => {
     let mounted = true;
@@ -417,21 +427,33 @@ export default function Header({
                   ? 'bg-emerald-950/80 hover:bg-emerald-900 text-amber-200 border-amber-400/50 shadow-sm'
                   : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
               }`}
-              title={currentUser ? `Profilo: ${currentUser.displayName || currentUser.email}` : "Accedi con Google"}
+              title={
+                currentUser 
+                  ? `Profilo: ${currentUser.displayName || currentUser.email}${onlineFriendsCount > 0 ? ` (${onlineFriendsCount} amici online)` : ''}` 
+                  : "Accedi con Google"
+              }
             >
-              {currentUser?.photoURL ? (
-                <img
-                  src={currentUser.photoURL}
-                  alt={currentUser.displayName || 'Avatar'}
-                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-amber-400 shrink-0 object-cover"
-                />
-              ) : currentUser ? (
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-400 text-emerald-950 font-black text-[11px] flex items-center justify-center shrink-0">
-                  {(currentUser.displayName || currentUser.email || 'U').slice(0, 1).toUpperCase()}
-                </div>
-              ) : (
-                <User className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
-              )}
+              <div className="relative shrink-0 flex items-center justify-center">
+                {currentUser?.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName || 'Avatar'}
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-amber-400 shrink-0 object-cover"
+                  />
+                ) : currentUser ? (
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-400 text-emerald-950 font-black text-[11px] flex items-center justify-center shrink-0">
+                    {(currentUser.displayName || currentUser.email || 'U').slice(0, 1).toUpperCase()}
+                  </div>
+                ) : (
+                  <User className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
+                )}
+                {onlineFriendsCount > 0 && (
+                  <span 
+                    className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-950 animate-pulse" 
+                    title={`${onlineFriendsCount} online adesso`}
+                  />
+                )}
+              </div>
               <span className="hidden sm:inline pointer-events-none max-w-[85px] truncate">
                 {currentUser ? (currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Profilo') : 'Accedi'}
               </span>
