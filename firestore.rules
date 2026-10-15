@@ -287,10 +287,16 @@ service cloud.firestore {
       allow create: if request.auth != null &&
                        request.auth.uid == userId &&
                        isValidUser(request.resource.data, userId);
-      allow update: if request.auth != null &&
-                       request.auth.uid == userId &&
-                       isValidUser(request.resource.data, userId) &&
-                       request.resource.data.uid == resource.data.uid;
+      allow update: if (request.auth != null &&
+                        request.auth.uid == userId &&
+                        isValidUser(request.resource.data, userId) &&
+                        request.resource.data.uid == resource.data.uid) ||
+                       (request.auth != null &&
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['careerStats', 'updatedAt']) &&
+                        request.resource.data.uid == resource.data.uid &&
+                        request.resource.data.email == resource.data.email &&
+                        request.resource.data.displayName == resource.data.displayName &&
+                        (!('careerStats' in request.resource.data) || request.resource.data.careerStats == null || isValidCareerStats(request.resource.data.careerStats)));
       allow delete: if request.auth != null &&
                        request.auth.uid == userId;
     }

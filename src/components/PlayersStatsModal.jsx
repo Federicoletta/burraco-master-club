@@ -103,16 +103,24 @@ export default function PlayersStatsModal({
     });
   }
 
-  // Aggiungi tutti gli amici con le loro statistiche di carriera live
+  // Aggiungi tutti gli amici con le loro statistiche di carriera live (e calcolo locale unificato se non ancora sincronizzati)
   effectiveFriends.forEach(f => {
     if (currentUser && f.uid === currentUser.uid) return;
     const c = f.careerStats || {};
-    const totalBurrachi = (Number(c.cleanBurrachi) || 0) + (Number(c.semiCleanBurrachi) || 0) + (Number(c.dirtyBurrachi) || 0);
-    const isOnline = f.lastSeen ? (Date.now() - new Date(f.lastSeen).getTime() < 5 * 60 * 1000) : false;
-    const played = Number(c.gamesPlayed) || 0;
-    const won = Number(c.gamesWon) || 0;
+    const localS = computeUserCareerStats(f, gamesHistory, activeGame) || {};
+
+    const totalPoints = Math.max(Number(c.totalPoints) || 0, Number(localS.totalPoints) || 0);
+    const played = Math.max(Number(c.gamesPlayed) || 0, Number(localS.gamesPlayed) || 0);
+    const won = Math.max(Number(c.gamesWon) || 0, Number(localS.gamesWon) || 0);
     const lost = Math.max(0, played - won);
-    const winRate = Number(c.winRate) || (played > 0 ? Math.round((won / played) * 100) : 0);
+    const winRate = Number(c.winRate) || (played > 0 ? Math.round((won / played) * 100) : (localS.winRate || 0));
+    const cleanBurrachi = Math.max(Number(c.cleanBurrachi) || 0, Number(localS.cleanBurrachi) || 0);
+    const semiCleanBurrachi = Math.max(Number(c.semiCleanBurrachi) || 0, Number(localS.semiCleanBurrachi) || 0);
+    const dirtyBurrachi = Math.max(Number(c.dirtyBurrachi) || 0, Number(localS.dirtyBurrachi) || 0);
+    const totalBurrachi = cleanBurrachi + semiCleanBurrachi + dirtyBurrachi;
+    const closures = Math.max(Number(c.closures) || 0, Number(localS.closures) || 0);
+    const bestHandScore = Math.max(Number(c.bestHandScore) || 0, Number(localS.bestHandScore) || 0);
+    const isOnline = f.lastSeen ? (Date.now() - new Date(f.lastSeen).getTime() < 5 * 60 * 1000) : false;
 
     friendsLeaderboardData.push({
       uid: f.uid,
@@ -122,17 +130,17 @@ export default function PlayersStatsModal({
       photoURL: f.photoURL,
       isMe: false,
       isOnline,
-      totalPoints: Number(c.totalPoints) || 0,
+      totalPoints,
       gamesPlayed: played,
       gamesWon: won,
       gamesLost: lost,
-      winRate: winRate,
-      cleanBurrachi: Number(c.cleanBurrachi) || 0,
-      semiCleanBurrachi: Number(c.semiCleanBurrachi) || 0,
-      dirtyBurrachi: Number(c.dirtyBurrachi) || 0,
-      totalBurrachi: Number(c.totalBurrachi) || totalBurrachi,
-      closures: Number(c.closures) || 0,
-      bestHandScore: Number(c.bestHandScore) || 0,
+      winRate,
+      cleanBurrachi,
+      semiCleanBurrachi,
+      dirtyBurrachi,
+      totalBurrachi,
+      closures,
+      bestHandScore,
       avgPointsPerHand: 0,
     });
   });

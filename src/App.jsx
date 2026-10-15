@@ -270,18 +270,44 @@ export default function App() {
     };
   }, [currentUser]);
 
-  // 2d. Sincronizzazione automatica statistiche di carriera dell'utente loggato su Cloud
+  // 2d. Sincronizzazione automatica statistiche di carriera su Cloud (per sé e per tutti i compagni del tavolo)
   useEffect(() => {
     if (!currentUser?.uid) return;
     try {
-      const stats = computeUserCareerStats(currentUser, gamesHistory, activeGame);
-      if (stats) {
-        updateUserCareerStats(currentUser.uid, stats);
+      // 1. Sincronizza le mie statistiche
+      const myStats = computeUserCareerStats(currentUser, gamesHistory, activeGame);
+      if (myStats) {
+        updateUserCareerStats(currentUser.uid, myStats);
       }
+
+      // 2. Sincronizza anche per tutti gli altri amici o utenti registrati presenti al tavolo
+      const candidates = [...(friendsList || []), ...(tablePlayers || []), ...(friendsLiveProfiles || [])];
+      const seenUids = new Set([currentUser.uid]);
+      candidates.forEach(cand => {
+        if (!cand || !cand.uid || seenUids.has(cand.uid)) return;
+        seenUids.add(cand.uid);
+        const candStats = computeUserCareerStats(cand, gamesHistory, activeGame);
+        if (candStats && candStats.totalPoints > 0) {
+          const existing = cand.careerStats || {};
+          const merged = {
+            totalPoints: Math.max(Number(existing.totalPoints) || 0, Number(candStats.totalPoints) || 0),
+            gamesPlayed: Math.max(Number(existing.gamesPlayed) || 0, Number(candStats.gamesPlayed) || 0),
+            gamesWon: Math.max(Number(existing.gamesWon) || 0, Number(candStats.gamesWon) || 0),
+            winRate: Math.max(Number(existing.winRate) || 0, Number(candStats.winRate) || 0),
+            cleanBurrachi: Math.max(Number(existing.cleanBurrachi) || 0, Number(candStats.cleanBurrachi) || 0),
+            semiCleanBurrachi: Math.max(Number(existing.semiCleanBurrachi) || 0, Number(candStats.semiCleanBurrachi) || 0),
+            dirtyBurrachi: Math.max(Number(existing.dirtyBurrachi) || 0, Number(candStats.dirtyBurrachi) || 0),
+            closures: Math.max(Number(existing.closures) || 0, Number(candStats.closures) || 0),
+            bestHandScore: Math.max(Number(existing.bestHandScore) || 0, Number(candStats.bestHandScore) || 0),
+            trophiesCount: Math.max(Number(existing.trophiesCount) || 0, Number(candStats.trophiesCount) || 0),
+          };
+          updateUserCareerStats(cand.uid, merged);
+        }
+      });
     } catch (e) {
       console.warn('Sync career stats error:', e);
     }
-  }, [currentUser, gamesHistory, activeGame?.rounds]);
+  }, [currentUser, gamesHistory, activeGame?.rounds, friendsList, tablePlayers]);
 
   // 2e. Ascolto in tempo reale dei profili e statistiche live degli amici confermati
   useEffect(() => {

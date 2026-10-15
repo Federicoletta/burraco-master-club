@@ -436,9 +436,14 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
   const myEmail = (user.email || '').trim().toLowerCase();
 
   const aliases = new Set([myName.toLowerCase(), myEmail, 'tu']);
+  if (user.uid) aliases.add(String(user.uid).toLowerCase());
   if (user.displayName) {
-    const parts = user.displayName.split(' ');
-    if (parts.length > 0) aliases.add(parts[0].toLowerCase());
+    const full = user.displayName.trim().toLowerCase();
+    aliases.add(full);
+    const parts = user.displayName.trim().split(/\s+/);
+    parts.forEach(pt => {
+      if (pt.length >= 2) aliases.add(pt.toLowerCase());
+    });
   }
 
   const allGames = [...(gamesHistory || [])];
@@ -459,6 +464,22 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
   let closures = 0;
   let bestHandScore = 0;
 
+  const checkMatch = (players) => {
+    return (players || []).some(p => {
+      if (!p) return false;
+      if (typeof p === 'string') {
+        return aliases.has(p.trim().toLowerCase());
+      }
+      if (typeof p === 'object') {
+        const n = (p.name || p.displayName || '').trim().toLowerCase();
+        const em = (p.email || '').trim().toLowerCase();
+        const id = (p.uid || '').trim().toLowerCase();
+        return (n && aliases.has(n)) || (em && aliases.has(em)) || (id && aliases.has(id));
+      }
+      return false;
+    });
+  };
+
   allGames.filter(Boolean).forEach(game => {
     if (!game || typeof game !== 'object') return;
     const isFinished = Boolean(game.isFinished);
@@ -466,9 +487,9 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
     const isTeam2Winner = game.winner === 'team2';
     const isTeam3Winner = game.winner === 'team3';
 
-    const t1Match = (game.team1?.players || []).some(p => aliases.has(String(p).trim().toLowerCase()));
-    const t2Match = (game.team2?.players || []).some(p => aliases.has(String(p).trim().toLowerCase()));
-    const t3Match = (game.team3?.players || []).some(p => aliases.has(String(p).trim().toLowerCase()));
+    const t1Match = checkMatch(game.team1?.players);
+    const t2Match = checkMatch(game.team2?.players);
+    const t3Match = checkMatch(game.team3?.players);
 
     if (!t1Match && !t2Match && !t3Match) {
       if (game.ownerUid !== user.uid) return;
