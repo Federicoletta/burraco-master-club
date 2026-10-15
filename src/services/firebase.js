@@ -51,17 +51,20 @@ export async function loginWithGoogle() {
   if (!auth) throw new Error('Firebase Auth non inizializzato');
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-    // Registra/aggiorna il profilo utente su Firestore
+    // Registra/aggiorna il profilo utente su Firestore in background
     if (db && user) {
-      const userRef = doc(db, 'burraco_users', user.uid);
-      await setDoc(userRef, {
-        uid: user.uid,
-        displayName: user.displayName || 'Giocatore Burraco',
-        email: user.email,
-        photoURL: user.photoURL,
-        lastLogin: new Date().toISOString()
-      }, { merge: true });
+      try {
+        const userRef = doc(db, 'burraco_users', user.uid);
+        await setDoc(userRef, {
+          uid: user.uid,
+          displayName: user.displayName || 'Giocatore Burraco',
+          email: user.email,
+          photoURL: user.photoURL,
+          lastLogin: new Date().toISOString()
+        }, { merge: true });
+      } catch (firestoreErr) {
+        console.warn('Avviso: impossibile salvare profilo su Firestore (regole di sicurezza o offline):', firestoreErr);
+      }
     }
     return user;
   } catch (err) {
