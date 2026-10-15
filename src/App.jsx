@@ -1248,6 +1248,9 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onClose={() => setIsEditTeamsOpen(false)}
         activeGame={activeGame}
         playersList={playersList}
+        tablePlayers={tablePlayers}
+        currentUser={currentUser}
+        friendsList={friendsList}
         onSave={handleUpdateTeams}
       />
 

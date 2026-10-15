@@ -138,7 +138,7 @@ export default function Header({
         </div>
 
         {/* Azioni barra superiore - Pulite, ordinate e intuitive */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           
           {/* 1. Modalità Torneo (Visibile e valorizzato) */}
           {onOpenTournament && (
@@ -485,11 +485,12 @@ export default function Header({
           <button
             type="button"
             onClick={onNewGame}
-            className="h-9 sm:h-10 px-3 sm:px-4 py-1.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-md shadow-amber-950/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap touch-manipulation select-none"
+            className="h-8.5 sm:h-10 px-2.5 sm:px-4 py-1.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-md shadow-amber-950/40 transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap touch-manipulation select-none"
             title="Inizia una nuova partita"
           >
             <PlusCircle className="w-4 h-4 text-emerald-950 shrink-0 pointer-events-none" />
-            <span className="pointer-events-none">+ Nuova Partita</span>
+            <span className="pointer-events-none hidden sm:inline">+ Nuova Partita</span>
+            <span className="pointer-events-none sm:hidden font-black">+ Nuova</span>
           </button>
 
         </div>
