@@ -426,3 +426,101 @@ export function calculatePlayerStats(playersList, gamesHistory = [], activeGame 
     return b.totalPoints - a.totalPoints;
   });
 }
+
+/**
+ * Calcola le statistiche di carriera aggregate di un singolo utente autenticato
+ */
+export function computeUserCareerStats(user, gamesHistory = [], activeGame = null) {
+  if (!user) return null;
+  const myName = (user.displayName || user.email?.split('@')[0] || '').trim();
+  const myEmail = (user.email || '').trim().toLowerCase();
+
+  const aliases = new Set([myName.toLowerCase(), myEmail, 'tu']);
+  if (user.displayName) {
+    const parts = user.displayName.split(' ');
+    if (parts.length > 0) aliases.add(parts[0].toLowerCase());
+  }
+
+  const allGames = [...(gamesHistory || [])];
+  if (activeGame && activeGame.rounds && activeGame.rounds.length > 0) {
+    if (!allGames.some(g => g.id === activeGame.id)) {
+      allGames.push(activeGame);
+    }
+  }
+
+  let gamesPlayed = 0;
+  let gamesWon = 0;
+  let gamesLost = 0;
+  let totalPoints = 0;
+  let totalHands = 0;
+  let cleanBurrachi = 0;
+  let semiCleanBurrachi = 0;
+  let dirtyBurrachi = 0;
+  let closures = 0;
+  let bestHandScore = 0;
+
+  allGames.filter(Boolean).forEach(game => {
+    if (!game || typeof game !== 'object') return;
+    const isFinished = Boolean(game.isFinished);
+    const isTeam1Winner = game.winner === 'team1';
+    const isTeam2Winner = game.winner === 'team2';
+    const isTeam3Winner = game.winner === 'team3';
+
+    const t1Match = (game.team1?.players || []).some(p => aliases.has(String(p).trim().toLowerCase()));
+    const t2Match = (game.team2?.players || []).some(p => aliases.has(String(p).trim().toLowerCase()));
+    const t3Match = (game.team3?.players || []).some(p => aliases.has(String(p).trim().toLowerCase()));
+
+    if (!t1Match && !t2Match && !t3Match) {
+      if (game.ownerUid !== user.uid) return;
+    }
+
+    const teamKey = t1Match ? 'team1' : t2Match ? 'team2' : t3Match ? 'team3' : 'team1';
+    const isWinner = (teamKey === 'team1' && isTeam1Winner) || (teamKey === 'team2' && isTeam2Winner) || (teamKey === 'team3' && isTeam3Winner);
+    const detailsKey = `${teamKey}Details`;
+    const scoreKey = `${teamKey}Score`;
+
+    const roundsCount = (game.rounds || []).length;
+    totalHands += roundsCount;
+
+    (game.rounds || []).filter(Boolean).forEach(r => {
+      const s = Number(r[scoreKey]) || 0;
+      totalPoints += s;
+      if (s > bestHandScore) bestHandScore = s;
+
+      const d = r[detailsKey];
+      if (d) {
+        cleanBurrachi += Number(d.burracoPulito) || 0;
+        semiCleanBurrachi += Number(d.burracoSemipulito) || 0;
+        dirtyBurrachi += Number(d.burracoSporco) || 0;
+        if (d.chiusura) closures += 1;
+      }
+    });
+
+    if (isFinished) {
+      gamesPlayed += 1;
+      if (isWinner) {
+        gamesWon += 1;
+      } else if (isTeam1Winner || isTeam2Winner || isTeam3Winner) {
+        gamesLost += 1;
+      }
+    }
+  });
+
+  const winRate = gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0;
+  const totalBurrachi = cleanBurrachi + semiCleanBurrachi + dirtyBurrachi;
+
+  return {
+    totalPoints,
+    gamesPlayed,
+    gamesWon,
+    gamesLost,
+    winRate,
+    cleanBurrachi,
+    semiCleanBurrachi,
+    dirtyBurrachi,
+    totalBurrachi,
+    closures,
+    bestHandScore,
+    trophiesCount: 0
+  };
+}

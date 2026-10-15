@@ -32,7 +32,8 @@ import {
   savePlayerName,
   deletePlayerName,
   renamePlayer,
-  setStoredPlayers
+  setStoredPlayers,
+  computeUserCareerStats
 } from './utils/storage';
 import { 
   syncGameToCloud, 
@@ -50,7 +51,9 @@ import {
   subscribeToUserGuests,
   cleanupLegacyCloudDatabase,
   joinCloudGame,
-  fetchTablePlayers
+  fetchTablePlayers,
+  updateUserCareerStats,
+  subscribeToFriendsLiveProfiles
 } from './services/firebase';
 import {
   getActiveTournament,
@@ -76,6 +79,7 @@ export default function App() {
   // Social & Notifications state
   const [notifications, setNotifications] = useState([]);
   const [friendsList, setFriendsList] = useState([]);
+  const [friendsLiveProfiles, setFriendsLiveProfiles] = useState([]);
   const [tablePlayers, setTablePlayers] = useState([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [toastNotification, setToastNotification] = useState(null);
@@ -265,6 +269,33 @@ export default function App() {
       unsubFriends();
     };
   }, [currentUser]);
+
+  // 2d. Sincronizzazione automatica statistiche di carriera dell'utente loggato su Cloud
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    try {
+      const stats = computeUserCareerStats(currentUser, gamesHistory, activeGame);
+      if (stats) {
+        updateUserCareerStats(currentUser.uid, stats);
+      }
+    } catch (e) {
+      console.warn('Sync career stats error:', e);
+    }
+  }, [currentUser, gamesHistory, activeGame?.rounds]);
+
+  // 2e. Ascolto in tempo reale dei profili e statistiche live degli amici confermati
+  useEffect(() => {
+    if (!currentUser || !Array.isArray(friendsList) || friendsList.length === 0) {
+      setFriendsLiveProfiles([]);
+      return;
+    }
+    const unsub = subscribeToFriendsLiveProfiles(friendsList, (liveProfiles) => {
+      setFriendsLiveProfiles(liveProfiles);
+    });
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [currentUser, friendsList]);
 
   // 3. Ascolto real-time della partita attiva da Firestore (Multi-device live sync)
   useEffect(() => {
@@ -1201,6 +1232,8 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         gamesHistory={gamesHistory}
         activeGame={activeGame}
         currentUser={currentUser}
+        friendsList={friendsList}
+        friendsLiveProfiles={friendsLiveProfiles}
       />
 
       {/* 4. Modal Storico Partite */}

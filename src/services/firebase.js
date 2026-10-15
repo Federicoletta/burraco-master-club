@@ -507,4 +507,74 @@ export async function fetchTablePlayers(uids = [], emails = []) {
   }
 }
 
+/**
+ * Salva o aggiorna le statistiche globali di carriera dell'utente sul suo profilo Firestore
+ */
+export async function updateUserCareerStats(userId, stats) {
+  if (!db || !userId || !stats) return false;
+  try {
+    const userRef = doc(db, 'burraco_users', userId);
+    await setDoc(userRef, {
+      careerStats: {
+        totalPoints: Number(stats.totalPoints) || 0,
+        gamesPlayed: Number(stats.gamesPlayed) || 0,
+        gamesWon: Number(stats.gamesWon) || 0,
+        winRate: Number(stats.winRate) || 0,
+        cleanBurrachi: Number(stats.cleanBurrachi) || 0,
+        semiCleanBurrachi: Number(stats.semiCleanBurrachi) || 0,
+        dirtyBurrachi: Number(stats.dirtyBurrachi) || 0,
+        closures: Number(stats.closures) || 0,
+        bestHandScore: Number(stats.bestHandScore) || 0,
+        trophiesCount: Number(stats.trophiesCount) || 0,
+        updatedAt: new Date().toISOString()
+      }
+    }, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn('Errore updateUserCareerStats:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Ascolta in tempo reale i profili e le statistiche di carriera di tutti i propri amici
+ */
+export function subscribeToFriendsLiveProfiles(friendsList, onUpdate) {
+  if (!db || !Array.isArray(friendsList) || friendsList.length === 0) {
+    if (onUpdate) onUpdate([]);
+    return () => {};
+  }
+
+  const unsubs = [];
+  const profilesMap = {};
+
+  friendsList.forEach(friend => {
+    const uid = friend.uid;
+    if (!uid) return;
+    try {
+      const uRef = doc(db, 'burraco_users', uid);
+      const unsub = onSnapshot(uRef, (snap) => {
+        if (snap.exists()) {
+          profilesMap[uid] = {
+            ...friend,
+            ...snap.data()
+          };
+        } else {
+          profilesMap[uid] = friend;
+        }
+        if (onUpdate) onUpdate(Object.values(profilesMap));
+      }, (err) => {
+        console.warn('Errore listener amico:', uid, err.message);
+      });
+      unsubs.push(unsub);
+    } catch (e) {
+      console.warn('Errore subscription amico:', uid, e);
+    }
+  });
+
+  return () => {
+    unsubs.forEach(unsub => unsub());
+  };
+}
+
 

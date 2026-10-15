@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull, BookUser, Edit2, Check, BarChart3 } from 'lucide-react';
-import { calculatePlayerStats } from '../utils/storage';
+import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull, BookUser, Edit2, Check, BarChart3, Sparkles, Users, Globe, Wifi } from 'lucide-react';
+import { calculatePlayerStats, computeUserCareerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 import { sound } from '../utils/soundEffects';
 import StatsCharts from './StatsCharts';
@@ -30,11 +30,14 @@ export default function PlayersStatsModal({
   onRenamePlayer,
   gamesHistory,
   activeGame,
-  currentUser
+  currentUser,
+  friendsList = [],
+  friendsLiveProfiles = []
 }) {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [mainCategory, setMainCategory] = useState('stats'); // 'stats' | 'roster'
   const [activeTab, setActiveTab] = useState('ranking'); // 'ranking' | 'trend' | 'trophies' | 'roster'
+  const [rankingScope, setRankingScope] = useState(currentUser ? 'friends' : 'local'); // 'friends' | 'local'
   const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
   const [selectedPlayerForTrend, setSelectedPlayerForTrend] = useState(null);
   const [selectedPlayerForTrophies, setSelectedPlayerForTrophies] = useState(null);
@@ -48,7 +51,108 @@ export default function PlayersStatsModal({
   const [isDeathBlackout, setIsDeathBlackout] = useState(false);
   const [currentEulogy, setCurrentEulogy] = useState('');
 
+  // Statistiche del dispositivo locale
   const stats = calculatePlayerStats(playersList, gamesHistory, activeGame);
+
+  // Statistiche di carriera dell'utente loggato
+  const myCareer = currentUser ? (computeUserCareerStats(currentUser, gamesHistory, activeGame) || {
+    totalPoints: 0,
+    gamesPlayed: 0,
+    gamesWon: 0,
+    gamesLost: 0,
+    winRate: 0,
+    cleanBurrachi: 0,
+    semiCleanBurrachi: 0,
+    dirtyBurrachi: 0,
+    totalBurrachi: 0,
+    closures: 0,
+    bestHandScore: 0,
+    totalHands: 0,
+    avgPointsPerHand: 0
+  }) : null;
+
+  // Unione profili amici in tempo reale da Firestore
+  const effectiveFriends = (friendsLiveProfiles && friendsLiveProfiles.length > 0)
+    ? friendsLiveProfiles
+    : (friendsList || []);
+
+  const friendsLeaderboardData = [];
+
+  // Inserisci l'utente corrente nella leaderboard amici
+  if (currentUser && myCareer) {
+    friendsLeaderboardData.push({
+      uid: currentUser.uid,
+      name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Tu',
+      displayName: currentUser.displayName || 'Tu',
+      email: currentUser.email,
+      photoURL: currentUser.photoURL,
+      isMe: true,
+      isOnline: true,
+      totalPoints: myCareer.totalPoints,
+      gamesPlayed: myCareer.gamesPlayed,
+      gamesWon: myCareer.gamesWon,
+      gamesLost: myCareer.gamesLost || 0,
+      winRate: myCareer.winRate,
+      cleanBurrachi: myCareer.cleanBurrachi,
+      semiCleanBurrachi: myCareer.semiCleanBurrachi,
+      dirtyBurrachi: myCareer.dirtyBurrachi,
+      totalBurrachi: myCareer.totalBurrachi,
+      closures: myCareer.closures,
+      bestHandScore: myCareer.bestHandScore,
+      avgPointsPerHand: myCareer.avgPointsPerHand || 0,
+    });
+  }
+
+  // Aggiungi tutti gli amici con le loro statistiche di carriera live
+  effectiveFriends.forEach(f => {
+    if (currentUser && f.uid === currentUser.uid) return;
+    const c = f.careerStats || {};
+    const totalBurrachi = (Number(c.cleanBurrachi) || 0) + (Number(c.semiCleanBurrachi) || 0) + (Number(c.dirtyBurrachi) || 0);
+    const isOnline = f.lastSeen ? (Date.now() - new Date(f.lastSeen).getTime() < 5 * 60 * 1000) : false;
+    const played = Number(c.gamesPlayed) || 0;
+    const won = Number(c.gamesWon) || 0;
+    const lost = Math.max(0, played - won);
+    const winRate = Number(c.winRate) || (played > 0 ? Math.round((won / played) * 100) : 0);
+
+    friendsLeaderboardData.push({
+      uid: f.uid,
+      name: f.displayName || f.email?.split('@')[0] || 'Amico',
+      displayName: f.displayName,
+      email: f.email,
+      photoURL: f.photoURL,
+      isMe: false,
+      isOnline,
+      totalPoints: Number(c.totalPoints) || 0,
+      gamesPlayed: played,
+      gamesWon: won,
+      gamesLost: lost,
+      winRate: winRate,
+      cleanBurrachi: Number(c.cleanBurrachi) || 0,
+      semiCleanBurrachi: Number(c.semiCleanBurrachi) || 0,
+      dirtyBurrachi: Number(c.dirtyBurrachi) || 0,
+      totalBurrachi: Number(c.totalBurrachi) || totalBurrachi,
+      closures: Number(c.closures) || 0,
+      bestHandScore: Number(c.bestHandScore) || 0,
+      avgPointsPerHand: 0,
+    });
+  });
+
+  // Ordinamento classifica amici
+  const sortedFriendsStats = [...friendsLeaderboardData].sort((a, b) => {
+    if (sortBy === 'burrachi') {
+      return b.totalBurrachi - a.totalBurrachi || b.cleanBurrachi - a.cleanBurrachi || b.totalPoints - a.totalPoints;
+    }
+    if (sortBy === 'winrate') {
+      return b.winRate - a.winRate || b.gamesWon - a.gamesWon || b.totalPoints - a.totalPoints;
+    }
+    return b.totalPoints - a.totalPoints || b.winRate - a.winRate;
+  });
+
+  const maxFriendsVal = sortBy === 'burrachi'
+    ? Math.max(...sortedFriendsStats.map(s => s.totalBurrachi), 1)
+    : sortBy === 'winrate'
+    ? 100
+    : Math.max(...sortedFriendsStats.map(s => s.totalPoints), 1);
 
   // Gestione Blackout di 5 secondi
   useEffect(() => {
@@ -277,11 +381,57 @@ export default function PlayersStatsModal({
         {/* CONTENUTO PRINCIPALE */}
         <div className="my-3.5 max-h-[62vh] overflow-y-auto pr-1">
           
-          {/* TAB 1: CLASSIFICA UNIFICATA */}
+          {/* TAB 1: CLASSIFICA UNIFICATA & AMICI CLOUD */}
           {activeTab === 'ranking' && (
             <div className="space-y-3">
               
-              {/* Barra Strumenti: Criterio Ordinamento + Aggiungi Giocatore Rapido */}
+              {/* Selettore Ambito: ⭐ Amici Club (Cloud Live) vs 👥 Ospiti Tavolo Locale */}
+              <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-emerald-950/90 border border-emerald-800/80 shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setRankingScope('friends')}
+                  className={`min-h-[38px] py-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98] select-none ${
+                    rankingScope === 'friends'
+                      ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-emerald-950 shadow-md font-black'
+                      : 'text-emerald-300/80 hover:text-white hover:bg-emerald-900/40'
+                  }`}
+                >
+                  <div className="relative flex items-center shrink-0">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 absolute -top-0.5 -right-0.5 animate-pulse" />
+                  </div>
+                  <span className="truncate">Amici Club (Live Cloud)</span>
+                  {friendsLeaderboardData.length > 0 && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black shrink-0 ${
+                      rankingScope === 'friends' ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-800 text-emerald-200'
+                    }`}>
+                      {friendsLeaderboardData.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRankingScope('local')}
+                  className={`min-h-[38px] py-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98] select-none ${
+                    rankingScope === 'local'
+                      ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
+                      : 'text-emerald-300/80 hover:text-white hover:bg-emerald-900/40'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Ospiti Locali</span>
+                  {playersList.length > 0 && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black shrink-0 ${
+                      rankingScope === 'local' ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-800 text-emerald-200'
+                    }`}>
+                      {playersList.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Barra Strumenti: Criterio Ordinamento + Azioni Contestuali */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[11px] text-emerald-300 font-semibold shrink-0 mr-1">Ordina:</span>
@@ -322,169 +472,340 @@ export default function PlayersStatsModal({
                   </div>
                 </div>
 
-                {/* Form inserimento partecipante compatto */}
-                <form onSubmit={handleAdd} className="flex gap-1.5">
-                  <input
-                    type="text"
-                    placeholder="Nuovo giocatore..."
-                    value={newPlayerName}
-                    onChange={(e) => setNewPlayerName(e.target.value)}
-                    className="flex-1 sm:w-44 px-2.5 py-1 rounded-lg bg-emerald-900/80 border border-emerald-700/60 text-white placeholder-emerald-400/50 text-xs focus:outline-none focus:border-amber-400"
-                  />
-                  <button
-                    type="submit"
-                    className="px-3 py-1 rounded-lg gold-gradient hover:brightness-110 text-emerald-950 font-bold text-xs flex items-center gap-1 shadow-sm cursor-pointer shrink-0"
-                  >
-                    <UserPlus className="w-3.5 h-3.5 text-emerald-950" />
-                    <span>Aggiungi</span>
-                  </button>
-                </form>
+                {rankingScope === 'friends' ? (
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-300/80 bg-emerald-900/40 px-2.5 py-1 rounded-lg border border-emerald-800/50">
+                    <Wifi className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
+                    <span>Aggiornato live da ogni dispositivo</span>
+                  </div>
+                ) : (
+                  /* Form inserimento partecipante locale */
+                  <form onSubmit={handleAdd} className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Nuovo giocatore..."
+                      value={newPlayerName}
+                      onChange={(e) => setNewPlayerName(e.target.value)}
+                      className="flex-1 sm:w-44 px-2.5 py-1 rounded-lg bg-emerald-900/80 border border-emerald-700/60 text-white placeholder-emerald-400/50 text-xs focus:outline-none focus:border-amber-400"
+                    />
+                    <button
+                      type="submit"
+                      className="px-3 py-1 rounded-lg gold-gradient hover:brightness-110 text-emerald-950 font-bold text-xs flex items-center gap-1 shadow-sm cursor-pointer shrink-0"
+                    >
+                      <UserPlus className="w-3.5 h-3.5 text-emerald-950" />
+                      <span>Aggiungi</span>
+                    </button>
+                  </form>
+                )}
               </div>
 
-              {/* Lista Giocatori con Podio e Dati Completi */}
-              {sortedStats.length === 0 ? (
-                <div className="text-center py-10 text-emerald-300/70 text-xs">
-                  Nessun partecipante registrato. Aggiungi il primo giocatore sopra!
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {sortedStats.map((p, index) => {
-                    const titleInfo = getPlayerTitle(p);
-                    
-                    // Valore e percentuale per la barra visuale
-                    let currentVal = p.totalPoints;
-                    let primaryText = `${p.totalPoints.toLocaleString('it-IT')} pt`;
-                    let subText = `med. ${p.avgPointsPerHand} pt/mano`;
+              {/* CONTENUTO SCOPE: AMICI CLUB (LIVE CLOUD) */}
+              {rankingScope === 'friends' && (
+                <div>
+                  {!currentUser ? (
+                    <div className="text-center py-8 px-4 rounded-xl bg-emerald-950/60 border border-emerald-800/60 space-y-2">
+                      <Globe className="w-8 h-8 text-amber-400 mx-auto opacity-80" />
+                      <h4 className="text-sm font-bold text-white m-0">Accedi per sfidare i tuoi Amici</h4>
+                      <p className="text-xs text-emerald-300/80 max-w-md mx-auto m-0">
+                        Esegui il login con il tuo account Google per visualizzare le carriere, i trofei e le statistiche in tempo reale dei tuoi amici ogni volta che giocano ovunque nel mondo.
+                      </p>
+                    </div>
+                  ) : sortedFriendsStats.length === 0 ? (
+                    <div className="text-center py-8 px-4 rounded-xl bg-emerald-950/60 border border-emerald-800/60 space-y-2">
+                      <Users className="w-8 h-8 text-amber-400 mx-auto opacity-80" />
+                      <h4 className="text-sm font-bold text-white m-0">Nessun amico nel tuo Burraco Club</h4>
+                      <p className="text-xs text-emerald-300/80 max-w-md mx-auto m-0">
+                        Aggiungi i tuoi compagni di gioco inviando una richiesta di amicizia o condividendo il tavolo. Le loro statistiche si aggiorneranno automaticamente qui in tempo reale!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {sortedFriendsStats.map((p, index) => {
+                        const titleInfo = getPlayerTitle(p);
+                        
+                        let currentVal = p.totalPoints;
+                        let primaryText = `${p.totalPoints.toLocaleString('it-IT')} pt`;
+                        let subText = `${p.gamesPlayed} partite disputate`;
 
-                    if (sortBy === 'burrachi') {
-                      currentVal = p.totalBurrachi;
-                      primaryText = `${p.totalBurrachi} burrachi`;
-                      subText = `${p.cleanBurrachi}P • ${p.semiCleanBurrachi}S • ${p.dirtyBurrachi}I`;
-                    } else if (sortBy === 'winrate') {
-                      currentVal = p.winRate;
-                      primaryText = `${p.winRate}% vittorie`;
-                      subText = `${p.gamesWon}V / ${p.gamesLost}P (${p.gamesPlayed} tot)`;
-                    }
+                        if (sortBy === 'burrachi') {
+                          currentVal = p.totalBurrachi;
+                          primaryText = `${p.totalBurrachi} burrachi`;
+                          subText = `${p.cleanBurrachi}P • ${p.semiCleanBurrachi}S • ${p.dirtyBurrachi}I`;
+                        } else if (sortBy === 'winrate') {
+                          currentVal = p.winRate;
+                          primaryText = `${p.winRate}% vittorie`;
+                          subText = `${p.gamesWon}V / ${p.gamesLost}P (${p.gamesPlayed} tot)`;
+                        }
 
-                    // Se ha 0 punti, pct è 0: niente barra ingannevole!
-                    const pct = currentVal > 0 && maxVal > 0 ? Math.round((currentVal / maxVal) * 100) : 0;
+                        const pct = currentVal > 0 && maxFriendsVal > 0 ? Math.round((currentVal / maxFriendsVal) * 100) : 0;
 
-                    return (
-                      <div 
-                        key={p.name}
-                        className="p-3 sm:p-3.5 rounded-xl bg-emerald-950/75 border border-emerald-700/40 hover:border-amber-500/40 transition-all space-y-2.5 shadow-sm"
-                      >
-                        {/* Riga 1: Podio + Nome Giocatore + Valore Primario */}
-                        <div className="flex items-center justify-between gap-2.5">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {/* Podio Rank Badge */}
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm ${
-                              index === 0 
-                                ? 'gold-gradient text-emerald-950 shadow-amber-500/20' 
-                                : index === 1 
-                                ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900 font-bold' 
-                                : index === 2 
-                                ? 'bg-gradient-to-br from-amber-700 to-amber-900 text-amber-100 font-bold' 
-                                : 'bg-emerald-900/80 border border-emerald-800 text-emerald-400 font-mono'
-                            }`}>
-                              {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-                            </div>
+                        return (
+                          <div 
+                            key={p.uid || p.name}
+                            className={`p-3 sm:p-3.5 rounded-xl border transition-all space-y-2.5 shadow-sm ${
+                              p.isMe
+                                ? 'bg-gradient-to-r from-emerald-950/90 via-emerald-900/60 to-emerald-950/90 border-amber-500/60 shadow-amber-500/10'
+                                : 'bg-emerald-950/75 border-emerald-700/40 hover:border-amber-500/40'
+                            }`}
+                          >
+                            {/* Riga 1: Podio + Avatar + Nome + Badge Titolo + Valore Primario */}
+                            <div className="flex items-center justify-between gap-2.5">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {/* Podio Rank Badge */}
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm ${
+                                  index === 0 
+                                    ? 'gold-gradient text-emerald-950 shadow-amber-500/20' 
+                                    : index === 1 
+                                    ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900 font-bold' 
+                                    : index === 2 
+                                    ? 'bg-gradient-to-br from-amber-700 to-amber-900 text-amber-100 font-bold' 
+                                    : 'bg-emerald-900/80 border border-emerald-800 text-emerald-400 font-mono'
+                                }`}>
+                                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                                </div>
 
-                            {/* Nome & Titolo Onorifico */}
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <h4 className="text-sm sm:text-base font-extrabold text-white m-0 truncate">
-                                  {p.name}
-                                </h4>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-900/90 text-amber-300 border border-amber-500/30 flex items-center gap-1 shrink-0">
-                                  <span>{titleInfo.icon}</span>
-                                  <span>{titleInfo.title}</span>
-                                </span>
+                                {/* Avatar con indicatore Online */}
+                                <div className="relative shrink-0">
+                                  {p.photoURL ? (
+                                    <img 
+                                      src={p.photoURL} 
+                                      alt={p.name} 
+                                      className="w-8 h-8 rounded-full border border-amber-400/50 object-cover" 
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-emerald-800 border border-emerald-600 text-amber-300 font-bold flex items-center justify-center text-xs">
+                                      {p.name.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  {p.isOnline && (
+                                    <span 
+                                      className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-emerald-950 shadow-xs" 
+                                      title="Online adesso"
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Nome & Titolo Onorifico */}
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <h4 className="text-sm sm:text-base font-extrabold text-white m-0 truncate">
+                                      {p.displayName || p.name}
+                                    </h4>
+                                    {p.isMe && (
+                                      <span className="px-1.5 py-0.2 rounded-md bg-amber-400 text-emerald-950 font-black text-[10px]">
+                                        Tu
+                                      </span>
+                                    )}
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-900/90 text-amber-300 border border-amber-500/30 flex items-center gap-1 shrink-0">
+                                      <span>{titleInfo.icon}</span>
+                                      <span>{titleInfo.title}</span>
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Punteggio/Metrica Evidenziata */}
+                              <div className="text-right shrink-0">
+                                <div className="text-sm sm:text-base font-black text-amber-300">
+                                  {primaryText}
+                                </div>
+                                <div className="text-[10px] text-emerald-400/80">
+                                  {subText}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Punteggio/Metrica Evidenziata */}
-                          <div className="text-right shrink-0">
-                            <div className="text-sm sm:text-base font-black text-amber-300">
-                              {primaryText}
+                            {/* Riga 2: Barra di Progressione Reale */}
+                            <div className="h-2 w-full bg-emerald-950 rounded-full border border-emerald-800/60 overflow-hidden">
+                              {pct > 0 && (
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    index === 0
+                                      ? 'bg-gradient-to-r from-amber-500 to-yellow-300 shadow-[0_0_8px_rgba(251,191,36,0.4)]'
+                                      : index === 1
+                                      ? 'bg-gradient-to-r from-emerald-400 to-teal-300'
+                                      : 'bg-gradient-to-r from-emerald-600 to-teal-500'
+                                  }`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              )}
                             </div>
-                            <div className="text-[10px] text-emerald-400/80">
-                              {subText}
+
+                            {/* Riga 3: Chips Statistiche Compatte di Carriera */}
+                            <div className="flex flex-wrap items-center gap-1 text-[10px] pt-1 border-t border-emerald-900/60">
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
+                                🎯 <strong>{p.totalPoints.toLocaleString('it-IT')}</strong> pt
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
+                                💎 <strong>{p.totalBurrachi}</strong> burr. ({p.cleanBurrachi}P · {p.semiCleanBurrachi}S · {p.dirtyBurrachi}I)
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-amber-300/90 border border-emerald-800/60">
+                                🏆 <strong>{p.winRate}%</strong> ({p.gamesWon}V/{p.gamesLost}P)
+                              </span>
+                              {p.bestHandScore > 0 && (
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
+                                  ⚡ Record: <strong>+{p.bestHandScore}</strong>
+                                </span>
+                              )}
+                              {p.closures > 0 && (
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
+                                  🔒 Chiusure: <strong>{p.closures}</strong>
+                                </span>
+                              )}
                             </div>
                           </div>
-                        </div>
-
-                        {/* Riga 2: Barra di Progressione Reale (0% se 0 punti) */}
-                        <div className="h-2 w-full bg-emerald-950 rounded-full border border-emerald-800/60 overflow-hidden">
-                          {pct > 0 && (
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                index === 0
-                                  ? 'bg-gradient-to-r from-amber-500 to-yellow-300 shadow-[0_0_8px_rgba(251,191,36,0.4)]'
-                                  : index === 1
-                                  ? 'bg-gradient-to-r from-emerald-400 to-teal-300'
-                                  : 'bg-gradient-to-r from-emerald-600 to-teal-500'
-                              }`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          )}
-                        </div>
-
-                        {/* Riga 3: Chips Statistiche Compatte + Tasti Rapidi */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-emerald-900/60">
-                          {/* Mini badges metriche */}
-                          <div className="flex flex-wrap items-center gap-1 text-[10px]">
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
-                              🎯 <strong>{p.totalPoints.toLocaleString('it-IT')}</strong> pt ({p.avgPointsPerHand} /m)
-                            </span>
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
-                              💎 <strong>{p.totalBurrachi}</strong> burr. ({p.cleanBurrachi}P · {p.semiCleanBurrachi}S · {p.dirtyBurrachi}I)
-                            </span>
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-amber-300/90 border border-emerald-800/60">
-                              🏆 <strong>{p.winRate}%</strong> ({p.gamesWon}V/{p.gamesLost}P)
-                            </span>
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
-                              ⚡ Record: <strong>+{p.bestHandScore}</strong>
-                            </span>
-                          </div>
-
-                          {/* Azioni Giocatore Discrete */}
-                          <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handleViewTrend(p.name)}
-                              className="px-2 py-0.5 rounded-md bg-emerald-900/80 hover:bg-emerald-800 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                              title="Visualizza curva andamento"
-                            >
-                              <TrendingUp className="w-3 h-3 text-amber-400" />
-                              <span>Trend</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleViewTrophies(p.name)}
-                              className="px-2 py-0.5 rounded-md bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                              title="Visualizza trofei sbloccati"
-                            >
-                              <Award className="w-3 h-3 text-amber-400" />
-                              <span>Trofei</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(p.name)}
-                              className="p-1 rounded-md text-emerald-600 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                              title="Rimuovi giocatore"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* CONTENUTO SCOPE: OSPITI TAVOLO LOCALE */}
+              {rankingScope === 'local' && (
+                <div>
+                  {sortedStats.length === 0 ? (
+                    <div className="text-center py-10 text-emerald-300/70 text-xs">
+                      Nessun partecipante registrato. Aggiungi il primo giocatore sopra!
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {sortedStats.map((p, index) => {
+                        const titleInfo = getPlayerTitle(p);
+                        
+                        let currentVal = p.totalPoints;
+                        let primaryText = `${p.totalPoints.toLocaleString('it-IT')} pt`;
+                        let subText = `med. ${p.avgPointsPerHand} pt/mano`;
+
+                        if (sortBy === 'burrachi') {
+                          currentVal = p.totalBurrachi;
+                          primaryText = `${p.totalBurrachi} burrachi`;
+                          subText = `${p.cleanBurrachi}P • ${p.semiCleanBurrachi}S • ${p.dirtyBurrachi}I`;
+                        } else if (sortBy === 'winrate') {
+                          currentVal = p.winRate;
+                          primaryText = `${p.winRate}% vittorie`;
+                          subText = `${p.gamesWon}V / ${p.gamesLost}P (${p.gamesPlayed} tot)`;
+                        }
+
+                        const pct = currentVal > 0 && maxVal > 0 ? Math.round((currentVal / maxVal) * 100) : 0;
+
+                        return (
+                          <div 
+                            key={p.name}
+                            className="p-3 sm:p-3.5 rounded-xl bg-emerald-950/75 border border-emerald-700/40 hover:border-amber-500/40 transition-all space-y-2.5 shadow-sm"
+                          >
+                            {/* Riga 1: Podio + Nome Giocatore + Valore Primario */}
+                            <div className="flex items-center justify-between gap-2.5">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {/* Podio Rank Badge */}
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm ${
+                                  index === 0 
+                                    ? 'gold-gradient text-emerald-950 shadow-amber-500/20' 
+                                    : index === 1 
+                                    ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900 font-bold' 
+                                    : index === 2 
+                                    ? 'bg-gradient-to-br from-amber-700 to-amber-900 text-amber-100 font-bold' 
+                                    : 'bg-emerald-900/80 border border-emerald-800 text-emerald-400 font-mono'
+                                }`}>
+                                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                                </div>
+
+                                {/* Nome & Titolo Onorifico */}
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <h4 className="text-sm sm:text-base font-extrabold text-white m-0 truncate">
+                                      {p.name}
+                                    </h4>
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-900/90 text-amber-300 border border-amber-500/30 flex items-center gap-1 shrink-0">
+                                      <span>{titleInfo.icon}</span>
+                                      <span>{titleInfo.title}</span>
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Punteggio/Metrica Evidenziata */}
+                              <div className="text-right shrink-0">
+                                <div className="text-sm sm:text-base font-black text-amber-300">
+                                  {primaryText}
+                                </div>
+                                <div className="text-[10px] text-emerald-400/80">
+                                  {subText}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Riga 2: Barra di Progressione Reale */}
+                            <div className="h-2 w-full bg-emerald-950 rounded-full border border-emerald-800/60 overflow-hidden">
+                              {pct > 0 && (
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    index === 0
+                                      ? 'bg-gradient-to-r from-amber-500 to-yellow-300 shadow-[0_0_8px_rgba(251,191,36,0.4)]'
+                                      : index === 1
+                                      ? 'bg-gradient-to-r from-emerald-400 to-teal-300'
+                                      : 'bg-gradient-to-r from-emerald-600 to-teal-500'
+                                  }`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              )}
+                            </div>
+
+                            {/* Riga 3: Chips Statistiche Compatte + Tasti Rapidi */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-emerald-900/60">
+                              <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
+                                  🎯 <strong>{p.totalPoints.toLocaleString('it-IT')}</strong> pt ({p.avgPointsPerHand} /m)
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
+                                  💎 <strong>{p.totalBurrachi}</strong> burr. ({p.cleanBurrachi}P · {p.semiCleanBurrachi}S · {p.dirtyBurrachi}I)
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-amber-300/90 border border-emerald-800/60">
+                                  🏆 <strong>{p.winRate}%</strong> ({p.gamesWon}V/{p.gamesLost}P)
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
+                                  ⚡ Record: <strong>+{p.bestHandScore}</strong>
+                                </span>
+                              </div>
+
+                              {/* Azioni Giocatore Discrete */}
+                              <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewTrend(p.name)}
+                                  className="px-2 py-0.5 rounded-md bg-emerald-900/80 hover:bg-emerald-800 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                  title="Visualizza curva andamento"
+                                >
+                                  <TrendingUp className="w-3 h-3 text-amber-400" />
+                                  <span>Trend</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewTrophies(p.name)}
+                                  className="px-2 py-0.5 rounded-md bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                  title="Visualizza trofei sbloccati"
+                                >
+                                  <Award className="w-3 h-3 text-amber-400" />
+                                  <span>Trofei</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(p.name)}
+                                  className="p-1 rounded-md text-emerald-600 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                  title="Rimuovi giocatore"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           )}
 

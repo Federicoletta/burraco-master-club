@@ -64,6 +64,7 @@ service cloud.firestore {
     //   - lastSeen: string | timestamp (optional, max 50 chars if string)
     //   - updatedAt: string | timestamp (optional, max 50 chars if string)
     //   - guests: list (optional, max 200 items)
+    //   - careerStats: map (optional, max 20 keys)
     //
     // Collection: burraco_notifications
     // Document ID: {notificationId}
@@ -206,10 +207,26 @@ service cloud.firestore {
         : (data.keys().size() <= 20);
     }
 
+    function isValidCareerStats(stats) {
+      return stats is map &&
+             stats.keys().size() <= 20 &&
+             (!('totalPoints' in stats) || stats.totalPoints is int || stats.totalPoints is float) &&
+             (!('gamesPlayed' in stats) || stats.gamesPlayed is int || stats.gamesPlayed is float) &&
+             (!('gamesWon' in stats) || stats.gamesWon is int || stats.gamesWon is float) &&
+             (!('winRate' in stats) || stats.winRate is int || stats.winRate is float) &&
+             (!('cleanBurrachi' in stats) || stats.cleanBurrachi is int || stats.cleanBurrachi is float) &&
+             (!('semiCleanBurrachi' in stats) || stats.semiCleanBurrachi is int || stats.semiCleanBurrachi is float) &&
+             (!('dirtyBurrachi' in stats) || stats.dirtyBurrachi is int || stats.dirtyBurrachi is float) &&
+             (!('closures' in stats) || stats.closures is int || stats.closures is float) &&
+             (!('bestHandScore' in stats) || stats.bestHandScore is int || stats.bestHandScore is float) &&
+             (!('trophiesCount' in stats) || stats.trophiesCount is int || stats.trophiesCount is float) &&
+             (!('updatedAt' in stats) || (stats.updatedAt is string && stats.updatedAt.size() <= 50) || stats.updatedAt is timestamp);
+    }
+
     function isValidUser(data, userId) {
       let allowedFields = [
         'uid', 'displayName', 'email', 'photoURL', 'lastLogin', 'lastSeen', 'updatedAt',
-        'guests'
+        'guests', 'careerStats'
       ];
       let requiredFields = [
         'uid', 'displayName', 'email'
@@ -228,7 +245,8 @@ service cloud.firestore {
              (!('lastLogin' in data) || (data.lastLogin is string && data.lastLogin.size() <= 50) || data.lastLogin is timestamp) &&
              (!('lastSeen' in data) || (data.lastSeen is string && data.lastSeen.size() <= 50) || data.lastSeen is timestamp) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp) &&
-             (!('guests' in data) || (data.guests is list && data.guests.size() <= 200));
+             (!('guests' in data) || (data.guests is list && data.guests.size() <= 200)) &&
+             (!('careerStats' in data) || data.careerStats == null || isValidCareerStats(data.careerStats));
     }
 
     // ===============================================================
