@@ -343,22 +343,15 @@ export default function ScoreBoard({
             </div>
 
             <div className="flex items-center gap-1.5 text-xs self-start sm:self-auto shrink-0 flex-wrap">
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] sm:text-[11px] text-emerald-300/70 font-medium">Tavolo:</span>
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-950 text-amber-300 font-mono font-bold text-[11px] sm:text-xs border border-emerald-700/60 max-w-[80px] xs:max-w-[120px] sm:max-w-none truncate">
-                  {activeGame.id}
-                </span>
-              </div>
               {_onShareGame && (
                 <button
                   type="button"
                   onClick={_onShareGame}
-                  className="px-2 sm:px-2.5 py-1 rounded-lg gold-gradient text-emerald-950 font-black text-[10px] sm:text-[11px] hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                  title="Invita amici al tavolo o condividi link"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg gold-gradient text-emerald-950 font-black text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  title="Invita amici al tavolo, mostra PIN o QR Code"
                 >
-                  <UserPlus className="w-3.5 h-3.5 text-emerald-950" />
-                  <span className="hidden xs:inline">Invita Amici</span>
-                  <span className="xs:hidden">Invita</span>
+                  <UserPlus className="w-3.5 h-3.5 text-emerald-950 stroke-[2.5]" />
+                  <span>Invita al Tavolo</span>
                 </button>
               )}
               {isCloudJoined && onLeaveCloudTable && (
