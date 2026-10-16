@@ -18,7 +18,14 @@ const db = getFirestore(app);
 
 async function exportFirestore() {
   console.log('Avvio esportazione database Firestore...');
-  const collections = ['burraco_games', 'burraco_tournaments', 'burraco_meta'];
+  const collections = [
+    'burraco_games', 
+    'burraco_tournaments', 
+    'burraco_meta', 
+    'burraco_users', 
+    'burraco_friends', 
+    'burraco_notifications'
+  ];
   const exportData = {
     exportedAt: new Date().toISOString(),
     projectId: firebaseConfig.projectId,
@@ -50,7 +57,14 @@ async function exportFirestore() {
 
   const outPath = path.join(outDir, 'firestore_export.json');
   fs.writeFileSync(outPath, JSON.stringify(exportData, null, 2), 'utf-8');
-  console.log(`Esportazione completata con successo: ${outPath}`);
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const timestampedPath = path.join(outDir, `firestore_backup_${timestamp}.json`);
+  fs.writeFileSync(timestampedPath, JSON.stringify(exportData, null, 2), 'utf-8');
+
+  console.log(`Esportazione completata con successo:`);
+  console.log(`- ${outPath}`);
+  console.log(`- ${timestampedPath}`);
   process.exit(0);
 }
 
