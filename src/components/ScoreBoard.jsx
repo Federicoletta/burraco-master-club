@@ -345,7 +345,7 @@ export default function ScoreBoard({
             <div className="flex items-center gap-1.5 text-xs self-start sm:self-auto shrink-0 flex-wrap">
               <div className="flex items-center gap-1">
                 <span className="text-[10px] sm:text-[11px] text-emerald-300/70 font-medium">Tavolo:</span>
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-950 text-amber-300 font-mono font-bold text-[11px] sm:text-xs border border-emerald-700/60 max-w-[120px] sm:max-w-none truncate">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-950 text-amber-300 font-mono font-bold text-[11px] sm:text-xs border border-emerald-700/60 max-w-[80px] xs:max-w-[120px] sm:max-w-none truncate">
                   {activeGame.id}
                 </span>
               </div>
