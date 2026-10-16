@@ -1314,6 +1314,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onStartGame={handleStartGame}
         availablePlayers={playersList}
         friendsList={friendsList}
+        currentUser={currentUser}
         hasActiveGame={Boolean(activeGame && activeGame.rounds && activeGame.rounds.length > 0)}
         initialSetup={newGameInitialSetup}
       />

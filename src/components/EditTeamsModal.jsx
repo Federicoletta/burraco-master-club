@@ -360,6 +360,7 @@ export default function EditTeamsModal({
                     onChange={setT1P1}
                     onFocus={() => setActiveTargetField('t1P1')}
                     onClick={() => setActiveTargetField('t1P1')}
+                    currentUser={currentUser}
                     friendsList={friendsList}
                     availablePlayers={playersList}
                     alreadySelected={[t1P2, t2P1, t2P2, t3P1]}
@@ -385,6 +386,7 @@ export default function EditTeamsModal({
                       onChange={setT1P2}
                       onFocus={() => setActiveTargetField('t1P2')}
                       onClick={() => setActiveTargetField('t1P2')}
+                      currentUser={currentUser}
                       friendsList={friendsList}
                       availablePlayers={playersList}
                       alreadySelected={[t1P1, t2P1, t2P2, t3P1]}
@@ -443,6 +445,7 @@ export default function EditTeamsModal({
                     onChange={setT2P1}
                     onFocus={() => setActiveTargetField('t2P1')}
                     onClick={() => setActiveTargetField('t2P1')}
+                    currentUser={currentUser}
                     friendsList={friendsList}
                     availablePlayers={playersList}
                     alreadySelected={[t1P1, t1P2, t2P2, t3P1]}
@@ -468,6 +471,7 @@ export default function EditTeamsModal({
                       onChange={setT2P2}
                       onFocus={() => setActiveTargetField('t2P2')}
                       onClick={() => setActiveTargetField('t2P2')}
+                      currentUser={currentUser}
                       friendsList={friendsList}
                       availablePlayers={playersList}
                       alreadySelected={[t1P1, t1P2, t2P1, t3P1]}
@@ -527,6 +531,7 @@ export default function EditTeamsModal({
                       onChange={setT3P1}
                       onFocus={() => setActiveTargetField('t3P1')}
                       onClick={() => setActiveTargetField('t3P1')}
+                      currentUser={currentUser}
                       friendsList={friendsList}
                       availablePlayers={playersList}
                       alreadySelected={[t1P1, t1P2, t2P1, t2P2]}

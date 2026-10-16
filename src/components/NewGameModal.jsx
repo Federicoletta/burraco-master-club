@@ -11,7 +11,8 @@ export default function NewGameModal({
   availablePlayers = [],
   friendsList = [],
   hasActiveGame,
-  initialSetup = null
+  initialSetup = null,
+  currentUser = null
 }) {
   const [mode, setMode] = useState('pairs'); // 'pairs' (2v2) | 'singles' (1v1) | 'trio' (A 3)
   const [team1Name, setTeam1Name] = useState('');
@@ -222,6 +223,7 @@ export default function NewGameModal({
                   <PlayerAutocompleteInput
                     value={p1A}
                     onChange={setP1A}
+                    currentUser={currentUser}
                     friendsList={friendsList}
                     availablePlayers={availablePlayers}
                     alreadySelected={[p1B, p2A, p2B, p3A]}
@@ -236,6 +238,7 @@ export default function NewGameModal({
                     <PlayerAutocompleteInput
                       value={p1B}
                       onChange={setP1B}
+                      currentUser={currentUser}
                       friendsList={friendsList}
                       availablePlayers={availablePlayers}
                       alreadySelected={[p1A, p2A, p2B, p3A]}
@@ -273,6 +276,7 @@ export default function NewGameModal({
                   <PlayerAutocompleteInput
                     value={p2A}
                     onChange={setP2A}
+                    currentUser={currentUser}
                     friendsList={friendsList}
                     availablePlayers={availablePlayers}
                     alreadySelected={[p1A, p1B, p2B, p3A]}
@@ -287,6 +291,7 @@ export default function NewGameModal({
                     <PlayerAutocompleteInput
                       value={p2B}
                       onChange={setP2B}
+                      currentUser={currentUser}
                       friendsList={friendsList}
                       availablePlayers={availablePlayers}
                       alreadySelected={[p1A, p1B, p2A, p3A]}
@@ -315,6 +320,7 @@ export default function NewGameModal({
                     <PlayerAutocompleteInput
                       value={p3A}
                       onChange={setP3A}
+                      currentUser={currentUser}
                       friendsList={friendsList}
                       availablePlayers={availablePlayers}
                       alreadySelected={[p1A, p1B, p2A, p2B]}
@@ -330,14 +336,41 @@ export default function NewGameModal({
 
           {/* Suggerimenti veloci Amici Registrati & Giocatori Locali */}
           <div className="space-y-2">
-            {/* 1. Amici Burraco Club con Account Google */}
-            {friendsList && friendsList.length > 0 && (
+            {/* 1. Tu & Amici Burraco Club con Account Google */}
+            {(currentUser || (friendsList && friendsList.length > 0)) && (
               <div className="text-xs">
                 <span className="text-amber-300 font-bold mr-2 flex items-center gap-1 mb-1">
                   <span>⭐ Amici Burraco Club (Google):</span>
                 </span>
                 <div className="inline-flex flex-wrap gap-1.5">
-                  {friendsList.map(f => {
+                  {/* Chip Utente Attivo (Tu) */}
+                  {currentUser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const myName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Tu';
+                        if (!p1A) setP1A(myName);
+                        else if (mode === 'pairs' && !p1B) setP1B(myName);
+                        else if (!p2A) setP2A(myName);
+                        else if (mode === 'pairs' && !p2B) setP2B(myName);
+                        else if (mode === 'trio' && !p3A) setP3A(myName);
+                        else setP1A(myName);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-950/90 text-emerald-200 border-2 border-emerald-400 text-[11px] font-bold hover:border-emerald-300 hover:brightness-110 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    >
+                      {currentUser.photoURL ? (
+                        <img src={currentUser.photoURL} alt="" className="w-4 h-4 rounded-full border border-emerald-400 object-cover" />
+                      ) : (
+                        <span className="w-4 h-4 rounded-full bg-emerald-400 text-emerald-950 font-black text-[9px] flex items-center justify-center">
+                          {(currentUser.displayName || 'T').slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <span>{currentUser.displayName || 'Tu'} (Tu)</span>
+                    </button>
+                  )}
+
+                  {/* Chips Amici */}
+                  {(friendsList || []).map(f => {
                     const friendName = f.displayName || f.email;
                     return (
                       <button

@@ -5,6 +5,7 @@ export default function PlayerAutocompleteInput({
   value = '',
   onChange,
   placeholder = 'Nome giocatore (opzionale)',
+  currentUser = null,
   friendsList = [],
   availablePlayers = [],
   alreadySelected = [],
@@ -39,54 +40,80 @@ export default function PlayerAutocompleteInput({
   // Filtra e prepara i suggerimenti disponibili
   const suggestions = useMemo(() => {
     const query = (value || '').trim().toLowerCase();
+    const results = [];
+    const seenNames = new Set();
+
+    // 0. Me stesso (Utente loggato con account Google) - Massima priorità in cima!
+    if (currentUser) {
+      const myName = (currentUser.displayName || currentUser.email?.split('@')[0] || 'Tu').trim();
+      const myEmail = (currentUser.email || '').trim().toLowerCase();
+      const isAlreadyPicked = selectedNormalized.includes(myName.toLowerCase());
+
+      const matchesQuery = !query || 
+        myName.toLowerCase().includes(query) || 
+        myEmail.includes(query) || 
+        query === 'tu' || 
+        query === 'io' || 
+        query === 'me';
+
+      if (!isAlreadyPicked && matchesQuery) {
+        results.push({
+          type: 'me',
+          name: myName,
+          email: currentUser.email,
+          photoURL: currentUser.photoURL,
+          uid: currentUser.uid,
+          isMe: true
+        });
+        seenNames.add(myName.toLowerCase());
+      }
+    }
 
     // 1. Amici Google / Club
-    const friendsMatches = (friendsList || [])
-      .filter(f => {
-        const name = (f.displayName || '').trim();
-        const email = (f.email || '').trim().toLowerCase();
-        if (!name && !email) return false;
-        
-        // Escludi se già selezionato in un altro slot
-        if (selectedNormalized.includes(name.toLowerCase())) return false;
+    (friendsList || []).forEach(f => {
+      const name = (f.displayName || '').trim();
+      const email = (f.email || '').trim().toLowerCase();
+      if (!name && !email) return;
+      if (seenNames.has(name.toLowerCase())) return;
+      
+      // Escludi se già selezionato in un altro slot
+      if (selectedNormalized.includes(name.toLowerCase())) return;
 
-        // Se vuoto: mostra tutti i disponibili (fino a 10)
-        if (!query) return true;
-
-        // Match su nome o email
-        return name.toLowerCase().includes(query) || email.includes(query);
-      })
-      .map(f => ({
-        type: 'friend',
-        name: f.displayName || f.email,
-        email: f.email,
-        photoURL: f.photoURL,
-        uid: f.uid
-      }));
-
-    // Nomi già coperti dagli amici per evitare duplicati esatti
-    const friendNames = new Set(friendsMatches.map(f => f.name.toLowerCase()));
+      // Se vuoto: mostra tutti i disponibili
+      const matches = !query || name.toLowerCase().includes(query) || email.includes(query);
+      if (matches) {
+        results.push({
+          type: 'friend',
+          name: name || email,
+          email: f.email,
+          photoURL: f.photoURL,
+          uid: f.uid
+        });
+        seenNames.add((name || email).toLowerCase());
+      }
+    });
 
     // 2. Ospiti / Giocatori Locali
-    const guestsMatches = (availablePlayers || [])
-      .filter(pName => {
-        const name = (pName || '').trim();
-        if (!name) return false;
-        if (selectedNormalized.includes(name.toLowerCase())) return false;
-        if (friendNames.has(name.toLowerCase())) return false;
+    (availablePlayers || []).forEach(pName => {
+      const name = (pName || '').trim();
+      if (!name) return;
+      if (seenNames.has(name.toLowerCase())) return;
+      if (selectedNormalized.includes(name.toLowerCase())) return;
 
-        if (!query) return true;
-        return name.toLowerCase().includes(query);
-      })
-      .map(pName => ({
-        type: 'guest',
-        name: pName,
-        email: null,
-        photoURL: null
-      }));
+      const matches = !query || name.toLowerCase().includes(query);
+      if (matches) {
+        results.push({
+          type: 'guest',
+          name,
+          email: null,
+          photoURL: null
+        });
+        seenNames.add(name.toLowerCase());
+      }
+    });
 
-    return [...friendsMatches, ...guestsMatches];
-  }, [value, friendsList, availablePlayers, selectedNormalized]);
+    return results;
+  }, [value, currentUser, friendsList, availablePlayers, selectedNormalized]);
 
   const handleSelect = (item) => {
     onChange(item.name);
@@ -164,7 +191,19 @@ export default function PlayerAutocompleteInput({
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    {item.type === 'friend' ? (
+                    {item.type === 'me' ? (
+                      item.photoURL ? (
+                        <img
+                          src={item.photoURL}
+                          alt=""
+                          className="w-7 h-7 rounded-full border-2 border-emerald-400 ring-2 ring-emerald-500/40 object-cover shrink-0 shadow-md"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-emerald-400 text-emerald-950 font-black text-xs flex items-center justify-center shrink-0 shadow-md ring-2 ring-emerald-500/40">
+                          {item.name.slice(0, 1).toUpperCase()}
+                        </div>
+                      )
+                    ) : item.type === 'friend' ? (
                       item.photoURL ? (
                         <img
                           src={item.photoURL}
@@ -187,7 +226,12 @@ export default function PlayerAutocompleteInput({
                         <span className="font-bold text-xs text-white truncate max-w-[170px] sm:max-w-[220px]">
                           {item.name}
                         </span>
-                        {item.type === 'friend' ? (
+                        {item.type === 'me' ? (
+                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 flex items-center gap-0.5 shrink-0">
+                            <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                            <span>Tu (Account)</span>
+                          </span>
+                        ) : item.type === 'friend' ? (
                           <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center gap-0.5 shrink-0">
                             <Sparkles className="w-2.5 h-2.5 text-amber-400" />
                             <span>Amico Club</span>
