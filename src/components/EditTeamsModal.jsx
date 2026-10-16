@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Users, ArrowLeftRight, Check, AlertCircle, Sparkles, User, Wand2, Plus } from 'lucide-react';
+import PlayerAutocompleteInput from './PlayerAutocompleteInput';
 
 export default function EditTeamsModal({
   isOpen,
@@ -354,33 +355,21 @@ export default function EditTeamsModal({
                       <span className="text-[9px] text-amber-400 font-bold">● Inserimento qui</span>
                     )}
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      list="burraco-known-players"
-                      required
-                      value={t1P1}
-                      onFocus={() => setActiveTargetField('t1P1')}
-                      onClick={() => setActiveTargetField('t1P1')}
-                      onChange={(e) => setT1P1(e.target.value)}
-                      placeholder="Nome giocatore..."
-                      className={`w-full px-2.5 py-1.5 pr-7 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
-                        activeTargetField === 't1P1'
-                          ? 'bg-emerald-950 border-2 border-amber-400 ring-2 ring-amber-400/40'
-                          : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-amber-400'
-                      }`}
-                    />
-                    {t1P1 && (
-                      <button
-                        type="button"
-                        onClick={() => { setT1P1(''); setActiveTargetField('t1P1'); }}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-emerald-400/60 hover:text-white"
-                        title="Cancella"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
+                  <PlayerAutocompleteInput
+                    value={t1P1}
+                    onChange={setT1P1}
+                    onFocus={() => setActiveTargetField('t1P1')}
+                    onClick={() => setActiveTargetField('t1P1')}
+                    friendsList={friendsList}
+                    availablePlayers={playersList}
+                    alreadySelected={[t1P2, t2P1, t2P2, t3P1]}
+                    placeholder="Nome giocatore..."
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
+                      activeTargetField === 't1P1'
+                        ? 'bg-emerald-950 border-2 border-amber-400 ring-2 ring-amber-400/40'
+                        : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-amber-400'
+                    }`}
+                  />
                 </div>
 
                 {isPairs && (
@@ -391,33 +380,21 @@ export default function EditTeamsModal({
                         <span className="text-[9px] text-amber-400 font-bold">● Inserimento qui</span>
                       )}
                     </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        list="burraco-known-players"
-                        required
-                        value={t1P2}
-                        onFocus={() => setActiveTargetField('t1P2')}
-                        onClick={() => setActiveTargetField('t1P2')}
-                        onChange={(e) => setT1P2(e.target.value)}
-                        placeholder="Nome compagno..."
-                        className={`w-full px-2.5 py-1.5 pr-7 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
-                          activeTargetField === 't1P2'
-                            ? 'bg-emerald-950 border-2 border-amber-400 ring-2 ring-amber-400/40'
-                            : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-amber-400'
-                        }`}
-                      />
-                      {t1P2 && (
-                        <button
-                          type="button"
-                          onClick={() => { setT1P2(''); setActiveTargetField('t1P2'); }}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-emerald-400/60 hover:text-white"
-                          title="Cancella"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
+                    <PlayerAutocompleteInput
+                      value={t1P2}
+                      onChange={setT1P2}
+                      onFocus={() => setActiveTargetField('t1P2')}
+                      onClick={() => setActiveTargetField('t1P2')}
+                      friendsList={friendsList}
+                      availablePlayers={playersList}
+                      alreadySelected={[t1P1, t2P1, t2P2, t3P1]}
+                      placeholder="Nome compagno..."
+                      className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
+                        activeTargetField === 't1P2'
+                          ? 'bg-emerald-950 border-2 border-amber-400 ring-2 ring-amber-400/40'
+                          : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-amber-400'
+                      }`}
+                    />
                   </div>
                 )}
               </div>
@@ -461,33 +438,21 @@ export default function EditTeamsModal({
                       <span className="text-[9px] text-blue-400 font-bold">● Inserimento qui</span>
                     )}
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      list="burraco-known-players"
-                      required
-                      value={t2P1}
-                      onFocus={() => setActiveTargetField('t2P1')}
-                      onClick={() => setActiveTargetField('t2P1')}
-                      onChange={(e) => setT2P1(e.target.value)}
-                      placeholder="Nome giocatore..."
-                      className={`w-full px-2.5 py-1.5 pr-7 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
-                        activeTargetField === 't2P1'
-                          ? 'bg-emerald-950 border-2 border-blue-400 ring-2 ring-blue-400/40'
-                          : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-blue-400'
-                      }`}
-                    />
-                    {t2P1 && (
-                      <button
-                        type="button"
-                        onClick={() => { setT2P1(''); setActiveTargetField('t2P1'); }}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-emerald-400/60 hover:text-white"
-                        title="Cancella"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
+                  <PlayerAutocompleteInput
+                    value={t2P1}
+                    onChange={setT2P1}
+                    onFocus={() => setActiveTargetField('t2P1')}
+                    onClick={() => setActiveTargetField('t2P1')}
+                    friendsList={friendsList}
+                    availablePlayers={playersList}
+                    alreadySelected={[t1P1, t1P2, t2P2, t3P1]}
+                    placeholder="Nome giocatore..."
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
+                      activeTargetField === 't2P1'
+                        ? 'bg-emerald-950 border-2 border-blue-400 ring-2 ring-blue-400/40'
+                        : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-blue-400'
+                    }`}
+                  />
                 </div>
 
                 {isPairs && (
@@ -498,33 +463,21 @@ export default function EditTeamsModal({
                         <span className="text-[9px] text-blue-400 font-bold">● Inserimento qui</span>
                       )}
                     </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        list="burraco-known-players"
-                        required
-                        value={t2P2}
-                        onFocus={() => setActiveTargetField('t2P2')}
-                        onClick={() => setActiveTargetField('t2P2')}
-                        onChange={(e) => setT2P2(e.target.value)}
-                        placeholder="Nome compagno..."
-                        className={`w-full px-2.5 py-1.5 pr-7 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
-                          activeTargetField === 't2P2'
-                            ? 'bg-emerald-950 border-2 border-blue-400 ring-2 ring-blue-400/40'
-                            : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-blue-400'
-                        }`}
-                      />
-                      {t2P2 && (
-                        <button
-                          type="button"
-                          onClick={() => { setT2P2(''); setActiveTargetField('t2P2'); }}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-emerald-400/60 hover:text-white"
-                          title="Cancella"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
+                    <PlayerAutocompleteInput
+                      value={t2P2}
+                      onChange={setT2P2}
+                      onFocus={() => setActiveTargetField('t2P2')}
+                      onClick={() => setActiveTargetField('t2P2')}
+                      friendsList={friendsList}
+                      availablePlayers={playersList}
+                      alreadySelected={[t1P1, t1P2, t2P1, t3P1]}
+                      placeholder="Nome compagno..."
+                      className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
+                        activeTargetField === 't2P2'
+                          ? 'bg-emerald-950 border-2 border-blue-400 ring-2 ring-blue-400/40'
+                          : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-blue-400'
+                      }`}
+                    />
                   </div>
                 )}
               </div>
@@ -569,33 +522,21 @@ export default function EditTeamsModal({
                         <span className="text-[9px] text-rose-400 font-bold">● Inserimento qui</span>
                       )}
                     </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        list="burraco-known-players"
-                        required
-                        value={t3P1}
-                        onFocus={() => setActiveTargetField('t3P1')}
-                        onClick={() => setActiveTargetField('t3P1')}
-                        onChange={(e) => setT3P1(e.target.value)}
-                        placeholder="Nome giocatore..."
-                        className={`w-full px-2.5 py-1.5 pr-7 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
-                          activeTargetField === 't3P1'
-                            ? 'bg-emerald-950 border-2 border-rose-400 ring-2 ring-rose-400/40'
-                            : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-rose-400'
-                        }`}
-                      />
-                      {t3P1 && (
-                        <button
-                          type="button"
-                          onClick={() => { setT3P1(''); setActiveTargetField('t3P1'); }}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-emerald-400/60 hover:text-white"
-                          title="Cancella"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
+                    <PlayerAutocompleteInput
+                      value={t3P1}
+                      onChange={setT3P1}
+                      onFocus={() => setActiveTargetField('t3P1')}
+                      onClick={() => setActiveTargetField('t3P1')}
+                      friendsList={friendsList}
+                      availablePlayers={playersList}
+                      alreadySelected={[t1P1, t1P2, t2P1, t2P2]}
+                      placeholder="Nome giocatore..."
+                      className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
+                        activeTargetField === 't3P1'
+                          ? 'bg-emerald-950 border-2 border-rose-400 ring-2 ring-rose-400/40'
+                          : 'bg-emerald-900/60 border border-emerald-700/60 focus:border-rose-400'
+                      }`}
+                    />
                   </div>
                 </div>
               </div>

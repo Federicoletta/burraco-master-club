@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Users, User, Trophy, Sparkles, Check } from 'lucide-react';
 import { DEFAULT_TARGET_SCORES } from '../constants/burraco';
+import PlayerAutocompleteInput from './PlayerAutocompleteInput';
 
 export default function NewGameModal({ 
   isOpen, 
@@ -218,10 +219,12 @@ export default function NewGameModal({
                   <label className="text-[11px] text-emerald-300/80 block mb-0.5">
                     {mode === 'pairs' ? 'Giocatore A' : 'Nome Partecipante'}
                   </label>
-                  <input
-                    type="text"
+                  <PlayerAutocompleteInput
                     value={p1A}
-                    onChange={(e) => setP1A(e.target.value)}
+                    onChange={setP1A}
+                    friendsList={friendsList}
+                    availablePlayers={availablePlayers}
+                    alreadySelected={[p1B, p2A, p2B, p3A]}
                     className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-amber-400"
                     placeholder={mode === 'pairs' ? 'Nome Giocatore 1 (opzionale)' : 'Nome Giocatore (opzionale)'}
                   />
@@ -230,10 +233,12 @@ export default function NewGameModal({
                 {mode === 'pairs' && (
                   <div>
                     <label className="text-[11px] text-emerald-300/80 block mb-0.5">Giocatore B</label>
-                    <input
-                      type="text"
+                    <PlayerAutocompleteInput
                       value={p1B}
-                      onChange={(e) => setP1B(e.target.value)}
+                      onChange={setP1B}
+                      friendsList={friendsList}
+                      availablePlayers={availablePlayers}
+                      alreadySelected={[p1A, p2A, p2B, p3A]}
                       className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-amber-400"
                       placeholder="Nome Giocatore 2 (opzionale)"
                     />
@@ -265,10 +270,12 @@ export default function NewGameModal({
                   <label className="text-[11px] text-emerald-300/80 block mb-0.5">
                     {mode === 'pairs' ? 'Giocatore A' : 'Nome Partecipante'}
                   </label>
-                  <input
-                    type="text"
+                  <PlayerAutocompleteInput
                     value={p2A}
-                    onChange={(e) => setP2A(e.target.value)}
+                    onChange={setP2A}
+                    friendsList={friendsList}
+                    availablePlayers={availablePlayers}
+                    alreadySelected={[p1A, p1B, p2B, p3A]}
                     className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-blue-400"
                     placeholder={mode === 'pairs' ? 'Nome Giocatore 1 (opzionale)' : 'Nome Giocatore (opzionale)'}
                   />
@@ -277,10 +284,12 @@ export default function NewGameModal({
                 {mode === 'pairs' && (
                   <div>
                     <label className="text-[11px] text-emerald-300/80 block mb-0.5">Giocatore B</label>
-                    <input
-                      type="text"
+                    <PlayerAutocompleteInput
                       value={p2B}
-                      onChange={(e) => setP2B(e.target.value)}
+                      onChange={setP2B}
+                      friendsList={friendsList}
+                      availablePlayers={availablePlayers}
+                      alreadySelected={[p1A, p1B, p2A, p3A]}
                       className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-blue-400"
                       placeholder="Nome Giocatore 2 (opzionale)"
                     />
@@ -303,10 +312,12 @@ export default function NewGameModal({
                     <label className="text-[11px] text-emerald-300/80 block mb-0.5">
                       Nome Partecipante
                     </label>
-                    <input
-                      type="text"
+                    <PlayerAutocompleteInput
                       value={p3A}
-                      onChange={(e) => setP3A(e.target.value)}
+                      onChange={setP3A}
+                      friendsList={friendsList}
+                      availablePlayers={availablePlayers}
+                      alreadySelected={[p1A, p1B, p2A, p2B]}
                       className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-rose-400"
                       placeholder="Nome Giocatore (opzionale)"
                     />
