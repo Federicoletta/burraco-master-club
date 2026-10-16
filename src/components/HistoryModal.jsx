@@ -12,7 +12,9 @@ import {
   Upload, 
   Cloud, 
   RefreshCw, 
-  Search
+  Search,
+  Edit2,
+  PlusCircle
 } from 'lucide-react';
 import { exportBackupData, importBackupData } from '../utils/storage';
 import { loadCloudGamesHistory } from '../services/firebase';
@@ -35,7 +37,9 @@ export default function HistoryModal({
   onEndGame,
   onResumeGame,
   onDeleteGame,
-  onDataImported
+  onDataImported,
+  onAddRound,
+  onEditRound
 }) {
   const [selectedGame, setSelectedGame] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -317,6 +321,9 @@ export default function HistoryModal({
                       {selectedGame?.mode === 'trio' && (
                         <th className="p-2 text-rose-300">{selectedGame.team3?.name || 'Giocatore 3'}</th>
                       )}
+                      {onEditRound && onResumeGame && (
+                        <th className="p-2 text-center w-14">Azione</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-emerald-800/40">
@@ -334,11 +341,43 @@ export default function HistoryModal({
                             {(r.team3Score || 0) >= 0 ? `+${r.team3Score || 0}` : r.team3Score}
                           </td>
                         )}
+                        {onEditRound && onResumeGame && (
+                          <td className="p-2 text-center">
+                            <button
+                              onClick={() => {
+                                onResumeGame(selectedGame);
+                                onEditRound(r);
+                                onClose();
+                              }}
+                              className="p-1 rounded bg-emerald-800/60 hover:bg-emerald-700 text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
+                              title={`Modifica mano #${r.roundNumber}`}
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+
+              {/* Azioni rapide per la partita selezionata (Aggiungi mano / Modifica) */}
+              {onAddRound && onResumeGame && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      onResumeGame(selectedGame);
+                      onAddRound();
+                      onClose();
+                    }}
+                    className="flex-1 py-2.5 rounded-xl gold-gradient text-emerald-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md hover:brightness-110 active:scale-98 cursor-pointer transition-all"
+                  >
+                    <PlusCircle className="w-4 h-4 text-emerald-950" />
+                    <span>+ Aggiungi Mano a questa Partita</span>
+                  </button>
+                </div>
+              )}
 
             </div>
           ) : (

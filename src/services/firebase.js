@@ -116,11 +116,33 @@ export function subscribeToAuth(onUserChange) {
 
 /**
  * Salva o aggiorna una partita nel cloud database Firestore con tracciamento proprietario
+ * Con protezione salvaguardia multi-dispositivo contro sovrascritture di mani perse
  */
-export async function syncGameToCloud(game, currentUser = null) {
+export async function syncGameToCloud(game, currentUser = null, force = false) {
   if (!db || !game?.id) return false;
   try {
     const gameRef = doc(db, 'burraco_games', game.id);
+
+    // Salvaguardia multi-dispositivo: se non forzato, controlliamo che un client con meno round
+    // non sovrascriva un documento cloud che ha già più round registrati
+    if (!force) {
+      try {
+        const snap = await getDoc(gameRef);
+        if (snap.exists()) {
+          const remoteData = snap.data();
+          const remoteRounds = Array.isArray(remoteData.rounds) ? remoteData.rounds : [];
+          const localRounds = Array.isArray(game.rounds) ? game.rounds : [];
+          
+          if (remoteRounds.length > localRounds.length) {
+            console.warn(`[syncGameToCloud] Documento remoto ha ${remoteRounds.length} mani, locale ne ha ${localRounds.length}. Sovrascrittura bloccata per salvaguardia.`);
+            return false;
+          }
+        }
+      } catch (err) {
+        console.warn('Controllo versione remota non riuscito:', err);
+      }
+    }
+
     const payload = {
       ...game,
       ownerUid: game.ownerUid !== undefined ? game.ownerUid : (currentUser?.uid || null),

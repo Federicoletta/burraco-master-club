@@ -143,11 +143,9 @@ export default function App() {
         }
         if (needsClean) {
           saveActiveGame(cleanedGame);
-          syncGameToCloud(cleanedGame);
           setActiveGame(cleanedGame);
         } else {
           setActiveGame(current);
-          syncGameToCloud(current);
         }
       } else {
         // Inizializza con una partita pulita pronta per giocare (senza nomi fittizi preimpostati)
@@ -171,7 +169,6 @@ export default function App() {
         };
         setActiveGame(initialGame);
         saveActiveGame(initialGame);
-        syncGameToCloud(initialGame);
       }
     }
   }, []);
@@ -344,8 +341,21 @@ export default function App() {
       targetId, 
       (cloudGame) => {
         if (cloudGame && cloudGame.id === targetId) {
-          setActiveGame(cloudGame);
-          saveActiveGame(cloudGame);
+          // Salvaguardia multi-dispositivo: se lo stato locale possiede più mani rispetto al cloud,
+          // NON retrocedere cancellando le mani locali! Al contrario, mantieni le mani e aggiorna il cloud!
+          setActiveGame(prev => {
+            const prevRounds = Array.isArray(prev?.rounds) ? prev.rounds : [];
+            const cloudRounds = Array.isArray(cloudGame.rounds) ? cloudGame.rounds : [];
+
+            if (prev?.id === targetId && prevRounds.length > cloudRounds.length) {
+              console.warn(`[Multiplayer Sync] Stato locale ha ${prevRounds.length} mani, cloud ne ha ${cloudRounds.length}. Mantengo lo stato locale e aggiorno il cloud.`);
+              syncGameToCloud(prev, currentUser, true);
+              return prev;
+            }
+
+            saveActiveGame(cloudGame);
+            return cloudGame;
+          });
 
           // Recupera i profili degli utenti collegati a questo tavolo in tempo reale
           if ((cloudGame.playerUids && cloudGame.playerUids.length > 0) || (cloudGame.playerEmails && cloudGame.playerEmails.length > 0)) {
@@ -645,13 +655,24 @@ export default function App() {
     const updatedGame = {
       ...activeGame,
       rounds: updatedRounds,
-      winner,
-      isFinished: Boolean(winner),
+      winner: winner || (activeGame.isFinished ? activeGame.winner : null),
+      isFinished: Boolean(winner) || activeGame.isFinished || false,
     };
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
-    syncGameToCloud(updatedGame);
+    syncGameToCloud(updatedGame, currentUser, true);
+
+    // Se questa partita è già presente nello storico (es. ripresa per aggiungere o correggere una mano), aggiorna lo storico
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const history = getGamesHistory(userKey);
+    const hIndex = history.findIndex(g => g.id === updatedGame.id);
+    if (hIndex >= 0) {
+      const newHistory = [...history];
+      newHistory[hIndex] = updatedGame;
+      localStorage.setItem(currentUser ? `burraco_history_${currentUser.uid}` : 'burraco_history_guest', JSON.stringify(newHistory));
+      setGamesHistory(newHistory);
+    }
 
     // Se questa partita appartiene a un incontro di torneo attivo, aggiorna il torneo
     if (activeGame.tournamentMatchId && activeTournament?.rounds) {
@@ -695,7 +716,18 @@ export default function App() {
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
-    syncGameToCloud(updatedGame);
+    syncGameToCloud(updatedGame, currentUser, true);
+
+    // Se presente nello storico, aggiorna
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const history = getGamesHistory(userKey);
+    const hIndex = history.findIndex(g => g.id === updatedGame.id);
+    if (hIndex >= 0) {
+      const newHistory = [...history];
+      newHistory[hIndex] = updatedGame;
+      localStorage.setItem(currentUser ? `burraco_history_${currentUser.uid}` : 'burraco_history_guest', JSON.stringify(newHistory));
+      setGamesHistory(newHistory);
+    }
   };
 
   // Aggiorna formazioni squadre e giocatori della partita attiva
@@ -757,7 +789,7 @@ export default function App() {
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
-    syncGameToCloud(updatedGame);
+    syncGameToCloud(updatedGame, currentUser, true);
 
     // Se la partita appartiene a un torneo attivo, contrassegna l'incontro come completato
     if (activeGame.tournamentMatchId && activeTournament?.rounds) {
@@ -796,7 +828,7 @@ export default function App() {
     const updatedHistory = archiveCurrentGame(activeGame, userKey);
     setGamesHistory(updatedHistory);
     if (updatedHistory && updatedHistory[0]) {
-      syncGameToCloud(updatedHistory[0], currentUser);
+      syncGameToCloud(updatedHistory[0], currentUser, true);
     }
 
     const rematchGame = {
@@ -820,7 +852,7 @@ export default function App() {
 
     setActiveGame(rematchGame);
     saveActiveGame(rematchGame);
-    syncGameToCloud(rematchGame, currentUser);
+    syncGameToCloud(rematchGame, currentUser, true);
     setIsVictoryOpen(false);
   };
 
@@ -828,12 +860,64 @@ export default function App() {
   const handleArchiveAndNew = () => {
     if (activeGame) {
       const userKey = currentUser ? currentUser.uid : 'guest';
-      const updatedHistory = archiveCurrentGame(activeGame, userKey);
-      setGamesHistory(updatedHistory);
-      if (updatedHistory && updatedHistory[0]) {
-        syncGameToCloud(updatedHistory[0], currentUser);
+      const isTrio = activeGame.mode === 'trio';
+      const t1Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
+      const t2Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
+      const t3Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
+
+      let winner = activeGame.winner;
+      if (!winner) {
+        if (isTrio) {
+          if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
+          else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
+          else winner = 'team3';
+        } else {
+          winner = t1Total >= t2Total ? 'team1' : 'team2';
+        }
       }
+
+      const finishedGame = {
+        ...activeGame,
+        winner,
+        isFinished: true,
+        completedAt: activeGame.completedAt || new Date().toISOString(),
+      };
+
+      const updatedHistory = archiveCurrentGame(finishedGame, userKey);
+      setGamesHistory(updatedHistory);
+      syncGameToCloud(finishedGame, currentUser, true);
     }
+
+    // Scollega dal tavolo condiviso se presente nell'URL
+    if (window.location.search.includes('game=')) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('game');
+      window.history.replaceState({}, '', url.pathname);
+    }
+    setIsCloudJoined(false);
+
+    // Ripristina una partita attiva pulita con 0 mani pronte
+    const cleanGame = {
+      id: 'game_' + Date.now(),
+      createdAt: new Date().toISOString(),
+      mode: activeGame?.mode || 'pairs',
+      allowSemipulito: activeGame?.allowSemipulito ?? true,
+      targetScore: activeGame?.targetScore || 2505,
+      team1: {
+        name: 'Coppia 1',
+        players: [],
+      },
+      team2: {
+        name: 'Coppia 2',
+        players: [],
+      },
+      rounds: [],
+      winner: null,
+      isFinished: false,
+    };
+    setActiveGame(cleanGame);
+    saveActiveGame(cleanGame);
+
     setIsVictoryOpen(false);
     handleOpenNewGame();
   };
@@ -978,7 +1062,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
   const handleResumeGame = (game) => {
     setActiveGame(game);
     saveActiveGame(game);
-    syncGameToCloud(game);
+    syncGameToCloud(game, currentUser, true);
   };
 
   const handleDataImported = () => {
@@ -1272,6 +1356,11 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onResumeGame={handleResumeGame}
         onDeleteGame={handleDeleteGameHistory}
         onDataImported={handleDataImported}
+        onAddRound={() => setIsRoundCalcOpen(true)}
+        onEditRound={(round) => {
+          setRoundToEdit(round);
+          setIsRoundCalcOpen(true);
+        }}
       />
 
       {/* 5. Modal Vittoria & Coriandoli */}
