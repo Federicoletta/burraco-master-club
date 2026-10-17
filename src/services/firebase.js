@@ -97,18 +97,22 @@ export function subscribeToAuth(onUserChange) {
   return onAuthStateChanged(auth, async (user) => {
     onUserChange(user);
     if (user && db) {
-      // Aggiorna ultimo accesso garantendo tutti i campi richiesti dalle regole
-      try {
-        const userRef = doc(db, 'burraco_users', user.uid);
-        await setDoc(userRef, {
-          uid: user.uid,
-          displayName: user.displayName || 'Giocatore Burraco',
-          email: (user.email || '').toLowerCase(),
-          photoURL: user.photoURL || null,
-          lastSeen: new Date().toISOString()
-        }, { merge: true });
-      } catch (err) {
-        console.warn('Errore aggiornamento lastSeen:', err);
+      const now = Date.now();
+      const lastSynced = Number(sessionStorage.getItem('burraco_last_seen_sync') || 0);
+      if (now - lastSynced > 15 * 60 * 1000) {
+        sessionStorage.setItem('burraco_last_seen_sync', String(now));
+        try {
+          const userRef = doc(db, 'burraco_users', user.uid);
+          await setDoc(userRef, {
+            uid: user.uid,
+            displayName: user.displayName || 'Giocatore Burraco',
+            email: (user.email || '').toLowerCase(),
+            photoURL: user.photoURL || null,
+            lastSeen: new Date().toISOString()
+          }, { merge: true });
+        } catch (err) {
+          console.warn('Errore aggiornamento lastSeen:', err);
+        }
       }
     }
   });

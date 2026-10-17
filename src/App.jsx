@@ -274,58 +274,8 @@ export default function App() {
     };
   }, [currentUser]);
 
-  // 2d. Sincronizzazione automatica statistiche di carriera su Cloud (per sé e per tutti i compagni del tavolo)
-  useEffect(() => {
-    if (!currentUser?.uid) return;
-    try {
-      // 1. Sincronizza le mie statistiche
-      const myStats = computeUserCareerStats(currentUser, gamesHistory, activeGame);
-      if (myStats) {
-        updateUserCareerStats(currentUser.uid, myStats);
-      }
-
-      // 2. Sincronizza anche per tutti gli altri amici o utenti registrati presenti al tavolo
-      const candidates = [...(friendsList || []), ...(tablePlayers || []), ...(friendsLiveProfiles || [])];
-      const seenUids = new Set([currentUser.uid]);
-      candidates.forEach(cand => {
-        if (!cand || !cand.uid || seenUids.has(cand.uid)) return;
-        seenUids.add(cand.uid);
-        const candStats = computeUserCareerStats(cand, gamesHistory, activeGame);
-        if (candStats && candStats.totalPoints > 0) {
-          const existing = cand.careerStats || {};
-          const merged = {
-            totalPoints: Math.max(Number(existing.totalPoints) || 0, Number(candStats.totalPoints) || 0),
-            gamesPlayed: Math.max(Number(existing.gamesPlayed) || 0, Number(candStats.gamesPlayed) || 0),
-            gamesWon: Math.max(Number(existing.gamesWon) || 0, Number(candStats.gamesWon) || 0),
-            winRate: Math.max(Number(existing.winRate) || 0, Number(candStats.winRate) || 0),
-            cleanBurrachi: Math.max(Number(existing.cleanBurrachi) || 0, Number(candStats.cleanBurrachi) || 0),
-            semiCleanBurrachi: Math.max(Number(existing.semiCleanBurrachi) || 0, Number(candStats.semiCleanBurrachi) || 0),
-            dirtyBurrachi: Math.max(Number(existing.dirtyBurrachi) || 0, Number(candStats.dirtyBurrachi) || 0),
-            closures: Math.max(Number(existing.closures) || 0, Number(candStats.closures) || 0),
-            bestHandScore: Math.max(Number(existing.bestHandScore) || 0, Number(candStats.bestHandScore) || 0),
-            trophiesCount: Math.max(Number(existing.trophiesCount) || 0, Number(candStats.trophiesCount) || 0),
-          };
-          updateUserCareerStats(cand.uid, merged);
-        }
-      });
-    } catch (e) {
-      console.warn('Sync career stats error:', e);
-    }
-  }, [currentUser, gamesHistory, activeGame?.rounds, friendsList, tablePlayers]);
-
-  // 2e. Ascolto in tempo reale dei profili e statistiche live degli amici confermati
-  useEffect(() => {
-    if (!currentUser || !Array.isArray(friendsList) || friendsList.length === 0) {
-      setFriendsLiveProfiles([]);
-      return;
-    }
-    const unsub = subscribeToFriendsLiveProfiles(friendsList, (liveProfiles) => {
-      setFriendsLiveProfiles(liveProfiles);
-    });
-    return () => {
-      if (unsub) unsub();
-    };
-  }, [currentUser, friendsList]);
+  // 2d. Le statistiche di carriera vengono sincronizzate solo ad ogni conclusione o archiviazione di partita (non in loop continuo)
+  // Questo previene loop infiniti di scritture su Firestore e azzeramento delle quote.
 
   // 3. Ascolto real-time della partita attiva da Firestore (Multi-device live sync)
   useEffect(() => {
@@ -1127,8 +1077,11 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
   const handleAcceptFriendRequest = async (notification) => {
     try {
       setToastNotification(null);
-      await respondToFriendRequest(notification, true, currentUser);
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      if (!prevNotifIdsRef.current.includes(notification.id)) {
+        prevNotifIdsRef.current.push(notification.id);
+      }
+      await respondToFriendRequest(notification, true, currentUser);
     } catch (err) {
       console.error('Errore accettazione amicizia:', err);
       alert('Impossibile accettare la richiesta: ' + (err.message || err));

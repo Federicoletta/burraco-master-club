@@ -113,35 +113,44 @@ export async function respondToFriendRequest(notification, accept, currentUser) 
   const notifRef = doc(db, 'burraco_notifications', notification.id);
 
   if (accept) {
+    const toEmail = (currentUser?.email || '').toLowerCase();
+    const fromEmail = (notification?.fromEmail || '').toLowerCase();
+    const fromUid = notification?.fromUid;
+    const currentUid = currentUser?.uid;
+
+    if (!currentUid || !fromUid) {
+      throw new Error('Dati utente non validi per completare l\'amicizia');
+    }
+
     // 1. Aggiorna lo stato della notifica
     await setDoc(notifRef, {
       status: 'accepted',
       acceptedAt: new Date().toISOString(),
-      toUid: currentUser.uid,
+      toUid: currentUid,
       toName: currentUser.displayName || 'Amico Burraco',
       toPhoto: currentUser.photoURL || null
     }, { merge: true });
 
     // 2. Crea il legame di amicizia bidirezionale nella collezione burraco_friends
-    const uidA = currentUser.uid < notification.fromUid ? currentUser.uid : notification.fromUid;
-    const uidB = currentUser.uid < notification.fromUid ? notification.fromUid : currentUser.uid;
+    const uidA = currentUid < fromUid ? currentUid : fromUid;
+    const uidB = currentUid < fromUid ? fromUid : currentUid;
     const friendshipId = `friend_${uidA}_${uidB}`;
 
     const friendRef = doc(db, 'burraco_friends', friendshipId);
     await setDoc(friendRef, {
       id: friendshipId,
-      users: [currentUser.uid, notification.fromUid],
-      emails: [currentUser.email.toLowerCase(), notification.fromEmail.toLowerCase()],
+      users: [currentUid, fromUid],
+      emails: [toEmail, fromEmail].filter(Boolean),
       user1: {
-        uid: currentUser.uid,
+        uid: currentUid,
         displayName: currentUser.displayName || 'Giocatore',
-        email: currentUser.email.toLowerCase(),
+        email: toEmail,
         photoURL: currentUser.photoURL || null
       },
       user2: {
-        uid: notification.fromUid,
+        uid: fromUid,
         displayName: notification.fromName || 'Giocatore',
-        email: notification.fromEmail.toLowerCase(),
+        email: fromEmail,
         photoURL: notification.fromPhoto || null
       },
       status: 'accepted',
