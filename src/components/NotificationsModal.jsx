@@ -16,11 +16,11 @@ export default function NotificationsModal({
   const gameInvites = notifications.filter(n => n.type === 'game_invite');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/40 p-5 shadow-2xl space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/40 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[86vh] my-auto overflow-hidden">
         
-        {/* Intestazione */}
-        <div className="flex items-center justify-between pb-3 border-b border-emerald-700/50">
+        {/* Intestazione fissa pinnata */}
+        <div className="p-3.5 sm:p-4 pb-3 border-b border-emerald-700/50 flex items-center justify-between shrink-0 bg-emerald-950/90">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md">
               <Bell className="w-5 h-5 text-emerald-950" />
@@ -46,21 +46,23 @@ export default function NotificationsModal({
           </button>
         </div>
 
-        {/* Nessuna notifica */}
-        {notifications.length === 0 ? (
-          <div className="py-10 text-center space-y-3">
-            <div className="w-14 h-14 mx-auto rounded-full bg-emerald-900/60 border border-emerald-600/40 flex items-center justify-center text-emerald-400/60 shadow-inner">
-              <Bell className="w-7 h-7" />
+        {/* Corpo scorrevole */}
+        <div className="p-3.5 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-4">
+          {/* Nessuna notifica */}
+          {notifications.length === 0 ? (
+            <div className="py-10 text-center space-y-3">
+              <div className="w-14 h-14 mx-auto rounded-full bg-emerald-900/60 border border-emerald-600/40 flex items-center justify-center text-emerald-400/60 shadow-inner">
+                <Bell className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white m-0">Nessuna notifica al momento</h3>
+                <p className="text-xs text-emerald-300/70 mt-1 max-w-xs mx-auto">
+                  Quando un amico ti manderà una richiesta o ti inviterà a giocare a un tavolo, la troverai qui!
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-white m-0">Nessuna notifica al momento</h3>
-              <p className="text-xs text-emerald-300/70 mt-1 max-w-xs mx-auto">
-                Quando un amico ti manderà una richiesta o ti inviterà a giocare a un tavolo, la troverai qui!
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+          ) : (
+            <div className="space-y-4">
 
             {/* SEZIONE 1: Inviti alle Partite */}
             {gameInvites.length > 0 && (
@@ -179,15 +181,16 @@ export default function NotificationsModal({
               </div>
             )}
 
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
-        {/* Footer */}
-        <div className="pt-2 border-t border-emerald-800/40 flex justify-end">
+        {/* Footer fisso */}
+        <div className="p-3 border-t border-emerald-700/50 flex justify-end shrink-0 bg-emerald-950/90">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 text-xs font-bold transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 text-xs font-bold transition-all active:scale-95 cursor-pointer"
           >
             Chiudi
           </button>

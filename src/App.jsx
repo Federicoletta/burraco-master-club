@@ -1443,6 +1443,9 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         tablePlayers={tablePlayers}
         friendsList={friendsList}
         clubUsers={clubUsers}
+        notifications={notifications}
+        onAcceptFriendRequest={handleAcceptFriendRequest}
+        onDeclineFriendRequest={handleDeclineFriendRequest}
         onSendFriendRequest={handleSendFriendRequest}
         onChallengeFriend={handleChallengeFriend}
         onInviteFriendToActiveGame={handleInviteFriendToActiveGame}

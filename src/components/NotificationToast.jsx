@@ -38,7 +38,7 @@ export default function NotificationToast({
   return (
     <aside 
       aria-label="Notifica in arrivo"
-      className="fixed top-4 right-4 z-50 max-w-sm w-full mx-auto p-0 animate-in fade-in slide-in-from-top-4 duration-300 shadow-2xl rounded-2xl overflow-hidden border border-amber-500/40 bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-950 text-white backdrop-blur-md"
+      className="fixed top-4 right-4 z-[70] max-w-sm w-full mx-auto p-0 animate-in fade-in slide-in-from-top-4 duration-300 shadow-2xl rounded-2xl overflow-hidden border border-amber-400 bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-950 text-white backdrop-blur-md"
     >
       {/* Barra di progresso superiore */}
       <div 
