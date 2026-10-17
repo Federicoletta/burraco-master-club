@@ -60,7 +60,7 @@ export async function loginWithGoogle() {
         await setDoc(userRef, {
           uid: user.uid,
           displayName: user.displayName || 'Giocatore Burraco',
-          email: user.email || '',
+          email: (user.email || '').toLowerCase(),
           photoURL: user.photoURL || null,
           lastLogin: new Date().toISOString(),
           lastSeen: new Date().toISOString()
@@ -103,7 +103,7 @@ export function subscribeToAuth(onUserChange) {
         await setDoc(userRef, {
           uid: user.uid,
           displayName: user.displayName || 'Giocatore Burraco',
-          email: user.email || '',
+          email: (user.email || '').toLowerCase(),
           photoURL: user.photoURL || null,
           lastSeen: new Date().toISOString()
         }, { merge: true });

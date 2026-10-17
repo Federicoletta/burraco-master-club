@@ -15,32 +15,76 @@ import { db } from './firebase';
 /**
  * Invia una richiesta di amicizia a un utente tramite la sua email
  */
-export async function sendFriendRequest(currentUser, targetEmail) {
-  if (!db || !currentUser || !targetEmail) throw new Error('Dati mancanti per inviare la richiesta');
+export async function sendFriendRequest(currentUser, target) {
+  if (!db || !currentUser || !target) throw new Error('Dati mancanti per inviare la richiesta');
   
-  const cleanEmail = targetEmail.trim().toLowerCase();
-  if (cleanEmail === currentUser.email?.toLowerCase()) {
+  let targetUid = null;
+  let targetName = '';
+  let cleanEmail = '';
+  let targetPhoto = null;
+
+  if (typeof target === 'object' && target !== null) {
+    targetUid = target.uid || null;
+    targetName = target.displayName || target.name || '';
+    cleanEmail = (target.email || '').trim().toLowerCase();
+    targetPhoto = target.photoURL || null;
+  } else if (typeof target === 'string') {
+    const trimmed = target.trim();
+    if (trimmed.includes('@')) {
+      cleanEmail = trimmed.toLowerCase();
+    } else {
+      targetName = trimmed;
+    }
+  }
+
+  // Controllo per evitare auto-richieste
+  const myCleanEmail = (currentUser.email || '').trim().toLowerCase();
+  if (cleanEmail && cleanEmail === myCleanEmail) {
+    throw new Error('Non puoi inviare una richiesta di amicizia a te stesso');
+  }
+  if (targetUid && targetUid === currentUser.uid) {
     throw new Error('Non puoi inviare una richiesta di amicizia a te stesso');
   }
 
-  // Cerca se esiste un utente registrato con questa email per recuperare il suo UID
-  let targetUid = null;
-  let targetName = cleanEmail;
+  // Cerca nella collezione burraco_users per completare o arricchire i dati
   try {
     const usersRef = collection(db, 'burraco_users');
-    const q = query(usersRef, where('email', '==', cleanEmail));
-    const snap = await getDocs(q);
+    const snap = await getDocs(usersRef);
     if (!snap.empty) {
-      const uDoc = snap.docs[0].data();
-      targetUid = uDoc.uid;
-      targetName = uDoc.displayName || cleanEmail;
+      const allUsers = snap.docs.map(d => d.data());
+      let matched = null;
+      if (targetUid) {
+        matched = allUsers.find(u => u.uid === targetUid);
+      }
+      if (!matched && cleanEmail) {
+        matched = allUsers.find(u => (u.email || '').trim().toLowerCase() === cleanEmail);
+      }
+      if (!matched && targetName) {
+        matched = allUsers.find(u => (u.displayName || '').trim().toLowerCase() === targetName.toLowerCase());
+      }
+
+      if (matched) {
+        targetUid = matched.uid;
+        targetName = matched.displayName || targetName || cleanEmail;
+        cleanEmail = (matched.email || cleanEmail).trim().toLowerCase();
+        targetPhoto = matched.photoURL || targetPhoto;
+      }
     }
   } catch (err) {
-    console.warn('Ricerca utente per email fallita:', err);
+    console.warn('Ricerca utente registrato per amicizia:', err);
+  }
+
+  if (!cleanEmail && !targetUid) {
+    throw new Error('Inserisci un indirizzo email valido o seleziona un membro del club');
+  }
+
+  if (cleanEmail === myCleanEmail || targetUid === currentUser.uid) {
+    throw new Error('Non puoi inviare una richiesta di amicizia a te stesso');
   }
 
   // Genera ID deterministico per evitare richieste duplicate
-  const notifId = `req_${currentUser.uid}_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const targetKey = targetUid || cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+  const notifId = `req_${currentUser.uid}_${targetKey}`;
   const notifRef = doc(db, 'burraco_notifications', notifId);
 
   const payload = {
@@ -50,8 +94,9 @@ export async function sendFriendRequest(currentUser, targetEmail) {
     fromName: currentUser.displayName || 'Giocatore Burraco',
     fromEmail: (currentUser.email || '').toLowerCase(),
     fromPhoto: currentUser.photoURL || null,
-    toEmail: cleanEmail,
-    toUid: targetUid,
+    toEmail: cleanEmail || null,
+    toUid: targetUid || null,
+    toName: targetName || cleanEmail,
     status: 'pending',
     createdAt: new Date().toISOString()
   };
@@ -157,28 +202,59 @@ export async function respondToGameInvite(notification, accept) {
 
 /**
  * Ascolta in tempo reale le notifiche pendenti per l'utente collegato
+ * Supporta sia notifiche indirizzate via toEmail che via toUid
  */
 export function subscribeToMyNotifications(currentUser, onNotificationsChange) {
-  if (!db || !currentUser?.email) return () => {};
+  if (!db || !currentUser) return () => {};
 
-  const cleanEmail = currentUser.email.toLowerCase();
+  const cleanEmail = (currentUser.email || '').trim().toLowerCase();
+  const currentUid = currentUser.uid;
   const notifsRef = collection(db, 'burraco_notifications');
 
-  // Ascolta le notifiche pendenti destinate alla mia email
-  const q = query(
-    notifsRef,
-    where('toEmail', '==', cleanEmail),
-    where('status', '==', 'pending')
-  );
+  let emailDocs = new Map();
+  let uidDocs = new Map();
 
-  return onSnapshot(q, (snapshot) => {
-    const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const emit = () => {
+    const merged = new Map([...emailDocs, ...uidDocs]);
+    const list = Array.from(merged.values())
+      .filter(item => item && item.status === 'pending');
     // Ordina dalla più recente alla più vecchia
     list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     onNotificationsChange(list);
-  }, (err) => {
-    console.warn('Avviso: ascolto notifiche pendenti:', err.message);
-  });
+  };
+
+  let unsubEmail = () => {};
+  if (cleanEmail) {
+    const qEmail = query(notifsRef, where('toEmail', '==', cleanEmail));
+    unsubEmail = onSnapshot(qEmail, (snap) => {
+      emailDocs = new Map();
+      snap.docs.forEach(docSnap => {
+        emailDocs.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+      });
+      emit();
+    }, (err) => {
+      console.warn('Avviso ascolto notifiche email:', err.message);
+    });
+  }
+
+  let unsubUid = () => {};
+  if (currentUid) {
+    const qUid = query(notifsRef, where('toUid', '==', currentUid));
+    unsubUid = onSnapshot(qUid, (snap) => {
+      uidDocs = new Map();
+      snap.docs.forEach(docSnap => {
+        uidDocs.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+      });
+      emit();
+    }, (err) => {
+      console.warn('Avviso ascolto notifiche UID:', err.message);
+    });
+  }
+
+  return () => {
+    unsubEmail();
+    unsubUid();
+  };
 }
 
 /**
@@ -212,10 +288,10 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
   if (!db || !currentUser?.uid) return () => {};
 
   const friendsRef = collection(db, 'burraco_friends');
+  // Senza where('status', '==', 'accepted') nella query Firestore per non richiedere indici compositi
   const q = query(
     friendsRef,
-    where('users', 'array-contains', currentUser.uid),
-    where('status', '==', 'accepted')
+    where('users', 'array-contains', currentUser.uid)
   );
 
   const userUnsubs = {};
@@ -239,11 +315,12 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
 
     snapshot.docs.forEach(docSnap => {
       const data = docSnap.data();
+      if (data.status !== 'accepted') return; // Filtro in memoria
       let other = null;
       if (data.user1?.uid === currentUser.uid) {
-        other = data.user2;
+        other = { ...data.user2, friendshipId: docSnap.id };
       } else if (data.user2?.uid === currentUser.uid) {
-        other = data.user1;
+        other = { ...data.user1, friendshipId: docSnap.id };
       }
       if (other) {
         friendsBase.push(other);
@@ -254,7 +331,7 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
     // Rimuovi listener per amici non più presenti
     Object.keys(userUnsubs).forEach(uid => {
       if (!activeUids.has(uid)) {
-        userUnsubs[uid]();
+        if (typeof userUnsubs[uid] === 'function') userUnsubs[uid]();
         delete userUnsubs[uid];
         delete userProfiles[uid];
       }
@@ -282,6 +359,39 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
 
   return () => {
     unsubFriends();
-    Object.values(userUnsubs).forEach(unsub => unsub());
+    Object.values(userUnsubs).forEach(unsub => {
+      if (typeof unsub === 'function') unsub();
+    });
   };
+}
+
+/**
+ * Ascolta in tempo reale l'elenco di tutti i membri registrati del Burraco Club (escluso l'utente corrente)
+ */
+export function subscribeToClubUsers(currentUser, onUsersChange) {
+  if (!db) return () => {};
+  const usersRef = collection(db, 'burraco_users');
+
+  return onSnapshot(usersRef, (snapshot) => {
+    const list = [];
+    snapshot.docs.forEach(docSnap => {
+      const u = docSnap.data();
+      if (currentUser && u.uid === currentUser.uid) return;
+      list.push(u);
+    });
+    // Ordina per nome alfabetico
+    list.sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
+    onUsersChange(list);
+  }, (err) => {
+    console.warn('Avviso ascolto membri club:', err.message);
+  });
+}
+
+/**
+ * Rimuove un'amicizia
+ */
+export async function removeFriend(friendshipId) {
+  if (!db || !friendshipId) return;
+  const friendRef = doc(db, 'burraco_friends', friendshipId);
+  await deleteDoc(friendRef);
 }

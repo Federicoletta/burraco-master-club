@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, LogIn, LogOut, User, Trophy, Flame, Award, Calendar, Mail, ShieldCheck, Users, UserPlus, Send, Sparkles, Check } from 'lucide-react';
+import { X, LogIn, LogOut, User, Trophy, Flame, Award, Calendar, Mail, ShieldCheck, Users, UserPlus, Send, Sparkles, Check, Trash2, Search, UserCheck } from 'lucide-react';
 import { getFriendOnlineStatus } from '../services/social';
 
 export default function UserProfileModal({
@@ -12,15 +12,18 @@ export default function UserProfileModal({
   activeGame,
   tablePlayers = [],
   friendsList = [],
+  clubUsers = [],
   onSendFriendRequest,
   onChallengeFriend,
   onInviteFriendToActiveGame,
+  onRemoveFriend,
   initialTab = 'profile'
 }) {
   const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'friends'
-  const [friendEmailInput, setFriendEmailInput] = useState('');
+  const [friendSearchInput, setFriendSearchInput] = useState('');
   const [friendFeedback, setFriendFeedback] = useState(null);
-  const [isSendingFriend, setIsSendingFriend] = useState(false);
+  const [sendingFriendKeys, setSendingFriendKeys] = useState({});
+  const [sentFriendKeys, setSentFriendKeys] = useState({});
   const [invitingFriendUids, setInvitingFriendUids] = useState({});
   const [invitedFriendUids, setInvitedFriendUids] = useState({});
 
@@ -68,26 +71,65 @@ export default function UserProfileModal({
   const onlineFriends = friendsList.filter(f => getFriendOnlineStatus(f.lastSeen).isOnline);
   const onlineCount = onlineFriends.length;
 
-  const handleSendFriend = async (e) => {
-    e.preventDefault();
-    if (!friendEmailInput.trim()) return;
-    if (!onSendFriendRequest) return;
-    setIsSendingFriend(true);
+  // Membri del club registrati che non sono ancora amici e non sono l'utente corrente
+  const nonFriendClubMembers = clubUsers.filter(u => {
+    if (!u) return false;
+    if (u.uid && currentUser?.uid && u.uid === currentUser.uid) return false;
+    if (u.email && currentUser?.email && u.email.toLowerCase() === currentUser.email.toLowerCase()) return false;
+    
+    const alreadyFriend = friendsList.some(f => 
+      (f.uid && u.uid && f.uid === u.uid) ||
+      (f.email && u.email && f.email.toLowerCase() === u.email.toLowerCase()) ||
+      (f.displayName && u.displayName && f.displayName.toLowerCase() === u.displayName.toLowerCase())
+    );
+    return !alreadyFriend;
+  });
+
+  // Membri filtrati dalla ricerca
+  const filteredSuggestions = nonFriendClubMembers.filter(m => {
+    if (!friendSearchInput.trim()) return true;
+    const term = friendSearchInput.toLowerCase().trim();
+    const nameMatch = (m.displayName || '').toLowerCase().includes(term);
+    const emailMatch = (m.email || '').toLowerCase().includes(term);
+    return nameMatch || emailMatch;
+  });
+
+  const handleSendFriend = async (target) => {
+    if (!onSendFriendRequest || !target) return;
+    const key = typeof target === 'object' ? (target.uid || target.email) : target;
+    setSendingFriendKeys(prev => ({ ...prev, [key]: true }));
     setFriendFeedback(null);
     try {
-      await onSendFriendRequest(friendEmailInput.trim());
+      await onSendFriendRequest(target);
+      const label = typeof target === 'object' ? (target.displayName || target.email) : target;
+      setSentFriendKeys(prev => ({ ...prev, [key]: true }));
       setFriendFeedback({
         type: 'success',
-        text: `Richiesta di amicizia inviata a ${friendEmailInput.trim()}!`
+        text: `Richiesta di amicizia inviata con successo a ${label}!`
       });
-      setFriendEmailInput('');
+      setFriendSearchInput('');
     } catch (err) {
       setFriendFeedback({
         type: 'error',
         text: err.message || 'Errore durante l\'invio della richiesta'
       });
     } finally {
-      setIsSendingFriend(false);
+      setSendingFriendKeys(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    const trimmed = friendSearchInput.trim();
+    if (!trimmed) return;
+    const exactMatch = nonFriendClubMembers.find(m => 
+      (m.email && m.email.toLowerCase() === trimmed.toLowerCase()) ||
+      (m.displayName && m.displayName.toLowerCase() === trimmed.toLowerCase())
+    );
+    if (exactMatch) {
+      handleSendFriend(exactMatch);
+    } else {
+      handleSendFriend(trimmed);
     }
   };
 
@@ -283,37 +325,139 @@ export default function UserProfileModal({
             {/* SCHEDA 2: I MIEI AMICI ONLINE */}
             {activeTab === 'friends' && (
               <div className="space-y-3.5 animate-in fade-in duration-150">
-                {/* Form Invita Amico tramite Email */}
+                {/* SEZIONE 1: MEMBRI DEL BURRACO CLUB (AGGIUNTA RAPIDA CON 1 TAP) */}
+                {nonFriendClubMembers.length > 0 && (
+                  <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Giocatori Registrati al Club ({nonFriendClubMembers.length})</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-400/80 font-medium">1 tap per aggiungere</span>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                      {nonFriendClubMembers.map(member => {
+                        const mKey = member.uid || member.email;
+                        const isSent = sentFriendKeys[mKey];
+                        const isSending = sendingFriendKeys[mKey];
+                        return (
+                          <div 
+                            key={mKey}
+                            className="p-2.5 rounded-xl bg-emerald-900/60 border border-emerald-700/50 flex items-center justify-between gap-2.5 hover:border-amber-400/40 transition-colors"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {member.photoURL ? (
+                                <img src={member.photoURL} alt="" className="w-8 h-8 rounded-full border border-amber-400 object-cover shrink-0" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-emerald-800 border border-amber-400 text-amber-300 font-bold text-xs flex items-center justify-center shrink-0">
+                                  {(member.displayName || member.email || 'U').slice(0, 1).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-white truncate flex items-center gap-1">
+                                  <span>{member.displayName || 'Giocatore'}</span>
+                                  <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" title="Account Google Verificato" />
+                                </div>
+                                <div className="text-[10px] text-emerald-300/70 truncate">
+                                  {member.email}
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={isSending || isSent}
+                              onClick={() => handleSendFriend(member)}
+                              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer shrink-0 ${
+                                isSent 
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 cursor-default'
+                                  : 'gold-gradient text-emerald-950 hover:brightness-110 disabled:opacity-50'
+                              }`}
+                            >
+                              {isSent ? (
+                                <>
+                                  <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
+                                  <span>Inviata!</span>
+                                </>
+                              ) : isSending ? (
+                                <span>Invio...</span>
+                              ) : (
+                                <>
+                                  <UserPlus className="w-3 h-3" />
+                                  <span>Aggiungi</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* SEZIONE 2: INVITA TRAMITE EMAIL O NOME */}
                 <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60 space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300 uppercase tracking-wider">
                     <UserPlus className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Aggiungi Amico tramite Email</span>
+                    <span>Invita tramite Email</span>
                   </div>
                   <p className="text-[11px] text-emerald-300/80 m-0">
                     Inserisci l'indirizzo email Google del tuo amico: gli comparirà subito la notifica per accettare!
                   </p>
                   
-                  <form onSubmit={handleSendFriend} className="flex gap-2 pt-1">
+                  <form onSubmit={handleFormSubmit} className="flex gap-2 pt-1">
                     <div className="relative flex-1">
                       <Mail className="w-4 h-4 text-emerald-400/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <input
-                        type="email"
-                        value={friendEmailInput}
-                        onChange={(e) => setFriendEmailInput(e.target.value)}
-                        placeholder="es. mario.rossi@gmail.com"
+                        type="text"
+                        value={friendSearchInput}
+                        onChange={(e) => setFriendSearchInput(e.target.value)}
+                        placeholder="es. mario.rossi@gmail.com o nome..."
                         className="w-full pl-9 pr-3 py-2 rounded-xl bg-emerald-900/60 border border-emerald-700/60 text-white placeholder-emerald-400/40 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400"
-                        disabled={isSendingFriend}
+                        disabled={sendingFriendKeys[friendSearchInput.trim()]}
                       />
                     </div>
                     <button
                       type="submit"
-                      disabled={isSendingFriend || !friendEmailInput.trim()}
+                      disabled={sendingFriendKeys[friendSearchInput.trim()] || !friendSearchInput.trim()}
                       className="px-3.5 py-2 rounded-xl gold-gradient text-emerald-950 font-bold text-xs flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
                     >
                       <Send className="w-3.5 h-3.5 text-emerald-950" />
-                      <span>{isSendingFriend ? 'Invio...' : 'Invia'}</span>
+                      <span>{sendingFriendKeys[friendSearchInput.trim()] ? 'Invio...' : 'Invia'}</span>
                     </button>
                   </form>
+
+                  {/* Suggerimenti live se l'utente sta digitando un nome */}
+                  {friendSearchInput.trim().length > 1 && filteredSuggestions.length > 0 && (
+                    <div className="mt-1 p-1.5 rounded-xl bg-emerald-900/90 border border-amber-400/40 space-y-1 shadow-lg">
+                      <span className="text-[10px] uppercase font-bold text-amber-300 px-2 block">
+                        Giocatori trovati:
+                      </span>
+                      {filteredSuggestions.map(sug => (
+                        <div
+                          key={sug.uid || sug.email}
+                          onClick={() => handleSendFriend(sug)}
+                          className="p-2 rounded-lg bg-emerald-950/60 hover:bg-emerald-800/80 flex items-center justify-between cursor-pointer transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {sug.photoURL ? (
+                              <img src={sug.photoURL} alt="" className="w-6 h-6 rounded-full border border-amber-400 object-cover shrink-0" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-emerald-800 text-amber-300 font-bold text-[10px] flex items-center justify-center shrink-0">
+                                {(sug.displayName || 'U').slice(0, 1).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-white truncate block">{sug.displayName}</span>
+                              <span className="text-[10px] text-emerald-300/70 truncate block">{sug.email}</span>
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold text-amber-300 shrink-0">➕ Invia</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {friendFeedback && (
                     <div className={`p-2 rounded-lg text-xs font-medium ${
@@ -326,7 +470,7 @@ export default function UserProfileModal({
                   )}
                 </div>
 
-                {/* Lista Amici Confermati */}
+                {/* SEZIONE 3: LISTA AMICI CONFERMATI */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs font-bold text-emerald-300 uppercase tracking-wider px-1">
                     <span className="flex items-center gap-1.5">
@@ -347,7 +491,7 @@ export default function UserProfileModal({
                         Non hai ancora aggiunto amici.
                       </p>
                       <p className="text-[11px] text-emerald-400/60 m-0">
-                        Aggiungi i tuoi compagni di Burraco per vedere quando sono online e sfidarli a giocare!
+                        Aggiungi i tuoi compagni di Burraco dal club o via email per vedere quando sono online e sfidarli a giocare!
                       </p>
                     </div>
                   ) : (
@@ -405,7 +549,7 @@ export default function UserProfileModal({
                               </div>
                             </div>
 
-                            {/* Tasti Azione: Invita al Tavolo Attivo oppure Nuova Sfida */}
+                            {/* Tasti Azione: Invita al Tavolo Attivo, Sfida, oppure Rimuovi */}
                             <div className="flex items-center gap-1.5 shrink-0">
                               {activeGame && activeGame.id && onInviteFriendToActiveGame && (
                                 tablePlayers.some(p => (friend.uid && p.uid === friend.uid) || (friend.email && p.email?.toLowerCase() === friend.email?.toLowerCase())) ? (
@@ -443,6 +587,21 @@ export default function UserProfileModal({
                               >
                                 {activeGame && activeGame.id ? <span>Nuova Sfida</span> : <><span>🎯</span><span>Sfida</span></>}
                               </button>
+
+                              {onRemoveFriend && friend.friendshipId && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Vuoi rimuovere ${friend.displayName || friend.email} dai tuoi amici?`)) {
+                                      onRemoveFriend(friend.friendshipId);
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-400/70 hover:text-rose-300 border border-rose-800/40 transition-colors cursor-pointer"
+                                  title="Rimuovi dai tuoi amici"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         );

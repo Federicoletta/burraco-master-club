@@ -20,7 +20,9 @@ import {
   sendGameInvite,
   respondToGameInvite,
   subscribeToMyNotifications,
-  subscribeToMyFriends
+  subscribeToMyFriends,
+  subscribeToClubUsers,
+  removeFriend
 } from './services/social';
 import { 
   getActiveGame, 
@@ -79,6 +81,7 @@ export default function App() {
   // Social & Notifications state
   const [notifications, setNotifications] = useState([]);
   const [friendsList, setFriendsList] = useState([]);
+  const [clubUsers, setClubUsers] = useState([]);
   const [friendsLiveProfiles, setFriendsLiveProfiles] = useState([]);
   const [tablePlayers, setTablePlayers] = useState([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -261,9 +264,13 @@ export default function App() {
     const unsubFriends = subscribeToMyFriends(currentUser, (friends) => {
       setFriendsList(friends);
     });
+    const unsubClub = subscribeToClubUsers(currentUser, (cUsers) => {
+      setClubUsers(cUsers);
+    });
     return () => {
       unsubNotifs();
       unsubFriends();
+      unsubClub();
     };
   }, [currentUser]);
 
@@ -1103,9 +1110,18 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
   };
 
   // Gestione Social & Notifiche (Amicizie e Inviti alle Partite)
-  const handleSendFriendRequest = async (email) => {
+  const handleSendFriendRequest = async (target) => {
     if (!currentUser) throw new Error('Devi prima accedere con il tuo account Google');
-    return await sendFriendRequest(currentUser, email);
+    return await sendFriendRequest(currentUser, target);
+  };
+
+  const handleRemoveFriend = async (friendshipId) => {
+    try {
+      await removeFriend(friendshipId);
+    } catch (err) {
+      console.error('Errore rimozione amicizia:', err);
+      alert('Impossibile rimuovere l\'amico: ' + (err.message || err));
+    }
   };
 
   const handleAcceptFriendRequest = async (notification) => {
@@ -1426,9 +1442,11 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         activeGame={activeGame}
         tablePlayers={tablePlayers}
         friendsList={friendsList}
+        clubUsers={clubUsers}
         onSendFriendRequest={handleSendFriendRequest}
         onChallengeFriend={handleChallengeFriend}
         onInviteFriendToActiveGame={handleInviteFriendToActiveGame}
+        onRemoveFriend={handleRemoveFriend}
       />
 
       {/* 11. Modal Notifiche & Inviti Amici */}
