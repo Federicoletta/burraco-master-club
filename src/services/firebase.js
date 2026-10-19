@@ -16,7 +16,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  getAdditionalUserInfo
 } from 'firebase/auth';
 
 // Configurazione Firebase del progetto dedicato "burraco-score-fedec"
@@ -53,6 +54,20 @@ export async function loginWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result?.user;
+
+    let isNewUser = false;
+    try {
+      const additionalInfo = getAdditionalUserInfo(result);
+      isNewUser = Boolean(additionalInfo?.isNewUser);
+    } catch {
+      // fallback
+    }
+
+    const wasWelcomed = localStorage.getItem('burraco_welcomed_' + user?.uid) === 'true';
+    if (user) {
+      user.isFirstLogin = Boolean(isNewUser || !wasWelcomed);
+    }
+
     // Registra/aggiorna il profilo utente su Firestore in background
     if (db && user) {
       try {

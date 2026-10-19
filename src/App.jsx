@@ -13,6 +13,7 @@ import TournamentModal from './components/TournamentModal';
 import UserProfileModal from './components/UserProfileModal';
 import NotificationsModal from './components/NotificationsModal';
 import NotificationToast from './components/NotificationToast';
+import WelcomeModal from './components/WelcomeModal';
 import { sound } from './utils/soundEffects';
 import { 
   sendFriendRequest,
@@ -77,6 +78,7 @@ export default function App() {
   // User Auth & Profile state
   const [currentUser, setCurrentUser] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [welcomeUser, setWelcomeUser] = useState(null);
 
   // Social & Notifications state
   const [notifications, setNotifications] = useState([]);
@@ -1033,6 +1035,10 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
   const handleLogin = async () => {
     try {
       const user = await loginWithGoogle();
+      if (user?.isFirstLogin) {
+        setWelcomeUser(user);
+        localStorage.setItem('burraco_welcomed_' + user.uid, 'true');
+      }
       if (user?.displayName) {
         const currentStored = getStoredPlayers();
         if (!currentStored.includes(user.displayName)) {
@@ -1414,6 +1420,14 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onDeclineFriendRequest={handleDeclineFriendRequest}
         onAcceptGameInvite={handleAcceptGameInvite}
         onDeclineGameInvite={handleDeclineGameInvite}
+      />
+
+      {/* 12. Modal Benvenuto Primo Accesso / Registrazione */}
+      <WelcomeModal
+        isOpen={Boolean(welcomeUser)}
+        onClose={() => setWelcomeUser(null)}
+        user={welcomeUser}
+        onOpenProfile={() => setIsProfileOpen(true)}
       />
 
     </div>
