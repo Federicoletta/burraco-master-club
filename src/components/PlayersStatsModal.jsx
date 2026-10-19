@@ -31,8 +31,7 @@ export default function PlayersStatsModal({
   gamesHistory,
   activeGame,
   currentUser,
-  friendsList = [],
-  friendsLiveProfiles = []
+  friendsList = []
 }) {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [activeTab, setActiveTab] = useState('ranking'); // 'ranking' | 'trend' | 'trophies' | 'roster'
@@ -71,9 +70,7 @@ export default function PlayersStatsModal({
   }) : null;
 
   // Unione profili amici in tempo reale da Firestore
-  const effectiveFriends = (friendsLiveProfiles && friendsLiveProfiles.length > 0)
-    ? friendsLiveProfiles
-    : (friendsList || []);
+  const effectiveFriends = friendsList || [];
 
   const friendsLeaderboardData = [];
 

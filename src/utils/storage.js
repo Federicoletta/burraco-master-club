@@ -210,13 +210,13 @@ export function deleteGameFromHistory(gameId, userKey) {
   return history;
 }
 
-export function exportBackupData() {
+export function exportBackupData(userKey) {
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
     activeGame: getActiveGame(),
-    history: getGamesHistory(),
-    players: getStoredPlayers(),
+    history: getGamesHistory(userKey),
+    players: getStoredPlayers(userKey),
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -229,14 +229,14 @@ export function exportBackupData() {
   URL.revokeObjectURL(url);
 }
 
-export function importBackupData(jsonData) {
+export function importBackupData(jsonData, userKey) {
   try {
     const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
     if (data.history && Array.isArray(data.history)) {
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(data.history));
+      localStorage.setItem(getHistoryKey(userKey), JSON.stringify(data.history));
     }
     if (data.players && Array.isArray(data.players)) {
-      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(data.players));
+      localStorage.setItem(getPlayersKey(userKey), JSON.stringify(data.players));
     }
     if (data.activeGame) {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_GAME, JSON.stringify(data.activeGame));

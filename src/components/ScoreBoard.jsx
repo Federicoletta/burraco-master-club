@@ -202,7 +202,8 @@ export default function ScoreBoard({
       ...(activeGame.team2?.players || []),
       ...(activeGame.team3?.players || [])
     ].filter(Boolean);
-    const history = gamesHistory.length > 0 ? gamesHistory : getGamesHistory();
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const history = gamesHistory.length > 0 ? gamesHistory : getGamesHistory(userKey);
     const stats = calculatePlayerStats(allPlayersInGame, history, activeGame);
     const map = {};
     stats.forEach(s => {

@@ -20,6 +20,7 @@ import {
   Bell 
 } from 'lucide-react';
 import { getFriendOnlineStatus } from '../services/social';
+import { computeUserCareerStats } from '../utils/storage';
 
 export default function UserProfileModal({
   isOpen,
@@ -60,39 +61,20 @@ export default function UserProfileModal({
     n => n && n.type === 'friend_request' && n.status === 'pending'
   );
 
-  // Cerca partite in cui compare il nome dell'utente
-  const userGames = gamesHistory.filter(game => {
-    if (!game) return false;
-    const t1 = game.team1?.players || [];
-    const t2 = game.team2?.players || [];
-    const t3 = game.team3?.players || [];
-    const all = [...t1, ...t2, ...t3];
-    return all.some(p => p.toLowerCase() === userDisplayName.toLowerCase());
-  });
+  // Calcola statistiche collegate a questo utente autenticato con risoluzione nickname e cloud
+  const career = currentUser ? computeUserCareerStats(currentUser, gamesHistory, activeGame) : null;
+  const cloudCareer = currentUser?.careerStats || {};
 
-  const gamesCount = userGames.length;
-  let wonCount = 0;
-  let totalScore = 0;
-
-  userGames.forEach(game => {
-    const isT1 = (game.team1?.players || []).some(p => p.toLowerCase() === userDisplayName.toLowerCase());
-    const isT2 = (game.team2?.players || []).some(p => p.toLowerCase() === userDisplayName.toLowerCase());
-    const isT3 = (game.team3?.players || []).some(p => p.toLowerCase() === userDisplayName.toLowerCase());
-
-    const t1Score = (game.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
-    const t2Score = (game.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
-    const t3Score = (game.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
-
-    if (isT1) totalScore += t1Score;
-    if (isT2) totalScore += t2Score;
-    if (isT3) totalScore += t3Score;
-
-    if (game.winner === 'team1' && isT1) wonCount++;
-    else if (game.winner === 'team2' && isT2) wonCount++;
-    else if (game.winner === 'team3' && isT3) wonCount++;
-  });
-
-  const winRate = gamesCount > 0 ? Math.round((wonCount / gamesCount) * 100) : 0;
+  const gamesCount = Math.max(career?.gamesPlayed || 0, Number(cloudCareer.gamesPlayed) || 0);
+  const wonCount = Math.max(career?.gamesWon || 0, Number(cloudCareer.gamesWon) || 0);
+  const totalScore = Math.max(career?.totalPoints || 0, Number(cloudCareer.totalPoints) || 0);
+  const winRate = gamesCount > 0 ? Math.round((wonCount / gamesCount) * 100) : (career?.winRate || Number(cloudCareer.winRate) || 0);
+  const cleanBurrachi = Math.max(career?.cleanBurrachi || 0, Number(cloudCareer.cleanBurrachi) || 0);
+  const semiCleanBurrachi = Math.max(career?.semiCleanBurrachi || 0, Number(cloudCareer.semiCleanBurrachi) || 0);
+  const dirtyBurrachi = Math.max(career?.dirtyBurrachi || 0, Number(cloudCareer.dirtyBurrachi) || 0);
+  const totalBurrachi = cleanBurrachi + semiCleanBurrachi + dirtyBurrachi;
+  const closures = Math.max(career?.closures || 0, Number(cloudCareer.closures) || 0);
+  const bestHandScore = Math.max(career?.bestHandScore || 0, Number(cloudCareer.bestHandScore) || 0);
 
   const onlineFriends = friendsList.filter(f => getFriendOnlineStatus(f.lastSeen).isOnline);
   const onlineCount = onlineFriends.length;
@@ -321,6 +303,27 @@ export default function UserProfileModal({
                     <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/50 text-center">
                       <span className="text-[10px] uppercase font-bold text-emerald-400/80 block">Punti Totali</span>
                       <span className="text-lg font-black text-emerald-200">{totalScore.toLocaleString('it-IT')}</span>
+                    </div>
+                  </div>
+
+                  {/* Burrachi, Chiusure e Record */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="p-2 rounded-xl bg-emerald-950/50 border border-emerald-800/40 text-center">
+                      <span className="text-[10px] font-bold text-amber-300/80 block">Burrachi</span>
+                      <span className="text-sm font-black text-amber-200">{totalBurrachi}</span>
+                      <span className="text-[9px] text-emerald-300/60 block mt-0.5">
+                        {cleanBurrachi}P / {semiCleanBurrachi}S / {dirtyBurrachi}Sp
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-emerald-950/50 border border-emerald-800/40 text-center">
+                      <span className="text-[10px] font-bold text-emerald-400/80 block">Chiusure</span>
+                      <span className="text-sm font-black text-white">{closures}</span>
+                      <span className="text-[9px] text-emerald-300/60 block mt-0.5">volte</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-emerald-950/50 border border-emerald-800/40 text-center">
+                      <span className="text-[10px] font-bold text-emerald-400/80 block">Record Mano</span>
+                      <span className="text-sm font-black text-emerald-300">+{bestHandScore}</span>
+                      <span className="text-[9px] text-emerald-300/60 block mt-0.5">punti max</span>
                     </div>
                   </div>
 

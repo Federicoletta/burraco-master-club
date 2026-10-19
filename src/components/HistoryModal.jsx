@@ -34,6 +34,7 @@ export default function HistoryModal({
   onClose,
   gamesHistory = [],
   activeGame,
+  currentUser = null,
   onEndGame,
   onResumeGame,
   onDeleteGame,
@@ -83,7 +84,7 @@ export default function HistoryModal({
   const handleManualSync = async () => {
     setIsSyncing(true);
     try {
-      const cloudGames = await loadCloudGamesHistory();
+      const cloudGames = await loadCloudGamesHistory(currentUser);
       if (cloudGames && onDataImported) {
         onDataImported();
       }
@@ -102,7 +103,8 @@ export default function HistoryModal({
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const ok = importBackupData(event.target.result);
+      const userKey = currentUser ? currentUser.uid : 'guest';
+      const ok = importBackupData(event.target.result, userKey);
       if (ok) {
         alert('Dati ripristinati con successo!');
         if (onDataImported) onDataImported();
@@ -537,7 +539,7 @@ export default function HistoryModal({
             {showAdvanced && (
               <div className="mt-2 p-2 rounded-lg bg-emerald-950/50 border border-emerald-800/40 flex items-center justify-center gap-2 animate-in fade-in duration-150">
                 <button
-                  onClick={exportBackupData}
+                  onClick={() => exportBackupData(currentUser ? currentUser.uid : 'guest')}
                   className="px-2.5 py-1 rounded bg-emerald-900/60 hover:bg-emerald-800 text-[11px] text-emerald-300 border border-emerald-700/50 flex items-center gap-1 cursor-pointer"
                 >
                   <Download className="w-3 h-3 text-amber-400" />

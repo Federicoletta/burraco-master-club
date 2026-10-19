@@ -84,7 +84,6 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const [friendsList, setFriendsList] = useState([]);
   const [clubUsers, setClubUsers] = useState([]);
-  const [friendsLiveProfiles, setFriendsLiveProfiles] = useState([]);
   const [tablePlayers, setTablePlayers] = useState([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [toastNotification, setToastNotification] = useState(null);
@@ -777,6 +776,16 @@ export default function App() {
     const updatedHistory = archiveCurrentGame(updatedGame, userKey);
     setGamesHistory(updatedHistory);
 
+    // Aggiorna puntualmente le statistiche di carriera sul profilo Cloud (azione singola su evento utente, nessun loop)
+    if (currentUser) {
+      const stats = computeUserCareerStats(currentUser, updatedHistory, updatedGame);
+      if (stats) {
+        updateUserCareerStats(currentUser.uid, stats).catch(err => {
+          console.warn('Avviso aggiornamento careerStats cloud:', err);
+        });
+      }
+    }
+
     setIsVictoryOpen(true);
   };
 
@@ -788,6 +797,14 @@ export default function App() {
     setGamesHistory(updatedHistory);
     if (updatedHistory && updatedHistory[0]) {
       syncGameToCloud(updatedHistory[0], currentUser, true);
+    }
+    if (currentUser) {
+      const stats = computeUserCareerStats(currentUser, updatedHistory, activeGame);
+      if (stats) {
+        updateUserCareerStats(currentUser.uid, stats).catch(err => {
+          console.warn('Avviso aggiornamento careerStats cloud:', err);
+        });
+      }
     }
 
     const rematchGame = {
@@ -845,6 +862,16 @@ export default function App() {
       const updatedHistory = archiveCurrentGame(finishedGame, userKey);
       setGamesHistory(updatedHistory);
       syncGameToCloud(finishedGame, currentUser, true);
+
+      // Aggiorna puntualmente le statistiche di carriera sul profilo Cloud
+      if (currentUser) {
+        const stats = computeUserCareerStats(currentUser, updatedHistory, finishedGame);
+        if (stats) {
+          updateUserCareerStats(currentUser.uid, stats).catch(err => {
+            console.warn('Avviso aggiornamento careerStats cloud:', err);
+          });
+        }
+      }
     }
 
     // Scollega dal tavolo condiviso se presente nell'URL
@@ -1040,12 +1067,13 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         localStorage.setItem('burraco_welcomed_' + user.uid, 'true');
       }
       if (user?.displayName) {
-        const currentStored = getStoredPlayers();
+        const userKey = user.uid;
+        const currentStored = getStoredPlayers(userKey);
         if (!currentStored.includes(user.displayName)) {
-          savePlayerName(user.displayName);
-          const updated = getStoredPlayers();
+          savePlayerName(user.displayName, userKey);
+          const updated = getStoredPlayers(userKey);
           setPlayersList(updated);
-          syncPlayersToCloud(updated);
+          syncUserGuestsToCloud(user.uid, updated);
         }
       }
     } catch (err) {
@@ -1319,7 +1347,6 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         activeGame={activeGame}
         currentUser={currentUser}
         friendsList={friendsList}
-        friendsLiveProfiles={friendsLiveProfiles}
       />
 
       {/* 4. Modal Storico Partite */}
@@ -1328,6 +1355,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onClose={() => setIsHistoryOpen(false)}
         gamesHistory={gamesHistory}
         activeGame={activeGame}
+        currentUser={currentUser}
         onEndGame={handleEndGame}
         onResumeGame={handleResumeGame}
         onDeleteGame={handleDeleteGameHistory}
