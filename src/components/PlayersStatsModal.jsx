@@ -1,56 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Trophy, Award, Trash2, TrendingUp, Skull, BookUser, Edit2, Check, BarChart3, Sparkles, Users, Globe, Wifi } from 'lucide-react';
+import { X, Trophy, Award, TrendingUp, BarChart3, Sparkles, Users, Wifi, Globe } from 'lucide-react';
 import { calculatePlayerStats, computeUserCareerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
-import { sound } from '../utils/soundEffects';
 import StatsCharts from './StatsCharts';
 import TrophiesShowcase from './TrophiesShowcase';
-
-// Frasi commemorative a rotazione per la dipartita del giocatore
-const EULOGY_PHRASES = [
-  "Ci mancherai tanto da tutto il club burraco",
-  "Il tavolo verde piange la tua scomparsa... Riposa in pace",
-  "Hai chiuso l'ultima mano terrena. Addio, leggenda del Burraco",
-  "Un minuto di silenzio per il nostro caro compagno di carte",
-  "Niente più pozzetti per te quaggiù... Ci mancherai immensamente",
-  "Hai scartato per l'ultima volta. Che la terra ti sia lieve",
-  "Il club del Burraco ti porta nel cuore. Riposa tra i pinelle d'oro",
-  "La partita della vita è terminata. Ciao, sarai sempre nei nostri cuori",
-  "Il mazzo è finito, ma il tuo ricordo al tavolo non svanirà mai",
-  "Onore e rispetto. La sedia al tavolo 1 rimarrà per sempre vuota in tuo onore",
-  "Ci mancheranno le tue giocate e le tue chiusure. Ciao amico caro"
-];
 
 export default function PlayersStatsModal({
   isOpen,
   onClose,
-  playersList,
-  onAddPlayer,
-  onDeletePlayer,
-  onRenamePlayer,
+  recentPlayers = [],
   gamesHistory,
   activeGame,
   currentUser,
   friendsList = []
 }) {
-  const [newPlayerName, setNewPlayerName] = useState('');
-  const [activeTab, setActiveTab] = useState('ranking'); // 'ranking' | 'trend' | 'trophies' | 'roster'
+  const [activeTab, setActiveTab] = useState('ranking'); // 'ranking' | 'trend' | 'trophies'
   const [rankingScope, setRankingScope] = useState(currentUser ? 'friends' : 'local'); // 'friends' | 'local'
   const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
   const [selectedPlayerForTrend, setSelectedPlayerForTrend] = useState(null);
   const [selectedPlayerForTrophies, setSelectedPlayerForTrophies] = useState(null);
 
-  // Stato modifica nome giocatore inline
-  const [editingPlayerName, setEditingPlayerName] = useState(null); // nome originale in modifica
-  const [renameInputValue, setRenameInputValue] = useState('');
-
-  // Stato per la modalità Morte / Blackout tenebroso
-  const [deadPlayerModal, setDeadPlayerModal] = useState(null); // Giocatore in attesa di conferma eliminazione
-  const [isDeathBlackout, setIsDeathBlackout] = useState(false);
-  const [currentEulogy, setCurrentEulogy] = useState('');
-
-  // Statistiche del dispositivo locale
-  const stats = calculatePlayerStats(playersList, gamesHistory, activeGame);
+  // Statistiche calcolate dinamicamente dalle partite giocate
+  const stats = calculatePlayerStats(recentPlayers, gamesHistory, activeGame);
 
   // Statistiche di carriera dell'utente loggato
   const myCareer = currentUser ? (computeUserCareerStats(currentUser, gamesHistory, activeGame) || {
@@ -158,76 +129,6 @@ export default function PlayersStatsModal({
     ? 100
     : Math.max(...sortedFriendsStats.map(s => s.totalPoints), 1);
 
-  // Gestione Blackout di 5 secondi
-  useEffect(() => {
-    let timer;
-    if (isDeathBlackout) {
-      timer = setTimeout(() => {
-        setIsDeathBlackout(false);
-        setCurrentEulogy('');
-      }, 5000);
-    }
-    return () => clearTimeout(timer);
-  }, [isDeathBlackout]);
-
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (!newPlayerName.trim()) return;
-    onAddPlayer(newPlayerName.trim());
-    setNewPlayerName('');
-  };
-
-  // Conferma ed esecuzione della morte del giocatore
-  const confirmExecuteDeath = () => {
-    if (!deadPlayerModal) return;
-    const playerToKill = deadPlayerModal;
-    setDeadPlayerModal(null);
-
-    // Seleziona una frase a rotazione casuale
-    const randomPhrase = EULOGY_PHRASES[Math.floor(Math.random() * EULOGY_PHRASES.length)];
-    setCurrentEulogy(randomPhrase);
-
-    // Suona il rintocco solenne di campana
-    sound.playDeathBell();
-
-    // Attiva lo schermo nero per 5 secondi
-    setIsDeathBlackout(true);
-
-    // Rimuovi definitivamente il giocatore dalla memoria e dal cloud
-    onDeletePlayer(playerToKill);
-  };
-
-  // Avvio modifica nome
-  const handleStartRename = (playerName) => {
-    setEditingPlayerName(playerName);
-    setRenameInputValue(playerName);
-  };
-
-  // Salva nuovo nome giocatore
-  const handleSaveRename = (e) => {
-    if (e) e.preventDefault();
-    if (!editingPlayerName || !renameInputValue.trim()) {
-      setEditingPlayerName(null);
-      return;
-    }
-    const cleanNew = renameInputValue.trim();
-    if (cleanNew !== editingPlayerName) {
-      if (onRenamePlayer) {
-        onRenamePlayer(editingPlayerName, cleanNew);
-      }
-    }
-    setEditingPlayerName(null);
-  };
-
-  const handleCancelRename = () => {
-    setEditingPlayerName(null);
-    setRenameInputValue('');
-  };
-
-  const handleDelete = (playerName) => {
-    setDeadPlayerModal(playerName);
-  };
-
   const handleViewTrend = (playerName) => {
     setSelectedPlayerForTrend(playerName);
     setActiveTab('trend');
@@ -271,10 +172,10 @@ export default function PlayersStatsModal({
             </div>
             <div>
               <h2 className="text-base sm:text-xl font-bold text-white m-0">
-                Statistiche & Compagni
+                Statistiche Giocatori
               </h2>
               <p className="text-[11px] sm:text-xs text-emerald-300/80 m-0">
-                Classifica, rubrica compagni, andamento e trofei
+                Classifica, andamento e bacheca trofei
               </p>
             </div>
           </div>
@@ -286,8 +187,8 @@ export default function PlayersStatsModal({
           </button>
         </div>
 
-        {/* 4 Sezioni Principali Unificate (Mobile 2x2, Desktop 4x1) */}
-        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-emerald-950/90 border border-emerald-800/80 shadow-inner">
+        {/* 3 Sezioni Principali */}
+        <div className="mt-3 grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-emerald-950/90 border border-emerald-800/80 shadow-inner">
           <button
             type="button"
             onClick={() => setActiveTab('ranking')}
@@ -299,26 +200,6 @@ export default function PlayersStatsModal({
           >
             <Trophy className="w-4 h-4 shrink-0" />
             <span>Classifica</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('roster')}
-            className={`min-h-[38px] sm:min-h-[40px] py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98] select-none ${
-              activeTab === 'roster'
-                ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                : 'text-emerald-300 hover:text-white hover:bg-emerald-900/50'
-            }`}
-          >
-            <BookUser className="w-4 h-4 shrink-0" />
-            <span>Compagni</span>
-            {playersList.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                activeTab === 'roster' ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-800 text-emerald-200'
-              }`}>
-                {playersList.length}
-              </span>
-            )}
           </button>
 
           <button
@@ -390,12 +271,12 @@ export default function PlayersStatsModal({
                   }`}
                 >
                   <Users className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Ospiti Locali</span>
-                  {playersList.length > 0 && (
+                  <span className="truncate">Partecipanti Tavolo</span>
+                  {sortedStats.length > 0 && (
                     <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black shrink-0 ${
                       rankingScope === 'local' ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-800 text-emerald-200'
                     }`}>
-                      {playersList.length}
+                      {sortedStats.length}
                     </span>
                   )}
                 </button>
@@ -448,23 +329,10 @@ export default function PlayersStatsModal({
                     <span>Aggiornato live da ogni dispositivo</span>
                   </div>
                 ) : (
-                  /* Form inserimento partecipante locale */
-                  <form onSubmit={handleAdd} className="flex gap-1.5">
-                    <input
-                      type="text"
-                      placeholder="Nuovo giocatore..."
-                      value={newPlayerName}
-                      onChange={(e) => setNewPlayerName(e.target.value)}
-                      className="flex-1 sm:w-44 px-2.5 py-1 rounded-lg bg-emerald-900/80 border border-emerald-700/60 text-white placeholder-emerald-400/50 text-xs focus:outline-none focus:border-amber-400"
-                    />
-                    <button
-                      type="submit"
-                      className="px-3 py-1 rounded-lg gold-gradient hover:brightness-110 text-emerald-950 font-bold text-xs flex items-center gap-1 shadow-sm cursor-pointer shrink-0"
-                    >
-                      <UserPlus className="w-3.5 h-3.5 text-emerald-950" />
-                      <span>Aggiungi</span>
-                    </button>
-                  </form>
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-300/80 bg-emerald-900/40 px-2.5 py-1 rounded-lg border border-emerald-800/50">
+                    <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Statistiche calcolate al volo dalle partite giocate</span>
+                  </div>
                 )}
               </div>
 
@@ -630,12 +498,12 @@ export default function PlayersStatsModal({
                 </div>
               )}
 
-              {/* CONTENUTO SCOPE: OSPITI TAVOLO LOCALE */}
+              {/* CONTENUTO SCOPE: PARTECIPANTI TAVOLO */}
               {rankingScope === 'local' && (
                 <div>
                   {sortedStats.length === 0 ? (
                     <div className="text-center py-10 text-emerald-300/70 text-xs">
-                      Nessun partecipante registrato. Aggiungi il primo giocatore sopra!
+                      Nessuna partita registrata. Inizia una partita per vedere le statistiche dei partecipanti del tavolo!
                     </div>
                   ) : (
                     <div className="space-y-2.5">
@@ -757,14 +625,6 @@ export default function PlayersStatsModal({
                                   <Award className="w-3 h-3 text-amber-400" />
                                   <span>Trofei</span>
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(p.name)}
-                                  className="p-1 rounded-md text-emerald-600 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                                  title="Rimuovi giocatore"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
                               </div>
                             </div>
 
@@ -776,144 +636,6 @@ export default function PlayersStatsModal({
                 </div>
               )}
 
-            </div>
-          )}
-
-          {/* TAB 2: RUBRICA GIOCATORI DELL'APP CON TESCHIO TENEBROSO */}
-          {activeTab === 'roster' && (
-            <div className="space-y-3">
-              {/* Box Introduttivo con Avviso Tenebroso */}
-              <div className="p-3 rounded-xl bg-gradient-to-r from-red-950/70 via-black/80 to-red-950/70 border border-red-800/50 shadow-md">
-                <div className="flex items-center gap-2 mb-1">
-                  <Skull className="w-4 h-4 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-                  <h3 className="text-xs sm:text-sm font-black text-red-400 uppercase tracking-wider m-0">
-                    Rubrica Giocatori del Burraco Club
-                  </h3>
-                </div>
-                <p className="text-[11px] text-zinc-400 m-0 leading-relaxed">
-                  Lista completa di tutti i partecipanti salvati nell'app. Premendo il <strong className="text-red-400">Teschio Rosso Tenebroso 💀</strong> il giocatore verrà dichiarato defunto e rimosso per sempre dal club.
-                </p>
-              </div>
-
-              {/* Info Amici Online Google */}
-              <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-800/40 flex items-center gap-2.5 text-xs text-emerald-300/80">
-                <span className="text-base shrink-0">👥</span>
-                <span className="leading-tight">
-                  I tuoi compagni con account Google e lo stato online si trovano nella sezione <strong>I Miei Amici</strong> sul tuo <strong>Profilo</strong> (icona in alto a destra).
-                </span>
-              </div>
-
-              {/* Form Aggiunta Nuovo Membro */}
-              <form onSubmit={handleAdd} className="flex gap-1.5 p-2 rounded-xl bg-emerald-950/70 border border-emerald-800/60">
-                <input
-                  type="text"
-                  placeholder="Iscrivi nuovo giocatore al club..."
-                  value={newPlayerName}
-                  onChange={(e) => setNewPlayerName(e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-emerald-900/80 border border-emerald-700/60 text-white placeholder-emerald-400/50 text-xs focus:outline-none focus:border-amber-400"
-                />
-                <button
-                  type="submit"
-                  className="px-3.5 py-1.5 rounded-lg gold-gradient hover:brightness-110 text-emerald-950 font-bold text-xs flex items-center gap-1 shadow-sm cursor-pointer shrink-0"
-                >
-                  <UserPlus className="w-3.5 h-3.5 text-emerald-950" />
-                  <span>Aggiungi</span>
-                </button>
-              </form>
-
-              {/* Elenco Membri con Teschio Rosso Cupo */}
-              {playersList.length === 0 ? (
-                <div className="text-center py-12 text-emerald-300/70 text-xs">
-                  Nessun giocatore registrato nell'app. Aggiungine uno con il form sopra!
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {playersList.map((playerName) => {
-                    const pStat = stats.find(s => s.name.toLowerCase() === playerName.toLowerCase());
-                    const gamesCount = pStat ? pStat.gamesPlayed : 0;
-                    const pointsCount = pStat ? pStat.totalPoints : 0;
-                    const isEditingThis = editingPlayerName === playerName;
-
-                    return (
-                      <div
-                        key={playerName}
-                        className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/90 via-emerald-950/70 to-zinc-950/80 border border-emerald-800/50 hover:border-emerald-600/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-sm group"
-                      >
-                        {/* Info Giocatore / Form Rinomina Inline */}
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-900/80 border border-emerald-700/50 flex items-center justify-center font-bold text-amber-300 text-sm shrink-0">
-                            ♠
-                          </div>
-
-                          {isEditingThis ? (
-                            <form onSubmit={handleSaveRename} className="flex items-center gap-1.5 flex-1 min-w-0">
-                              <input
-                                type="text"
-                                autoFocus
-                                value={renameInputValue}
-                                onChange={(e) => setRenameInputValue(e.target.value)}
-                                className="flex-1 max-w-xs px-2.5 py-1 rounded-lg bg-emerald-900 border-2 border-amber-400 text-white font-bold text-xs focus:outline-none"
-                                placeholder="Nuovo nome..."
-                              />
-                              <button
-                                type="submit"
-                                className="p-1.5 rounded-lg gold-gradient text-emerald-950 font-black cursor-pointer shadow-sm hover:brightness-110 active:scale-95"
-                                title="Salva nuovo nome"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleCancelRename}
-                                className="p-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:text-white cursor-pointer transition-colors active:scale-95"
-                                title="Annulla"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </form>
-                          ) : (
-                            <div className="min-w-0 flex-1">
-                              <h4 className="text-sm font-bold text-white m-0 truncate">
-                                {playerName}
-                              </h4>
-                              <p className="text-[11px] text-emerald-400/80 m-0 truncate">
-                                {gamesCount} {gamesCount === 1 ? 'partita giocata' : 'partite giocate'} • {pointsCount.toLocaleString('it-IT')} pt
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* AZIONI GIOCATORE: MODIFICA NOME & TESCHIO TENEBROSO */}
-                        {!isEditingThis && (
-                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                            {/* TASTO MODIFICA NOME */}
-                            <button
-                              type="button"
-                              onClick={() => handleStartRename(playerName)}
-                              className="px-2.5 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-amber-300 border border-emerald-700/60 hover:border-amber-400/60 flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-all active:scale-95"
-                              title={`Modifica il nome di ${playerName}`}
-                            >
-                              <Edit2 className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Modifica</span>
-                            </button>
-
-                            {/* BOTTONE TESCHIO IN ROSSO TENEBROSO */}
-                            <button
-                              type="button"
-                              onClick={() => setDeadPlayerModal(playerName)}
-                              className="px-3 py-1.5 rounded-xl bg-gradient-to-br from-red-950 via-zinc-950 to-red-950 hover:from-red-900 hover:to-red-950 text-red-500 hover:text-red-300 border-2 border-red-700/70 hover:border-red-500 shadow-[0_0_12px_rgba(220,38,38,0.25)] hover:shadow-[0_0_18px_rgba(239,68,68,0.6)] flex items-center gap-1.5 text-xs font-black uppercase tracking-wider cursor-pointer transition-all active:scale-95"
-                              title={`Dichiara la morte di ${playerName}`}
-                            >
-                              <Skull className="w-4 h-4 text-red-500 animate-pulse drop-shadow-[0_0_6px_rgba(239,68,68,0.9)]" />
-                              <span className="text-red-400 group-hover:text-red-200">Defunto</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           )}
 
@@ -941,9 +663,7 @@ export default function PlayersStatsModal({
         {/* Footer Modale Pulito e Discreto */}
         <div className="mt-3 pt-2.5 border-t border-emerald-700/50 flex items-center justify-between text-xs">
           <span className="text-emerald-400/80 text-[11px]">
-            {activeTab === 'roster'
-              ? `${playersList.length} ospiti in rubrica`
-              : `${stats.length} giocatori con statistiche`}
+            {`${stats.length} giocatori con statistiche`}
           </span>
           <button
             type="button"
@@ -955,72 +675,6 @@ export default function PlayersStatsModal({
         </div>
 
       </div>
-
-      {/* POPUP CONFERMA MORTE GIOCATORE */}
-      {deadPlayerModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-sm rounded-2xl bg-gradient-to-b from-zinc-950 via-zinc-900 to-red-950 border-2 border-red-700 p-5 shadow-2xl text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-red-950/80 border-2 border-red-500/80 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(239,68,68,0.5)]">
-              <Skull className="w-9 h-9 text-red-500 animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
-            </div>
-
-            <div>
-              <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wider mb-1">
-                Confermi la Dipartita?
-              </h3>
-              <p className="text-xs text-red-200/90 leading-relaxed">
-                Stai per dichiarare che <strong className="text-white text-sm font-black underline decoration-red-500 underline-offset-2">"{deadPlayerModal}"</strong> è passato a miglior vita.
-              </p>
-              <p className="text-[11px] text-zinc-400 mt-2 italic">
-                Verrà celebrato il suo addio al club e non esisterà più tra i partecipanti.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-2.5 pt-2 border-t border-red-900/60">
-              <button
-                type="button"
-                onClick={() => setDeadPlayerModal(null)}
-                className="flex-1 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs border border-zinc-700 cursor-pointer transition-colors active:scale-95"
-              >
-                Annulla
-              </button>
-              <button
-                type="button"
-                onClick={confirmExecuteDeath}
-                className="flex-1 py-2 rounded-xl bg-gradient-to-r from-red-700 to-red-900 hover:from-red-600 hover:to-red-800 text-white font-black text-xs border border-red-500 shadow-lg shadow-red-950/80 cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1.5"
-              >
-                <Skull className="w-3.5 h-3.5 text-white" />
-                <span>È Morto ⚰️</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OVERLAY BLACKOUT TENEBROSO 5 SECONDI */}
-      {isDeathBlackout && (
-        <div 
-          className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-700"
-          style={{ animationDuration: '600ms' }}
-        >
-          {/* Teschio Spettrale in dissolvenza */}
-          <div className="mb-6 opacity-80 animate-pulse">
-            <Skull className="w-16 h-16 sm:w-20 sm:h-20 text-red-600 drop-shadow-[0_0_25px_rgba(220,38,38,0.8)]" />
-          </div>
-
-          {/* Frase Commemorativa Bianca in Corsivo Elegante e Ben Visibile */}
-          <blockquote className="max-w-xl text-white text-2xl sm:text-3xl md:text-4xl font-serif italic tracking-wide leading-relaxed drop-shadow-[0_2px_12px_rgba(255,255,255,0.45)] px-4 animate-in zoom-in-95 duration-500">
-            "{currentEulogy || 'Ci mancherai tanto da tutto il club burraco'}"
-          </blockquote>
-
-          {/* Sottotitolo solenne */}
-          <div className="mt-8 flex items-center gap-2 text-zinc-500 text-xs sm:text-sm uppercase tracking-widest font-mono">
-            <span>♠</span>
-            <span>Il Burraco Club in lutto perenne</span>
-            <span>♠</span>
-          </div>
-        </div>
-      )}
 
     </div>
   );

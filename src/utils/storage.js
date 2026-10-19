@@ -252,7 +252,7 @@ export function importBackupData(jsonData, userKey) {
  * Calcola statistiche dettagliate e complete divise per singolo partecipante
  * Include sia lo storico partite che la partita in corso
  */
-export function calculatePlayerStats(playersList, gamesHistory = [], activeGame = null) {
+export function calculatePlayerStats(playersList = [], gamesHistory = [], activeGame = null) {
   // Raccogli tutte le partite (storico + attiva se contiene round)
   const allGames = [...gamesHistory];
   if (activeGame && activeGame.rounds && activeGame.rounds.length > 0) {

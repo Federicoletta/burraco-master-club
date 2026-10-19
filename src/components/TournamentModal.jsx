@@ -346,7 +346,7 @@ export default function TournamentModal({
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Partecipanti Recenti Registrati</span>
+                    <span>Partecipanti Recenti</span>
                   </span>
                   <span className="text-[11px] text-emerald-400/80">
                     Tocca un nome per inserirlo al volo

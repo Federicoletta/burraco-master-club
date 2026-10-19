@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Header from './components/Header';
 import ScoreBoard from './components/ScoreBoard';
 import NewGameModal from './components/NewGameModal';
@@ -31,18 +31,11 @@ import {
   getGamesHistory, 
   archiveCurrentGame, 
   deleteGameFromHistory,
-  getStoredPlayers,
-  savePlayerName,
-  deletePlayerName,
-  renamePlayer,
-  setStoredPlayers,
   computeUserCareerStats
 } from './utils/storage';
 import { 
   syncGameToCloud, 
   subscribeToCloudGame, 
-  syncPlayersToCloud,
-  subscribeToCloudPlayers,
   subscribeToCloudGamesHistory,
   deleteGameFromCloud,
   syncTournamentToCloud,
@@ -50,13 +43,10 @@ import {
   loginWithGoogle,
   logoutUser,
   subscribeToAuth,
-  syncUserGuestsToCloud,
-  subscribeToUserGuests,
   cleanupLegacyCloudDatabase,
   joinCloudGame,
   fetchTablePlayers,
-  updateUserCareerStats,
-  subscribeToFriendsLiveProfiles
+  updateUserCareerStats
 } from './services/firebase';
 import {
   getActiveTournament,
@@ -68,7 +58,21 @@ import { Cloud, Trophy } from 'lucide-react';
 export default function App() {
   const [activeGame, setActiveGame] = useState(null);
   const [gamesHistory, setGamesHistory] = useState([]);
-  const [playersList, setPlayersList] = useState([]);
+  
+  // Giocatori ricavati dinamicamente dallo storico partite e dalla partita in corso (al volo, zero overhead DB)
+  const recentPlayers = useMemo(() => {
+    const namesSet = new Set();
+    const extractFromGame = (game) => {
+      if (!game) return;
+      if (Array.isArray(game.team1?.players)) game.team1.players.forEach(p => p && typeof p === 'string' && namesSet.add(p.trim()));
+      if (Array.isArray(game.team2?.players)) game.team2.players.forEach(p => p && typeof p === 'string' && namesSet.add(p.trim()));
+      if (Array.isArray(game.team3?.players)) game.team3.players.forEach(p => p && typeof p === 'string' && namesSet.add(p.trim()));
+    };
+    extractFromGame(activeGame);
+    (gamesHistory || []).forEach(extractFromGame);
+    return Array.from(namesSet).filter(Boolean);
+  }, [gamesHistory, activeGame]);
+
   const [isCloudJoined, setIsCloudJoined] = useState(false);
 
   // Tournament state
@@ -103,9 +107,6 @@ export default function App() {
 
   // 1. Caricamento iniziale & Controllo Link Condiviso (?game=...)
   useEffect(() => {
-    const storedPlayers = getStoredPlayers();
-    setPlayersList(storedPlayers);
-
     const storedHistory = getGamesHistory();
     setGamesHistory(storedHistory);
 
@@ -185,10 +186,9 @@ export default function App() {
     return () => unsubAuth();
   }, []);
 
-  // 2b. Isolamento dati per account (Storico e Rubrica Ospiti)
+  // 2b. Isolamento dati per account (Storico Partite)
   useEffect(() => {
     const userKey = currentUser ? currentUser.uid : 'guest';
-    setPlayersList(getStoredPlayers(userKey));
     setGamesHistory(getGamesHistory(userKey));
 
     // Pulizia cloud automatica una-tantum dei vecchi dati legacy senza proprietario
@@ -198,13 +198,12 @@ export default function App() {
           if (ok) {
             localStorage.setItem('burraco_legacy_cleaned_v2', 'done');
             setGamesHistory([]);
-            setPlayersList([]);
           }
         });
       }
     }
 
-    // 1. Ascolto real-time storico partite isolato per l'utente loggato
+    // Ascolto real-time storico partite isolato per l'utente loggato
     const unsubHistory = subscribeToCloudGamesHistory(currentUser, (cloudHistory) => {
       if (Array.isArray(cloudHistory)) {
         setGamesHistory(cloudHistory);
@@ -212,23 +211,8 @@ export default function App() {
       }
     });
 
-    // 2. Ascolto real-time rubrica ospiti isolata per l'account
-    let unsubGuests = () => {};
-    if (currentUser) {
-      unsubGuests = subscribeToUserGuests(currentUser.uid, (cloudGuests) => {
-        const merged = setStoredPlayers(cloudGuests, currentUser.uid);
-        setPlayersList(merged || cloudGuests);
-      });
-    } else {
-      unsubGuests = subscribeToCloudPlayers((cloudPlayers) => {
-        const merged = setStoredPlayers(cloudPlayers, 'guest');
-        setPlayersList(merged || cloudPlayers);
-      });
-    }
-
     return () => {
       unsubHistory();
-      unsubGuests();
     };
   }, [currentUser]);
 
@@ -323,29 +307,6 @@ export default function App() {
               }
             });
           }
-
-          // Se la partita ha giocatori non ancora nella rubrica, aggiungili automaticamente
-          const gamePlayers = [
-            ...(cloudGame.team1?.players || []),
-            ...(cloudGame.team2?.players || []),
-            ...(cloudGame.team3?.players || [])
-          ].filter(Boolean);
-
-          if (gamePlayers.length > 0) {
-            let updated = false;
-            const currentStored = getStoredPlayers();
-            gamePlayers.forEach(p => {
-              if (!currentStored.includes(p)) {
-                savePlayerName(p);
-                updated = true;
-              }
-            });
-            if (updated) {
-              const newList = getStoredPlayers();
-              setPlayersList(newList);
-              syncPlayersToCloud(newList);
-            }
-          }
         }
       },
       () => {
@@ -384,19 +345,6 @@ export default function App() {
     setActiveTournament(newTournament);
     saveActiveTournament(newTournament);
     syncTournamentToCloud(newTournament);
-    // Salva automaticamente tutti i giocatori del torneo in rubrica isolata
-    const allTournPlayers = (newTournament.teams || []).flatMap(t => t.players || []).filter(Boolean);
-    if (allTournPlayers.length > 0) {
-      const userKey = currentUser ? currentUser.uid : 'guest';
-      allTournPlayers.forEach(p => savePlayerName(p, userKey));
-      const updated = getStoredPlayers(userKey);
-      setPlayersList(updated);
-      if (currentUser) {
-        syncUserGuestsToCloud(currentUser.uid, updated);
-      } else {
-        syncPlayersToCloud(updated);
-      }
-    }
   };
 
   const handleUpdateTournament = (updatedTournament) => {
@@ -494,21 +442,12 @@ export default function App() {
       }
     }
 
-    // Salva i nomi dei giocatori nella rubrica partecipanti SOLO se sono nomi reali inseriti
+    // Raccoglie i nomi dei giocatori per collegare gli account Google amici
     const allPlayers = [
       ...(newGame.team1?.players || []),
       ...(newGame.team2?.players || []),
       ...(newGame.team3?.players || [])
     ].map(p => typeof p === 'string' ? p.trim() : '').filter(Boolean);
-
-    allPlayers.forEach(p => savePlayerName(p, userKey));
-    const updatedPlayers = getStoredPlayers(userKey);
-    setPlayersList(updatedPlayers);
-    if (currentUser) {
-      syncUserGuestsToCloud(currentUser.uid, updatedPlayers);
-    } else {
-      syncPlayersToCloud(updatedPlayers);
-    }
 
     // Costruisci l'elenco dei partecipanti Google registrati
     const registeredPlayerUids = currentUser ? [currentUser.uid] : [];
@@ -691,23 +630,6 @@ export default function App() {
   // Aggiorna formazioni squadre e giocatori della partita attiva
   const handleUpdateTeams = (updatedTeam1, updatedTeam2, updatedTeam3) => {
     if (!activeGame) return;
-
-    // Aggiungi eventuali nuovi partecipanti alla rubrica isolata
-    const allPlayers = [
-      ...(updatedTeam1.players || []),
-      ...(updatedTeam2.players || []),
-      ...(updatedTeam3?.players || [])
-    ].filter(Boolean);
-
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    allPlayers.forEach(p => savePlayerName(p, userKey));
-    const updatedPlayers = getStoredPlayers(userKey);
-    setPlayersList(updatedPlayers);
-    if (currentUser) {
-      syncUserGuestsToCloud(currentUser.uid, updatedPlayers);
-    } else {
-      syncPlayersToCloud(updatedPlayers);
-    }
 
     const updatedGame = {
       ...activeGame,
@@ -927,52 +849,7 @@ export default function App() {
     setIsNewGameOpen(true);
   };
 
-  // Gestione giocatori (sincronizzata in tempo reale con Firestore e isolata per account)
-  const handleAddPlayer = (name) => {
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    savePlayerName(name, userKey);
-    const updated = getStoredPlayers(userKey);
-    setPlayersList(updated);
-    if (currentUser) {
-      syncUserGuestsToCloud(currentUser.uid, updated);
-    } else {
-      syncPlayersToCloud(updated);
-    }
-  };
 
-  const handleDeletePlayer = (name) => {
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    const updated = deletePlayerName(name, userKey);
-    setPlayersList(updated);
-    if (currentUser) {
-      syncUserGuestsToCloud(currentUser.uid, updated);
-    } else {
-      syncPlayersToCloud(updated);
-    }
-  };
-
-  const handleRenamePlayer = (oldName, newName) => {
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    const updated = renamePlayer(oldName, newName, userKey);
-    setPlayersList(updated);
-    if (currentUser) {
-      syncUserGuestsToCloud(currentUser.uid, updated);
-    } else {
-      syncPlayersToCloud(updated);
-    }
-
-    // Ricarica la partita attiva aggiornata
-    const currentActive = getActiveGame();
-    if (currentActive) {
-      setActiveGame(currentActive);
-      syncGameToCloud(currentActive, currentUser);
-    }
-    // Ricarica lo storico aggiornato
-    const currentHistory = getGamesHistory(userKey);
-    if (currentHistory) {
-      setGamesHistory(currentHistory);
-    }
-  };
 
   // Scollegati dal tavolo condiviso
   const handleLeaveCloudTable = () => {
@@ -1052,7 +929,6 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
   };
 
   const handleDataImported = () => {
-    setPlayersList(getStoredPlayers());
     setGamesHistory(getGamesHistory());
     const current = getActiveGame();
     if (current) setActiveGame(current);
@@ -1065,16 +941,6 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       if (user?.isFirstLogin) {
         setWelcomeUser(user);
         localStorage.setItem('burraco_welcomed_' + user.uid, 'true');
-      }
-      if (user?.displayName) {
-        const userKey = user.uid;
-        const currentStored = getStoredPlayers(userKey);
-        if (!currentStored.includes(user.displayName)) {
-          savePlayerName(user.displayName, userKey);
-          const updated = getStoredPlayers(userKey);
-          setPlayersList(updated);
-          syncUserGuestsToCloud(user.uid, updated);
-        }
       }
     } catch (err) {
       console.error("Login fallito:", err);
@@ -1315,7 +1181,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
           setNewGameInitialSetup(null);
         }}
         onStartGame={handleStartGame}
-        availablePlayers={playersList}
+        availablePlayers={recentPlayers}
         friendsList={friendsList}
         currentUser={currentUser}
         hasActiveGame={Boolean(activeGame && activeGame.rounds && activeGame.rounds.length > 0)}
@@ -1339,10 +1205,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       <PlayersStatsModal
         isOpen={isPlayersOpen}
         onClose={() => setIsPlayersOpen(false)}
-        playersList={playersList}
-        onAddPlayer={handleAddPlayer}
-        onDeletePlayer={handleDeletePlayer}
-        onRenamePlayer={handleRenamePlayer}
+        recentPlayers={recentPlayers}
         gamesHistory={gamesHistory}
         activeGame={activeGame}
         currentUser={currentUser}
@@ -1399,7 +1262,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         isOpen={isEditTeamsOpen}
         onClose={() => setIsEditTeamsOpen(false)}
         activeGame={activeGame}
-        playersList={playersList}
+        playersList={recentPlayers}
         tablePlayers={tablePlayers}
         currentUser={currentUser}
         friendsList={friendsList}
@@ -1415,7 +1278,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onUpdateTournament={handleUpdateTournament}
         onFinishTournament={handleFinishTournament}
         onPlayMatch={(match) => handlePlayTournamentMatch(match, activeTournament)}
-        playersList={playersList}
+        playersList={recentPlayers}
       />
 
       {/* 10. Modal Profilo Personale & Google Account */}

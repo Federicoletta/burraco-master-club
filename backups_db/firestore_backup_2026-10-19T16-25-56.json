@@ -1,0 +1,278 @@
+{
+  "exportedAt": "2026-10-19T16:25:53.746Z",
+  "projectId": "burraco-score-fedec",
+  "collections": {
+    "burraco_games": [
+      {
+        "id": "game_1792094221892",
+        "isFinished": false,
+        "completedAt": "2026-10-15T23:30:04.821Z",
+        "team2": {
+          "name": "777",
+          "players": [
+            "Alessandro Archilletti",
+            "Valerio Coletta"
+          ]
+        },
+        "mode": "pairs",
+        "updatedAt": {
+          "type": "firestore/timestamp/1.0",
+          "seconds": 1792247715,
+          "nanoseconds": 541000000
+        },
+        "team1": {
+          "name": "I bufi",
+          "players": [
+            "Cristiano Biagioli",
+            "Federico Coletta"
+          ]
+        },
+        "playerEmails": [
+          "vale.coletta2000@gmail.com",
+          "fedecoletta@gmail.com",
+          "alessandroarchilletti@gmail.com",
+          "francescototti10@hotmail.it",
+          "vultaggiotiziano37@gmail.com"
+        ],
+        "targetScore": 2505,
+        "ownerEmail": "vale.coletta2000@gmail.com",
+        "playerUids": [
+          "67qoYYkgKackNliy9OxY0GYleWV2",
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+          "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+          "zd47pc3jOLMm5bvu7nK4FkvHqXa2"
+        ],
+        "createdAt": "2026-10-15T19:57:01.892Z",
+        "ownerUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "winner": null,
+        "allowSemipulito": true,
+        "ownerName": "Valerio Coletta",
+        "rounds": [
+          {
+            "team1Details": {
+              "burracoSemipulito": 1,
+              "manualScore": "",
+              "showHandCardPad": false,
+              "cardsOnTableCount": {
+                "basse": 0,
+                "jolly": 0,
+                "pinella": 0,
+                "asso": 0,
+                "alte": 0
+              },
+              "cardsInHandDirect": "65",
+              "chiusura": false,
+              "burracoSporco": 1,
+              "burracoPulito": 1,
+              "cardsOnTableDirect": "405",
+              "pozzetto": "preso_giocato",
+              "showTableCardPad": false,
+              "cardsInHandCount": {
+                "jolly": 0,
+                "pinella": 0,
+                "basse": 0,
+                "alte": 0,
+                "asso": 0
+              }
+            },
+            "entryMode": "guided",
+            "timestamp": "2026-10-15T21:43:15.372Z",
+            "roundNumber": 1,
+            "team2Details": {
+              "pozzetto": "preso_giocato",
+              "showHandCardPad": false,
+              "showTableCardPad": false,
+              "burracoSemipulito": 0,
+              "cardsInHandCount": {
+                "basse": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "alte": 0,
+                "asso": 0
+              },
+              "burracoPulito": 0,
+              "burracoSporco": 0,
+              "cardsOnTableCount": {
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0,
+                "alte": 0,
+                "asso": 0
+              },
+              "cardsInHandDirect": "15",
+              "cardsOnTableDirect": "535",
+              "chiusura": false,
+              "manualScore": ""
+            },
+            "team2Score": 520,
+            "team1Score": 790
+          }
+        ]
+      }
+    ],
+    "burraco_tournaments": [],
+    "burraco_meta": [
+      {
+        "id": "players",
+        "list": [],
+        "updatedAt": {
+          "type": "firestore/timestamp/1.0",
+          "seconds": 1792317194,
+          "nanoseconds": 856000000
+        }
+      }
+    ],
+    "burraco_users": [
+      {
+        "id": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "uid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "lastLogin": "2026-10-15T19:34:23.414Z",
+        "displayName": "Valerio Coletta",
+        "careerStats": {
+          "closures": 0,
+          "gamesPlayed": 0,
+          "winRate": 0,
+          "trophiesCount": 0,
+          "updatedAt": "2026-10-17T14:36:22.876Z",
+          "cleanBurrachi": 0,
+          "dirtyBurrachi": 0,
+          "bestHandScore": 520,
+          "gamesWon": 0,
+          "semiCleanBurrachi": 0,
+          "totalPoints": 520
+        },
+        "lastSeen": "2026-10-17T14:35:31.158Z",
+        "guests": [
+          "Alessandro Archilletti",
+          "Cristiano Biagioli",
+          "Federico Coletta",
+          "Valerio Coletta"
+        ],
+        "email": "vale.coletta2000@gmail.com",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c"
+      },
+      {
+        "id": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "lastSeen": "2026-10-17T14:26:08.929Z",
+        "lastLogin": "2026-10-15T21:45:42.542Z",
+        "uid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "displayName": "Federico Coletta",
+        "careerStats": {
+          "gamesWon": 0,
+          "closures": 0,
+          "gamesPlayed": 0,
+          "updatedAt": "2026-10-17T14:36:22.876Z",
+          "totalPoints": 790,
+          "trophiesCount": 0,
+          "cleanBurrachi": 1,
+          "dirtyBurrachi": 1,
+          "winRate": 0,
+          "bestHandScore": 790,
+          "semiCleanBurrachi": 1
+        },
+        "guests": [
+          "Alessandro Archilletti",
+          "Cristiano Biagioli",
+          "Federico Coletta",
+          "Valerio Coletta"
+        ],
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c",
+        "email": "fedecoletta@gmail.com"
+      },
+      {
+        "id": "QcSKjYzcDSSwOsOK32XNfVft19l1",
+        "displayName": "Aurora Lattanzi",
+        "careerStats": {
+          "gamesPlayed": 0,
+          "bestHandScore": 0,
+          "updatedAt": "2026-10-18T09:53:14.666Z",
+          "totalPoints": 0,
+          "gamesWon": 0,
+          "winRate": 0,
+          "cleanBurrachi": 0,
+          "dirtyBurrachi": 0,
+          "closures": 0,
+          "semiCleanBurrachi": 0,
+          "trophiesCount": 0
+        },
+        "lastSeen": "2026-10-18T09:53:11.824Z",
+        "uid": "QcSKjYzcDSSwOsOK32XNfVft19l1",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocKT169btq2mUfFrFFDJRcUOA8OCNpjdoGeykXLcl-vgOQYREHMm=s96-c",
+        "email": "aur.lattanzi@gmail.com"
+      },
+      {
+        "id": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocK23ZpGsFphfOUT8vOlwwSvmHOpWOcDlCEvKo-8pIeKee9E7w=s96-c",
+        "displayName": "Cristiano Biagioli",
+        "careerStats": {
+          "winRate": 0,
+          "semiCleanBurrachi": 1,
+          "gamesPlayed": 0,
+          "updatedAt": "2026-10-17T14:36:22.876Z",
+          "totalPoints": 790,
+          "closures": 0,
+          "trophiesCount": 0,
+          "dirtyBurrachi": 1,
+          "cleanBurrachi": 1,
+          "gamesWon": 0,
+          "bestHandScore": 790
+        },
+        "uid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "email": "francescototti10@hotmail.it",
+        "lastSeen": "2026-10-15T20:15:28.383Z",
+        "lastLogin": "2026-10-15T19:12:09.380Z"
+      },
+      {
+        "id": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "lastLogin": "2026-10-15T19:20:50.810Z",
+        "lastSeen": "2026-10-15T19:58:01.284Z",
+        "email": "alessandroarchilletti@gmail.com",
+        "displayName": "Alessandro Archilletti",
+        "careerStats": {
+          "winRate": 0,
+          "bestHandScore": 520,
+          "dirtyBurrachi": 0,
+          "cleanBurrachi": 0,
+          "trophiesCount": 0,
+          "totalPoints": 520,
+          "gamesPlayed": 0,
+          "closures": 0,
+          "updatedAt": "2026-10-17T14:36:22.876Z",
+          "gamesWon": 0,
+          "semiCleanBurrachi": 0
+        },
+        "uid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocKCQnDlaDIUcQu6VsW3v1pJZnPMnf_9lsA_sMK18sHb2lKj3mus=s96-c"
+      },
+      {
+        "id": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "uid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocK3AWvDH1cuSwX6gBWMirvcwO9cRB6_dOQN_JaKAQ-ym82PddLc=s96-c",
+        "email": "vultaggiotiziano37@gmail.com",
+        "lastLogin": "2026-10-17T14:33:32.193Z",
+        "displayName": "Tiziano Vultaggio",
+        "careerStats": {
+          "closures": 0,
+          "gamesPlayed": 0,
+          "winRate": 0,
+          "gamesWon": 0,
+          "bestHandScore": 0,
+          "totalPoints": 0,
+          "updatedAt": "2026-10-17T14:36:20.482Z",
+          "cleanBurrachi": 0,
+          "dirtyBurrachi": 0,
+          "trophiesCount": 0,
+          "semiCleanBurrachi": 0
+        },
+        "lastSeen": "2026-10-17T14:35:52.852Z"
+      }
+    ],
+    "burraco_friends": {
+      "error": "Missing or insufficient permissions."
+    },
+    "burraco_notifications": {
+      "error": "Missing or insufficient permissions."
+    }
+  }
+}
