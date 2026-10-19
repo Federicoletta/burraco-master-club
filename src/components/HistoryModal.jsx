@@ -85,8 +85,12 @@ export default function HistoryModal({
     setIsSyncing(true);
     try {
       const cloudGames = await loadCloudGamesHistory(currentUser);
-      if (cloudGames && onDataImported) {
-        onDataImported();
+      if (Array.isArray(cloudGames)) {
+        const userKey = currentUser ? currentUser.uid : 'guest';
+        localStorage.setItem(userKey ? `burraco_history_${userKey}` : 'burraco_history_v1', JSON.stringify(cloudGames));
+        if (onDataImported) {
+          onDataImported(cloudGames);
+        }
       }
       setSyncDone(true);
       setTimeout(() => setSyncDone(false), 2500);

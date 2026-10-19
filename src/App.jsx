@@ -43,7 +43,6 @@ import {
   loginWithGoogle,
   logoutUser,
   subscribeToAuth,
-  cleanupLegacyCloudDatabase,
   joinCloudGame,
   fetchTablePlayers,
   updateUserCareerStats
@@ -190,18 +189,6 @@ export default function App() {
   useEffect(() => {
     const userKey = currentUser ? currentUser.uid : 'guest';
     setGamesHistory(getGamesHistory(userKey));
-
-    // Pulizia cloud automatica una-tantum dei vecchi dati legacy senza proprietario
-    if (currentUser) {
-      if (localStorage.getItem('burraco_legacy_cleaned_v2') !== 'done') {
-        cleanupLegacyCloudDatabase().then((ok) => {
-          if (ok) {
-            localStorage.setItem('burraco_legacy_cleaned_v2', 'done');
-            setGamesHistory([]);
-          }
-        });
-      }
-    }
 
     // Ascolto real-time storico partite isolato per l'utente loggato
     const unsubHistory = subscribeToCloudGamesHistory(currentUser, (cloudHistory) => {
@@ -928,8 +915,13 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     syncGameToCloud(game, currentUser, true);
   };
 
-  const handleDataImported = () => {
-    setGamesHistory(getGamesHistory());
+  const handleDataImported = (importedGames) => {
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    if (Array.isArray(importedGames)) {
+      setGamesHistory(importedGames);
+    } else {
+      setGamesHistory(getGamesHistory(userKey));
+    }
     const current = getActiveGame();
     if (current) setActiveGame(current);
   };
