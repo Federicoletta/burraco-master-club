@@ -341,31 +341,13 @@ export default function Header({
                     </div>
                   </div>
 
-                  {/* SEZIONE 2: CLUB, STATISTICHE & CONDIVISIONE */}
+                  {/* SEZIONE 2: CONDIVISIONE & CLOUD */}
                   <div className="pt-1 border-t border-emerald-800/40">
                     <div className="px-2 pb-1 text-[10px] font-bold text-amber-400/80 uppercase tracking-wider flex items-center gap-1">
-                      <span>👥 Club & Statistiche</span>
+                      <span>🌐 Condivisione & Cloud</span>
                     </div>
 
                     <div className="space-y-0.5">
-                      {/* Classifica & Club (apre la modale del Profilo sulla scheda Classifica) */}
-                      {onOpenProfile && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            onOpenProfile('ranking');
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                        >
-                          <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
-                          <div>
-                            <div className="text-white font-bold">Classifica & Club</div>
-                            <div className="text-[10px] text-emerald-300/70 font-normal">Podio amici, statistiche e trofei</div>
-                          </div>
-                        </button>
-                      )}
-
                       {/* Cloud Database & Invita al Tavolo */}
                       <button
                         type="button"
