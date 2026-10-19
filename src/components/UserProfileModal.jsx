@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   LogIn, 
@@ -216,19 +216,14 @@ export default function UserProfileModal({
     avgPointsPerHand,
   };
 
-  const allGames = useMemo(() => {
-    const list = [...gamesHistory];
-    if (activeGame && activeGame.rounds && activeGame.rounds.length > 0) {
-      if (!list.some(g => g.id === activeGame.id)) {
-        list.push(activeGame);
-      }
+  const allGames = [...gamesHistory];
+  if (activeGame && activeGame.rounds && activeGame.rounds.length > 0) {
+    if (!allGames.some(g => g.id === activeGame.id)) {
+      allGames.push(activeGame);
     }
-    return list;
-  }, [gamesHistory, activeGame]);
+  }
 
-  const myTrophiesData = useMemo(() => {
-    return calculatePlayerTrophies(myPlayerStats, allGames);
-  }, [myPlayerStats, allGames]);
+  const myTrophiesData = calculatePlayerTrophies(myPlayerStats, allGames);
 
   // Membri del club registrati per suggerimenti
   const nonFriendClubMembers = (clubUsers || []).filter(u => {
