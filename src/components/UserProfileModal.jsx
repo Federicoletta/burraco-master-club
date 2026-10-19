@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   LogIn, 
@@ -17,10 +17,14 @@ import {
   Check, 
   Trash2, 
   Search, 
-  Bell 
+  Bell,
+  BarChart3,
+  Lock,
+  CheckCircle2
 } from 'lucide-react';
 import { getFriendOnlineStatus } from '../services/social';
-import { computeUserCareerStats } from '../utils/storage';
+import { calculatePlayerStats, computeUserCareerStats } from '../utils/storage';
+import { getPlayerTitle, calculatePlayerTrophies } from '../utils/trophies';
 import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
 
 export default function UserProfileModal({
@@ -31,6 +35,7 @@ export default function UserProfileModal({
   onLogout,
   gamesHistory = [],
   activeGame,
+  recentPlayers = [],
   tablePlayers = [],
   friendsList = [],
   clubUsers = [],
@@ -43,12 +48,20 @@ export default function UserProfileModal({
   onRemoveFriend,
   initialTab = 'profile'
 }) {
-  const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'friends'
+  const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'ranking' | 'friends'
+  const [rankingScope, setRankingScope] = useState('friends'); // 'friends' | 'local'
+  const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
   const [friendSearchInput, setFriendSearchInput] = useState('');
   const [friendFeedback, setFriendFeedback] = useState(null);
   const [isSendingFriend, setIsSendingFriend] = useState(false);
   const [invitingFriendUids, setInvitingFriendUids] = useState({});
   const [invitedFriendUids, setInvitedFriendUids] = useState({});
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
 
   if (!isOpen) return null;
 
@@ -76,11 +89,148 @@ export default function UserProfileModal({
   const totalBurrachi = cleanBurrachi + semiCleanBurrachi + dirtyBurrachi;
   const closures = Math.max(career?.closures || 0, Number(cloudCareer.closures) || 0);
   const bestHandScore = Math.max(career?.bestHandScore || 0, Number(cloudCareer.bestHandScore) || 0);
+  const avgPointsPerHand = career?.avgPointsPerHand || 0;
 
   const onlineFriends = friendsList.filter(f => getFriendOnlineStatus(f.lastSeen).isOnline);
   const onlineCount = onlineFriends.length;
 
-  // Membri del club registrati che non sono ancora amici e non sono l'utente corrente (usati SOLO per suggerimenti durante la digitazione)
+  // Statistiche calcolate per la classifica dei partecipanti del tavolo
+  const stats = calculatePlayerStats(recentPlayers, gamesHistory, activeGame);
+
+  // Costruzione classifica Amici Club (Cloud Live)
+  const effectiveFriends = friendsList || [];
+  const friendsLeaderboardData = [];
+
+  if (currentUser) {
+    friendsLeaderboardData.push({
+      uid: currentUser.uid,
+      name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Tu',
+      displayName: currentUser.displayName || 'Tu',
+      email: currentUser.email,
+      photoURL: currentUser.photoURL,
+      isMe: true,
+      isOnline: true,
+      totalPoints: totalScore,
+      gamesPlayed: gamesCount,
+      gamesWon: wonCount,
+      gamesLost: Math.max(0, gamesCount - wonCount),
+      winRate,
+      cleanBurrachi,
+      semiCleanBurrachi,
+      dirtyBurrachi,
+      totalBurrachi,
+      closures,
+      bestHandScore,
+      avgPointsPerHand,
+    });
+  }
+
+  effectiveFriends.forEach(f => {
+    if (currentUser && f.uid === currentUser.uid) return;
+    const c = f.careerStats || {};
+    const localS = computeUserCareerStats(f, gamesHistory, activeGame) || {};
+
+    const points = Math.max(Number(c.totalPoints) || 0, Number(localS.totalPoints) || 0);
+    const played = Math.max(Number(c.gamesPlayed) || 0, Number(localS.gamesPlayed) || 0);
+    const won = Math.max(Number(c.gamesWon) || 0, Number(localS.gamesWon) || 0);
+    const lost = Math.max(0, played - won);
+    const rate = Number(c.winRate) || (played > 0 ? Math.round((won / played) * 100) : (localS.winRate || 0));
+    const clean = Math.max(Number(c.cleanBurrachi) || 0, Number(localS.cleanBurrachi) || 0);
+    const semi = Math.max(Number(c.semiCleanBurrachi) || 0, Number(localS.semiCleanBurrachi) || 0);
+    const dirty = Math.max(Number(c.dirtyBurrachi) || 0, Number(localS.dirtyBurrachi) || 0);
+    const totBurr = clean + semi + dirty;
+    const clos = Math.max(Number(c.closures) || 0, Number(localS.closures) || 0);
+    const record = Math.max(Number(c.bestHandScore) || 0, Number(localS.bestHandScore) || 0);
+    const isOnline = f.lastSeen ? (Date.now() - new Date(f.lastSeen).getTime() < 5 * 60 * 1000) : false;
+
+    friendsLeaderboardData.push({
+      uid: f.uid,
+      name: f.displayName || f.email?.split('@')[0] || 'Amico',
+      displayName: f.displayName,
+      email: f.email,
+      photoURL: f.photoURL,
+      isMe: false,
+      isOnline,
+      totalPoints: points,
+      gamesPlayed: played,
+      gamesWon: won,
+      gamesLost: lost,
+      winRate: rate,
+      cleanBurrachi: clean,
+      semiCleanBurrachi: semi,
+      dirtyBurrachi: dirty,
+      totalBurrachi: totBurr,
+      closures: clos,
+      bestHandScore: record,
+      avgPointsPerHand: 0,
+    });
+  });
+
+  const sortedFriendsStats = [...friendsLeaderboardData].sort((a, b) => {
+    if (sortBy === 'burrachi') {
+      return b.totalBurrachi - a.totalBurrachi || b.cleanBurrachi - a.cleanBurrachi || b.totalPoints - a.totalPoints;
+    }
+    if (sortBy === 'winrate') {
+      return b.winRate - a.winRate || b.gamesWon - a.gamesWon || b.totalPoints - a.totalPoints;
+    }
+    return b.totalPoints - a.totalPoints || b.winRate - a.winRate;
+  });
+
+  const maxFriendsVal = sortBy === 'burrachi'
+    ? Math.max(...sortedFriendsStats.map(s => s.totalBurrachi), 1)
+    : sortBy === 'winrate'
+    ? 100
+    : Math.max(...sortedFriendsStats.map(s => s.totalPoints), 1);
+
+  // Ordinamento partecipanti tavolo
+  const sortedLocalStats = [...stats].sort((a, b) => {
+    if (sortBy === 'burrachi') {
+      return b.totalBurrachi - a.totalBurrachi || b.cleanBurrachi - a.cleanBurrachi || b.totalPoints - a.totalPoints;
+    }
+    if (sortBy === 'winrate') {
+      return b.winRate - a.winRate || b.gamesWon - a.gamesWon || b.totalPoints - a.totalPoints;
+    }
+    return b.totalPoints - a.totalPoints || b.winRate - a.winRate;
+  });
+
+  const maxLocalVal = sortBy === 'burrachi'
+    ? Math.max(...sortedLocalStats.map(s => s.totalBurrachi), 1)
+    : sortBy === 'winrate'
+    ? 100
+    : Math.max(...sortedLocalStats.map(s => s.totalPoints), 1);
+
+  // Trofei personali dell'utente corrente
+  const myPlayerStats = {
+    name: userDisplayName,
+    totalPoints: totalScore,
+    gamesPlayed: gamesCount,
+    gamesWon: wonCount,
+    gamesLost: Math.max(0, gamesCount - wonCount),
+    winRate,
+    cleanBurrachi,
+    semiCleanBurrachi,
+    dirtyBurrachi,
+    totalBurrachi,
+    closures,
+    bestHandScore,
+    avgPointsPerHand,
+  };
+
+  const allGames = useMemo(() => {
+    const list = [...gamesHistory];
+    if (activeGame && activeGame.rounds && activeGame.rounds.length > 0) {
+      if (!list.some(g => g.id === activeGame.id)) {
+        list.push(activeGame);
+      }
+    }
+    return list;
+  }, [gamesHistory, activeGame]);
+
+  const myTrophiesData = useMemo(() => {
+    return calculatePlayerTrophies(myPlayerStats, allGames);
+  }, [myPlayerStats, allGames]);
+
+  // Membri del club registrati per suggerimenti
   const nonFriendClubMembers = (clubUsers || []).filter(u => {
     if (!u) return false;
     if (u.uid && currentUser?.uid && u.uid === currentUser.uid) return false;
@@ -94,7 +244,6 @@ export default function UserProfileModal({
     return !alreadyFriend;
   });
 
-  // Filtro suggerimenti live attivo solo quando si digitano almeno 2 caratteri
   const filteredSuggestions = friendSearchInput.trim().length >= 2 
     ? nonFriendClubMembers.filter(m => {
         const term = friendSearchInput.toLowerCase().trim();
@@ -164,29 +313,38 @@ export default function UserProfileModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/40 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[86vh] my-auto overflow-hidden">
+      <div className="relative w-full max-w-xl sm:max-w-2xl felt-card rounded-2xl border border-amber-500/40 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] my-auto overflow-hidden">
         
-        {/* HEADER FISSO PINNATO (Mai tagliato su nessun telefono) */}
-        <div className="p-3.5 sm:p-4 pb-3 border-b border-emerald-700/50 flex items-center justify-between shrink-0 bg-emerald-950/90">
+        {/* HEADER FISSO */}
+        <div className="p-3 sm:p-4 pb-2.5 border-b border-emerald-700/50 flex items-center justify-between shrink-0 bg-emerald-950/90">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md shrink-0">
-              {activeTab === 'friends' ? (
-                <Users className="w-5 h-5 text-emerald-950" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md shrink-0">
+              {activeTab === 'ranking' ? (
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-950" />
+              ) : activeTab === 'friends' ? (
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-950" />
               ) : (
-                <User className="w-5 h-5 text-emerald-950" />
+                <User className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-950" />
               )}
             </div>
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-bold text-white m-0 truncate">
-                {activeTab === 'friends' ? 'I Miei Amici del Burraco' : 'Profilo Personale'}
+              <h2 className="text-sm sm:text-lg font-black text-white m-0 truncate">
+                {activeTab === 'ranking' 
+                  ? 'Classifica & Club' 
+                  : activeTab === 'friends' 
+                  ? 'I Miei Amici & Club' 
+                  : (currentUser ? userDisplayName : 'Profilo Giocatore')}
               </h2>
-              <p className="text-[11px] text-emerald-300/80 m-0 truncate">
-                {activeTab === 'friends' 
-                  ? 'Compagni di gioco connessi, sfide dirette e inviti'
-                  : 'Account Google, statistiche di carriera e sincronizzazione'}
+              <p className="text-[10px] sm:text-xs text-emerald-300/80 m-0 truncate">
+                {activeTab === 'ranking' 
+                  ? 'Podio live e rendimento giocatori' 
+                  : activeTab === 'friends' 
+                  ? 'Rubrica compagni di gioco e inviti' 
+                  : 'Carriera, bacheca trofei e statistiche'}
               </p>
             </div>
           </div>
+
           <button 
             type="button"
             onClick={onClose}
@@ -197,78 +355,91 @@ export default function UserProfileModal({
           </button>
         </div>
 
-        {/* Se l'utente è autenticato mostra il contenuto */}
+        {/* Contenuto Utente Autenticato vs Non Autenticato */}
         {currentUser ? (
           <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             
-            {/* Barra di Navigazione fissa tra le due schede */}
-            <div className="px-3.5 sm:px-4 pt-3 pb-1.5 shrink-0 bg-emerald-950/60">
-              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-emerald-950/80 border border-emerald-800/60 shadow-inner">
+            {/* NAVIGAZIONE FISSA TRA LE 3 SCHEDE */}
+            <div className="px-3 sm:px-4 pt-2.5 pb-1.5 shrink-0 bg-emerald-950/60">
+              <div className="grid grid-cols-3 gap-1 sm:gap-1.5 p-1 rounded-xl bg-emerald-950/80 border border-emerald-800/60 shadow-inner">
+                
+                {/* 1. Il Mio Profilo & Trofei */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('profile')}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  className={`py-2 px-1.5 sm:px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
                     activeTab === 'profile'
                       ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                       : 'text-emerald-300 hover:text-white hover:bg-emerald-900/40'
                   }`}
                 >
                   <User className="w-3.5 h-3.5 shrink-0" />
-                  <span>Il Mio Profilo</span>
+                  <span className="truncate">Profilo & Trofei</span>
                 </button>
 
+                {/* 2. Classifica Club */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('ranking')}
+                  className={`py-2 px-1.5 sm:px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
+                    activeTab === 'ranking'
+                      ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
+                      : 'text-emerald-300 hover:text-white hover:bg-emerald-900/40'
+                  }`}
+                >
+                  <Trophy className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Classifica</span>
+                </button>
+
+                {/* 3. I Miei Amici */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('friends')}
-                  className={`relative py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  className={`relative py-2 px-1.5 sm:px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
                     activeTab === 'friends'
                       ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
                       : 'text-emerald-300 hover:text-white hover:bg-emerald-900/40'
                   }`}
                 >
                   <Users className="w-3.5 h-3.5 shrink-0" />
-                  <span>I Miei Amici</span>
+                  <span className="truncate">Amici</span>
                   {incomingFriendRequests.length > 0 ? (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse ml-0.5">
-                      {incomingFriendRequests.length} nuova!
+                    <span className="px-1 py-0.2 rounded-full text-[9px] font-black bg-rose-500 text-white animate-pulse">
+                      {incomingFriendRequests.length}
                     </span>
-                  ) : friendsList.length > 0 ? (
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                      activeTab === 'friends' ? 'bg-emerald-950 text-amber-300' : 'bg-emerald-900 text-emerald-200'
-                    }`}>
-                      {friendsList.length}
-                    </span>
+                  ) : onlineCount > 0 ? (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title={`${onlineCount} online`} />
                   ) : null}
-                  {onlineCount > 0 && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" title={`${onlineCount} amici online`} />
-                  )}
                 </button>
+
               </div>
             </div>
 
             {/* BODY SCORREVOLE */}
-            <div className="p-3.5 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-3.5">
+            <div className="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-3.5">
               
-              {/* SCHEDA 1: PROFILO & STATISTICHE PERSONALI */}
+              {/* ======================================================== */}
+              {/* SCHEDA 1: PROFILO & BACHECA TROFEI PERSONALI */}
+              {/* ======================================================== */}
               {activeTab === 'profile' && (
-                <div className="space-y-4 animate-in fade-in duration-150">
+                <div className="space-y-3.5 animate-in fade-in duration-150">
                   {/* Scheda Utente con Avatar Google */}
-                  <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-600/40 flex items-center gap-3.5 shadow-md">
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-950/80 border border-emerald-600/40 flex items-center gap-3.5 shadow-md">
                     {userPhoto ? (
                       <img 
                         src={userPhoto} 
                         alt={userDisplayName} 
-                        className="w-14 h-14 rounded-full border-2 border-amber-400 shadow-md shrink-0 object-cover"
+                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-amber-400 shadow-md shrink-0 object-cover" 
                       />
                     ) : (
-                      <div className="w-14 h-14 rounded-full bg-emerald-900 border-2 border-amber-400 flex items-center justify-center text-amber-300 font-bold text-xl shrink-0 shadow-md">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-900 border-2 border-amber-400 flex items-center justify-center text-amber-300 font-bold text-lg sm:text-xl shrink-0 shadow-md">
                         {userDisplayName.slice(0, 1).toUpperCase()}
                       </div>
                     )}
                     
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="text-base font-black text-white m-0 truncate">
+                        <h3 className="text-sm sm:text-base font-black text-white m-0 truncate">
                           {userDisplayName}
                         </h3>
                         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" title="Account Google Verificato" />
@@ -276,7 +447,7 @@ export default function UserProfileModal({
                           <DeveloperBadge size="sm" />
                         )}
                       </div>
-                      <p className="text-xs text-emerald-300/80 truncate flex items-center gap-1 mt-0.5">
+                      <p className="text-[11px] sm:text-xs text-emerald-300/80 truncate flex items-center gap-1 mt-0.5">
                         <Mail className="w-3 h-3 text-emerald-400 shrink-0" />
                         <span className="truncate">{userEmail}</span>
                       </p>
@@ -288,6 +459,10 @@ export default function UserProfileModal({
                             Membro Ufficiale Club
                           </span>
                         )}
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-900/90 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                          <span>{myTrophiesData.titleInfo.icon}</span>
+                          <span>{myTrophiesData.titleInfo.title}</span>
+                        </span>
                         {onlineCount > 0 && (
                           <span className="inline-flex items-center gap-1 text-[11px] text-emerald-300 font-bold">
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -300,17 +475,17 @@ export default function UserProfileModal({
 
                   {/* Statistiche Personali Rapide */}
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/50 text-center">
-                      <span className="text-[10px] uppercase font-bold text-emerald-400/80 block">Partite</span>
-                      <span className="text-lg font-black text-white">{gamesCount}</span>
+                    <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/50 text-center">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-400/80 block">Partite</span>
+                      <span className="text-base sm:text-lg font-black text-white">{gamesCount}</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/50 text-center">
-                      <span className="text-[10px] uppercase font-bold text-emerald-400/80 block">Vittorie</span>
-                      <span className="text-lg font-black text-amber-300">{wonCount} <small className="text-xs font-normal">({winRate}%)</small></span>
+                    <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/50 text-center">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-400/80 block">Vittorie</span>
+                      <span className="text-base sm:text-lg font-black text-amber-300">{wonCount} <small className="text-[10px] font-normal">({winRate}%)</small></span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/50 text-center">
-                      <span className="text-[10px] uppercase font-bold text-emerald-400/80 block">Punti Totali</span>
-                      <span className="text-lg font-black text-emerald-200">{totalScore.toLocaleString('it-IT')}</span>
+                    <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/50 text-center">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-400/80 block">Punti Totali</span>
+                      <span className="text-base sm:text-lg font-black text-emerald-200">{totalScore.toLocaleString('it-IT')}</span>
                     </div>
                   </div>
 
@@ -318,90 +493,427 @@ export default function UserProfileModal({
                   <div className="grid grid-cols-3 gap-2">
                     <div className="p-2 rounded-xl bg-emerald-950/50 border border-emerald-800/40 text-center">
                       <span className="text-[10px] font-bold text-amber-300/80 block">Burrachi</span>
-                      <span className="text-sm font-black text-amber-200">{totalBurrachi}</span>
+                      <span className="text-xs sm:text-sm font-black text-amber-200">{totalBurrachi}</span>
                       <span className="text-[9px] text-emerald-300/60 block mt-0.5">
                         {cleanBurrachi}P / {semiCleanBurrachi}S / {dirtyBurrachi}Sp
                       </span>
                     </div>
                     <div className="p-2 rounded-xl bg-emerald-950/50 border border-emerald-800/40 text-center">
                       <span className="text-[10px] font-bold text-emerald-400/80 block">Chiusure</span>
-                      <span className="text-sm font-black text-white">{closures}</span>
+                      <span className="text-xs sm:text-sm font-black text-white">{closures}</span>
                       <span className="text-[9px] text-emerald-300/60 block mt-0.5">volte</span>
                     </div>
                     <div className="p-2 rounded-xl bg-emerald-950/50 border border-emerald-800/40 text-center">
                       <span className="text-[10px] font-bold text-emerald-400/80 block">Record Mano</span>
-                      <span className="text-sm font-black text-emerald-300">+{bestHandScore}</span>
+                      <span className="text-xs sm:text-sm font-black text-emerald-300">+{bestHandScore}</span>
                       <span className="text-[9px] text-emerald-300/60 block mt-0.5">punti max</span>
                     </div>
                   </div>
 
-                  {/* Box Informativo */}
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-1">
-                    <span className="font-bold flex items-center gap-1.5 text-amber-300">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Profilo sincronizzato nel Cloud</span>
-                    </span>
-                    <p className="text-[11px] text-amber-200/80 m-0">
-                      Le tue partite, vittorie e amici sono protetti e sincronizzati automaticamente su tutti i tuoi dispositivi.
-                    </p>
+                  {/* BACHECA TROFEI PERSONALE */}
+                  <div className="p-3.5 rounded-xl bg-gradient-to-br from-emerald-950/90 via-emerald-900/60 to-amber-950/40 border border-amber-500/40 space-y-3 shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-300 uppercase tracking-wider">
+                        <Award className="w-4 h-4 text-amber-400" />
+                        <span>I Tuoi Trofei Sbloccati</span>
+                      </div>
+                      <span className="text-xs font-black text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/40">
+                        {myTrophiesData.unlockedCount} / {myTrophiesData.totalCount} ({myTrophiesData.percentTotal}%)
+                      </span>
+                    </div>
+
+                    {/* Barra Avanzamento Trofei */}
+                    <div className="h-2 w-full bg-emerald-950 rounded-full border border-emerald-800/60 overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-amber-500 to-yellow-300 transition-all duration-500"
+                        style={{ width: `${myTrophiesData.percentTotal}%` }}
+                      />
+                    </div>
+
+                    {/* Griglia Trofei */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                      {myTrophiesData.list.map(t => (
+                        <div 
+                          key={t.id}
+                          className={`p-2.5 rounded-xl border transition-all ${
+                            t.unlocked
+                              ? 'bg-emerald-900/70 border-amber-400/60 shadow-sm'
+                              : 'bg-emerald-950/60 border-emerald-800/40 opacity-55'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-lg">{t.icon}</span>
+                            {t.unlocked ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <Lock className="w-3 h-3 text-zinc-400" />
+                            )}
+                          </div>
+                          <div className="text-xs font-bold text-white truncate">{t.name}</div>
+                          <div className="text-[10px] text-emerald-300/70 line-clamp-2 leading-tight mt-0.5">
+                            {t.description}
+                          </div>
+                          <div className="text-[9px] font-mono font-bold mt-1.5 text-amber-300/90">
+                            {t.unlocked ? '✓ Conquistato' : `${t.current} / ${t.target}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* SCHEDA 2: I MIEI AMICI ONLINE */}
+              {/* ======================================================== */}
+              {/* SCHEDA 2: CLASSIFICA CLUB & PARTECIPANTI */}
+              {/* ======================================================== */}
+              {activeTab === 'ranking' && (
+                <div className="space-y-3 animate-in fade-in duration-150">
+                  
+                  {/* Selettore Ambito: ⭐ Amici Club (Cloud Live) vs 👥 Partecipanti Tavolo */}
+                  <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-emerald-950/90 border border-emerald-800/80 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => setRankingScope('friends')}
+                      className={`min-h-[36px] py-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98] select-none ${
+                        rankingScope === 'friends'
+                          ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-emerald-950 shadow-md font-black'
+                          : 'text-emerald-300/80 hover:text-white hover:bg-emerald-900/40'
+                      }`}
+                    >
+                      <span>⭐ Amici Club</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        rankingScope === 'friends' ? 'bg-emerald-950/30 text-emerald-950' : 'bg-emerald-900 text-emerald-300'
+                      }`}>
+                        {sortedFriendsStats.length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRankingScope('local')}
+                      className={`min-h-[36px] py-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98] select-none ${
+                        rankingScope === 'local'
+                          ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-emerald-950 shadow-md font-black'
+                          : 'text-emerald-300/80 hover:text-white hover:bg-emerald-900/40'
+                      }`}
+                    >
+                      <span>👥 Partecipanti Tavolo</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        rankingScope === 'local' ? 'bg-emerald-950/30 text-emerald-950' : 'bg-emerald-900 text-emerald-300'
+                      }`}>
+                        {sortedLocalStats.length}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Selettore Metrica: Punti | Burrachi | % Vittorie */}
+                  <div className="flex items-center justify-between gap-1 p-1 rounded-xl bg-emerald-950/60 border border-emerald-800/50 text-xs">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/80 pl-2 hidden xs:inline">
+                      Ordina per:
+                    </span>
+                    <div className="grid grid-cols-3 gap-1 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => setSortBy('points')}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-xs transition-all cursor-pointer text-center ${
+                          sortBy === 'points'
+                            ? 'bg-amber-400 text-emerald-950 font-black shadow-xs'
+                            : 'text-emerald-200 hover:bg-emerald-900/60'
+                        }`}
+                      >
+                        🎯 Punti
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSortBy('burrachi')}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-xs transition-all cursor-pointer text-center ${
+                          sortBy === 'burrachi'
+                            ? 'bg-amber-400 text-emerald-950 font-black shadow-xs'
+                            : 'text-emerald-200 hover:bg-emerald-900/60'
+                        }`}
+                      >
+                        💎 Burrachi
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSortBy('winrate')}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-xs transition-all cursor-pointer text-center ${
+                          sortBy === 'winrate'
+                            ? 'bg-amber-400 text-emerald-950 font-black shadow-xs'
+                            : 'text-emerald-200 hover:bg-emerald-900/60'
+                        }`}
+                      >
+                        🏆 Win Rate
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* LISTA CLASSIFICA AMICI CLUB */}
+                  {rankingScope === 'friends' && (
+                    <div className="space-y-2.5">
+                      {sortedFriendsStats.map((p, index) => {
+                        const titleInfo = getPlayerTitle(p);
+                        let currentVal = p.totalPoints;
+                        let primaryText = `${p.totalPoints.toLocaleString('it-IT')} pt`;
+                        let subText = `record +${p.bestHandScore} pt`;
+
+                        if (sortBy === 'burrachi') {
+                          currentVal = p.totalBurrachi;
+                          primaryText = `${p.totalBurrachi} burrachi`;
+                          subText = `${p.cleanBurrachi}P • ${p.semiCleanBurrachi}S • ${p.dirtyBurrachi}I`;
+                        } else if (sortBy === 'winrate') {
+                          currentVal = p.winRate;
+                          primaryText = `${p.winRate}% vittorie`;
+                          subText = `${p.gamesWon}V / ${p.gamesLost}P (${p.gamesPlayed} tot)`;
+                        }
+
+                        const pct = currentVal > 0 && maxFriendsVal > 0 ? Math.round((currentVal / maxFriendsVal) * 100) : 0;
+
+                        return (
+                          <div 
+                            key={p.uid || p.name}
+                            className={`p-3 rounded-xl border transition-all space-y-2 shadow-sm ${
+                              p.isMe
+                                ? 'bg-gradient-to-r from-emerald-950/90 via-emerald-900/60 to-emerald-950/90 border-amber-500/60'
+                                : 'bg-emerald-950/75 border-emerald-700/40 hover:border-amber-500/40'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2.5">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {/* Podio Rank Badge */}
+                                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm ${
+                                  index === 0 
+                                    ? 'gold-gradient text-emerald-950 shadow-amber-500/20' 
+                                    : index === 1 
+                                    ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900 font-bold' 
+                                    : index === 2 
+                                    ? 'bg-gradient-to-br from-amber-700 to-amber-900 text-amber-100 font-bold' 
+                                    : 'bg-emerald-900/80 border border-emerald-800 text-emerald-400 font-mono'
+                                }`}>
+                                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                                </div>
+
+                                {/* Avatar con indicatore Online */}
+                                <div className="relative shrink-0">
+                                  {p.photoURL ? (
+                                    <img 
+                                      src={p.photoURL} 
+                                      alt={p.name} 
+                                      className="w-8 h-8 rounded-full border border-amber-400/50 object-cover" 
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-emerald-800 border border-emerald-600 text-amber-300 font-bold flex items-center justify-center text-xs">
+                                      {p.name.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  {p.isOnline && (
+                                    <span 
+                                      className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-emerald-950" 
+                                      title="Online adesso"
+                                    />
+                                  )}
+                                </div>
+
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <h4 className="text-xs sm:text-sm font-extrabold text-white m-0 truncate">
+                                      {p.displayName || p.name}
+                                    </h4>
+                                    {isDeveloperAccount(p, currentUser) && (
+                                      <DeveloperBadge size="xs" />
+                                    )}
+                                    {p.isMe && (
+                                      <span className="px-1.5 py-0.2 rounded-md bg-amber-400 text-emerald-950 font-black text-[9px]">
+                                        Tu
+                                      </span>
+                                    )}
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-900/90 text-amber-300 border border-amber-500/30 flex items-center gap-1 shrink-0">
+                                      <span>{titleInfo.icon}</span>
+                                      <span>{titleInfo.title}</span>
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <div className="text-xs sm:text-sm font-black text-amber-300">
+                                  {primaryText}
+                                </div>
+                                <div className="text-[10px] text-emerald-400/80">
+                                  {subText}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Barra di Progressione */}
+                            <div className="h-1.5 w-full bg-emerald-950 rounded-full border border-emerald-800/60 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  index === 0
+                                    ? 'bg-gradient-to-r from-amber-500 to-yellow-300'
+                                    : 'bg-gradient-to-r from-emerald-400 to-teal-300'
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+
+                            {/* Chips Dettaglio */}
+                            <div className="flex flex-wrap items-center gap-1 text-[9px] pt-1 border-t border-emerald-900/60">
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
+                                🎯 <strong>{p.totalPoints.toLocaleString('it-IT')}</strong> pt
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-900/50 text-emerald-200 border border-emerald-800/60">
+                                💎 <strong>{p.totalBurrachi}</strong> burr. ({p.cleanBurrachi}P · {p.semiCleanBurrachi}S · {p.dirtyBurrachi}I)
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-900/50 text-amber-300/90 border border-emerald-800/60">
+                                🏆 <strong>{p.winRate}%</strong> ({p.gamesWon}V/{p.gamesLost}P)
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* LISTA CLASSIFICA PARTECIPANTI TAVOLO */}
+                  {rankingScope === 'local' && (
+                    <div>
+                      {sortedLocalStats.length === 0 ? (
+                        <div className="text-center py-10 text-emerald-300/70 text-xs">
+                          Nessuna partita registrata. Inizia una partita per vedere le statistiche dei partecipanti del tavolo!
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {sortedLocalStats.map((p, index) => {
+                            const titleInfo = getPlayerTitle(p);
+                            let currentVal = p.totalPoints;
+                            let primaryText = `${p.totalPoints.toLocaleString('it-IT')} pt`;
+                            let subText = `med. ${p.avgPointsPerHand} pt/mano`;
+
+                            if (sortBy === 'burrachi') {
+                              currentVal = p.totalBurrachi;
+                              primaryText = `${p.totalBurrachi} burrachi`;
+                              subText = `${p.cleanBurrachi}P • ${p.semiCleanBurrachi}S • ${p.dirtyBurrachi}I`;
+                            } else if (sortBy === 'winrate') {
+                              currentVal = p.winRate;
+                              primaryText = `${p.winRate}% vittorie`;
+                              subText = `${p.gamesWon}V / ${p.gamesLost}P (${p.gamesPlayed} tot)`;
+                            }
+
+                            const pct = currentVal > 0 && maxLocalVal > 0 ? Math.round((currentVal / maxLocalVal) * 100) : 0;
+
+                            return (
+                              <div 
+                                key={p.name}
+                                className="p-3 rounded-xl bg-emerald-950/75 border border-emerald-700/40 hover:border-amber-500/40 transition-all space-y-2 shadow-sm"
+                              >
+                                <div className="flex items-center justify-between gap-2.5">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm ${
+                                      index === 0 
+                                        ? 'gold-gradient text-emerald-950 shadow-amber-500/20' 
+                                        : index === 1 
+                                        ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900 font-bold' 
+                                        : index === 2 
+                                        ? 'bg-gradient-to-br from-amber-700 to-amber-900 text-amber-100 font-bold' 
+                                        : 'bg-emerald-900/80 border border-emerald-800 text-emerald-400 font-mono'
+                                    }`}>
+                                      {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                                    </div>
+
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <h4 className="text-xs sm:text-sm font-extrabold text-white m-0 truncate">
+                                          {p.name}
+                                        </h4>
+                                        {isDeveloperAccount(p, currentUser) && (
+                                          <DeveloperBadge size="xs" />
+                                        )}
+                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-900/90 text-amber-300 border border-amber-500/30 flex items-center gap-1 shrink-0">
+                                          <span>{titleInfo.icon}</span>
+                                          <span>{titleInfo.title}</span>
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="text-right shrink-0">
+                                    <div className="text-xs sm:text-sm font-black text-amber-300">
+                                      {primaryText}
+                                    </div>
+                                    <div className="text-[10px] text-emerald-400/80">
+                                      {subText}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="h-1.5 w-full bg-emerald-950 rounded-full border border-emerald-800/60 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                      index === 0
+                                        ? 'bg-gradient-to-r from-amber-500 to-yellow-300'
+                                        : 'bg-gradient-to-r from-emerald-400 to-teal-300'
+                                    }`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ======================================================== */}
+              {/* SCHEDA 3: I MIEI AMICI ONLINE & RUBRICA CLUB */}
+              {/* ======================================================== */}
               {activeTab === 'friends' && (
                 <div className="space-y-3.5 animate-in fade-in duration-150">
                   
-                  {/* SEZIONE 1 (SE PRESENTE): RICHIESTE DI AMICIZIA IN ARRIVO */}
+                  {/* RICHIESTE DI AMICIZIA IN ARRIVO */}
                   {incomingFriendRequests.length > 0 && (
                     <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-950/90 to-emerald-950/90 border border-amber-400/80 shadow-lg space-y-2.5 animate-in slide-in-from-top-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-xs font-black text-amber-300 uppercase tracking-wider">
                           <Bell className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
-                          <span>Richiesta Ricevuta ({incomingFriendRequests.length})</span>
+                          <span>Richieste di Amicizia in Arrivo ({incomingFriendRequests.length})</span>
                         </div>
-                        <span className="text-[10px] text-amber-300 font-bold bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/30">
-                          In attesa
-                        </span>
                       </div>
 
                       <div className="space-y-2">
-                        {incomingFriendRequests.map((req) => (
+                        {incomingFriendRequests.map(notif => (
                           <div 
-                            key={req.id}
-                            className="p-3 rounded-xl bg-emerald-950/90 border border-emerald-700/60 flex items-center justify-between gap-3 shadow-md"
+                            key={notif.id}
+                            className="p-2.5 rounded-xl bg-emerald-950/90 border border-amber-400/40 flex items-center justify-between gap-2 text-xs"
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              {req.fromPhoto ? (
-                                <img src={req.fromPhoto} alt="" className="w-10 h-10 rounded-full border-2 border-amber-400 object-cover shrink-0" />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-emerald-800 border-2 border-amber-400 text-amber-300 font-bold text-sm flex items-center justify-center shrink-0">
-                                  {(req.fromName || 'U').slice(0, 1).toUpperCase()}
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <span className="text-sm font-bold text-white block truncate">{req.fromName}</span>
-                                <span className="text-xs text-emerald-300/80 block truncate">{req.fromEmail}</span>
-                                <span className="text-[10px] text-amber-300 font-medium mt-0.5 block">Vuole aggiungerti agli amici!</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-white truncate flex items-center gap-1.5 flex-wrap">
+                                <span>{notif.fromName || 'Giocatore'}</span>
+                                {isDeveloperAccount(notif.fromEmail || notif.fromUid || notif.fromName) && (
+                                  <DeveloperBadge size="xs" />
+                                )}
                               </div>
+                              <div className="text-[10px] text-emerald-300/70 truncate">{notif.fromEmail}</div>
                             </div>
-
                             <div className="flex items-center gap-1.5 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => onAcceptFriendRequest && onAcceptFriendRequest(req)}
-                                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-xs shadow-md active:scale-95 flex items-center gap-1 cursor-pointer transition-all"
+                                onClick={() => onAcceptFriendRequest && onAcceptFriendRequest(notif)}
+                                className="px-2.5 py-1 rounded-lg gold-gradient text-emerald-950 font-black text-[11px] shadow hover:brightness-110 active:scale-95 cursor-pointer flex items-center gap-1"
                               >
-                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                <Check className="w-3 h-3 text-emerald-950 stroke-[3]" />
                                 <span>Accetta</span>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => onDeclineFriendRequest && onDeclineFriendRequest(req)}
-                                className="p-1.5 rounded-xl bg-emerald-900/60 hover:bg-rose-950 text-emerald-300 hover:text-rose-300 border border-emerald-700/40 text-xs transition-colors cursor-pointer"
+                                onClick={() => onDeclineFriendRequest && onDeclineFriendRequest(notif)}
+                                className="p-1 rounded-lg bg-emerald-900/60 hover:bg-rose-950/80 text-emerald-400 hover:text-rose-300 border border-emerald-700/40 transition-colors cursor-pointer"
                                 title="Rifiuta richiesta"
                               >
-                                <X className="w-3.5 h-3.5" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
@@ -410,54 +922,54 @@ export default function UserProfileModal({
                     </div>
                   )}
 
-                  {/* SEZIONE 2: LISTA AMICI CONFERMATI */}
+                  {/* RUBRICA AMICI CONFERMATI */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-bold text-emerald-300 uppercase tracking-wider px-1">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5 text-amber-400" />
                         <span>I Tuoi Amici ({friendsList.length})</span>
                       </span>
                       {onlineCount > 0 && (
-                        <span className="text-[11px] text-emerald-400 normal-case font-semibold">
-                          🟢 {onlineCount} online adesso
+                        <span className="text-[10px] font-bold text-emerald-300 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>{onlineCount} online adesso</span>
                         </span>
                       )}
                     </div>
 
                     {friendsList.length === 0 ? (
-                      <div className="py-6 text-center rounded-xl bg-emerald-950/40 border border-emerald-800/40 p-4 space-y-1.5">
-                        <Users className="w-7 h-7 text-emerald-500/40 mx-auto" />
-                        <p className="text-xs text-emerald-200 font-semibold m-0">
-                          Non hai ancora aggiunto amici
+                      <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800/40 text-center space-y-1.5">
+                        <p className="text-xs text-emerald-300/80 m-0">
+                          Non hai ancora amici nella tua rubrica di gioco.
                         </p>
-                        <p className="text-[11px] text-emerald-400/70 m-0 max-w-xs mx-auto">
-                          Invia una richiesta con l'indirizzo email del tuo amico qui sotto per collegarvi e sfidarvi ai tavoli!
+                        <p className="text-[11px] text-emerald-400/60 m-0">
+                          Usa il modulo sottostante per cercare e aggiungere altri giocatori tramite la loro email Google!
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-2 max-h-[36vh] overflow-y-auto pr-1">
-                        {friendsList.map((friend) => {
+                      <div className="space-y-2">
+                        {friendsList.map(friend => {
                           const status = getFriendOnlineStatus(friend.lastSeen);
                           return (
                             <div 
-                              key={friend.friendshipId || friend.uid || friend.email}
-                              className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-700/50 flex items-center justify-between gap-3 shadow-md hover:border-amber-400/40 transition-colors"
+                              key={friend.uid || friend.email}
+                              className="p-2.5 rounded-xl bg-emerald-950/75 border border-emerald-700/40 hover:border-amber-400/40 transition-all flex items-center justify-between gap-2.5 shadow-sm"
                             >
-                              <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="relative shrink-0">
                                   {friend.photoURL ? (
                                     <img 
                                       src={friend.photoURL} 
                                       alt="" 
-                                      className="w-10 h-10 rounded-full border-2 border-amber-400 object-cover" 
+                                      className="w-9 h-9 rounded-full border-2 border-amber-400 object-cover" 
                                     />
                                   ) : (
-                                    <div className="w-10 h-10 rounded-full bg-emerald-900 border-2 border-amber-400 text-amber-300 font-bold text-sm flex items-center justify-center">
+                                    <div className="w-9 h-9 rounded-full bg-emerald-900 border-2 border-amber-400 text-amber-300 font-bold text-xs flex items-center justify-center">
                                       {(friend.displayName || friend.email || 'U').slice(0, 1).toUpperCase()}
                                     </div>
                                   )}
                                   <span 
-                                    className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-emerald-950 ${
+                                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-emerald-950 ${
                                       status.color === 'emerald'
                                         ? 'bg-emerald-400 shadow-sm shadow-emerald-400'
                                         : status.color === 'amber'
@@ -470,7 +982,7 @@ export default function UserProfileModal({
 
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="font-bold text-sm text-white truncate">
+                                    <span className="font-bold text-xs sm:text-sm text-white truncate">
                                       {friend.displayName || 'Giocatore'}
                                     </span>
                                     {isDeveloperAccount(friend) ? (
@@ -479,10 +991,10 @@ export default function UserProfileModal({
                                       <span className="text-[10px] text-amber-400">⭐</span>
                                     )}
                                   </div>
-                                  <div className="text-[11px] text-emerald-300/70 truncate">
+                                  <div className="text-[10px] text-emerald-300/70 truncate">
                                     {friend.email}
                                   </div>
-                                  <div className="text-[10px] font-medium mt-0.5 flex items-center gap-1">
+                                  <div className="text-[9px] font-medium mt-0.5 flex items-center gap-1">
                                     <span className={`w-1.5 h-1.5 rounded-full ${
                                       status.color === 'emerald' ? 'bg-emerald-400 animate-pulse' : status.color === 'amber' ? 'bg-amber-400' : 'bg-zinc-500'
                                     }`} />
@@ -493,7 +1005,7 @@ export default function UserProfileModal({
                                 </div>
                               </div>
 
-                              {/* Tasti Azione: Invita al Tavolo Attivo, Sfida, oppure Rimuovi */}
+                              {/* Tasti Azione */}
                               <div className="flex items-center gap-1.5 shrink-0">
                                 {activeGame && activeGame.id && onInviteFriendToActiveGame && (
                                   tablePlayers.some(p => (friend.uid && p.uid === friend.uid) || (friend.email && p.email?.toLowerCase() === friend.email?.toLowerCase())) ? (
@@ -503,18 +1015,18 @@ export default function UserProfileModal({
                                   ) : invitedFriendUids[friend.uid || friend.email] ? (
                                     <span className="px-2 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-400/40 flex items-center gap-1">
                                       <Check className="w-3 h-3 text-emerald-400" />
-                                      <span>Inviato!</span>
+                                      <span>Invitato!</span>
                                     </span>
                                   ) : (
                                     <button
                                       type="button"
                                       disabled={invitingFriendUids[friend.uid || friend.email]}
                                       onClick={() => handleInviteToActiveGame(friend)}
-                                      className="px-2.5 py-1.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1 hover:brightness-110 disabled:opacity-50"
-                                      title={`Invita subito ${friend.displayName || friend.email} a questo tavolo da gioco`}
+                                      className="px-2.5 py-1 rounded-xl gold-gradient text-emerald-950 font-black text-[10px] shadow-sm hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                                      title="Invita al tavolo attivo di oggi"
                                     >
                                       <span>🎯</span>
-                                      <span>{invitingFriendUids[friend.uid || friend.email] ? '...' : 'Invita al Tavolo'}</span>
+                                      <span>{invitingFriendUids[friend.uid || friend.email] ? 'Invio...' : 'Invita al Tavolo'}</span>
                                     </button>
                                   )
                                 )}
@@ -522,26 +1034,22 @@ export default function UserProfileModal({
                                 <button
                                   type="button"
                                   onClick={() => handleChallenge(friend)}
-                                  className={`px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1 ${
-                                    activeGame && activeGame.id
-                                      ? 'bg-emerald-900/80 hover:bg-emerald-800 text-amber-300 border border-amber-500/30'
-                                      : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-emerald-950 font-black'
-                                  }`}
-                                  title={`Inizia una nuova partita con ${friend.displayName}`}
+                                  className="px-2 py-1 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 font-bold text-[10px] transition-all cursor-pointer"
+                                  title="Avvia una nuova partita con questo amico"
                                 >
-                                  {activeGame && activeGame.id ? <span>Nuova Sfida</span> : <><span>🎯</span><span>Sfida</span></>}
+                                  Sfida
                                 </button>
 
-                                {onRemoveFriend && friend.friendshipId && (
+                                {onRemoveFriend && (
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      if (window.confirm(`Vuoi rimuovere ${friend.displayName || friend.email} dai tuoi amici?`)) {
-                                        onRemoveFriend(friend.friendshipId);
+                                      if (confirm(`Vuoi rimuovere ${friend.displayName || friend.email} dai tuoi amici?`)) {
+                                        onRemoveFriend(friend);
                                       }
                                     }}
-                                    className="p-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-400/70 hover:text-rose-300 border border-rose-800/40 transition-colors cursor-pointer"
-                                    title="Rimuovi dai tuoi amici"
+                                    className="p-1 rounded-lg text-emerald-400/60 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                    title="Rimuovi amico"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -554,43 +1062,38 @@ export default function UserProfileModal({
                     )}
                   </div>
 
-                  {/* SEZIONE 3: INVITA UN AMICO TRAMITE EMAIL O NOME (Pulita e ordinata) */}
-                  <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60 space-y-2">
+                  {/* AGGIUNGI AMICO TRAMITE EMAIL */}
+                  <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-800/60 space-y-2.5">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider">
                       <UserPlus className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Aggiungi un Amico</span>
+                      <span>Aggiungi Nuovo Amico</span>
                     </div>
-                    <p className="text-[11px] text-emerald-300/80 m-0">
-                      Scrivi l'email Google del tuo compagno di gioco per inviargli la richiesta di amicizia:
-                    </p>
-                    
-                    <form onSubmit={handleFormSubmit} className="flex gap-2 pt-1">
+
+                    <form onSubmit={handleFormSubmit} className="flex gap-2">
                       <div className="relative flex-1">
-                        <Mail className="w-4 h-4 text-emerald-400/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <Search className="w-4 h-4 text-emerald-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
                           value={friendSearchInput}
                           onChange={(e) => setFriendSearchInput(e.target.value)}
-                          placeholder="es. mario.rossi@gmail.com o nome..."
-                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-emerald-900/60 border border-emerald-700/60 text-white placeholder-emerald-400/40 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400"
-                          disabled={isSendingFriend}
+                          placeholder="Digita email o nome compagno..."
+                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-emerald-900/60 border border-emerald-700/50 text-white placeholder-emerald-400/50 text-xs focus:outline-hidden focus:border-amber-400 transition-colors"
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={isSendingFriend || !friendSearchInput.trim()}
-                        className="px-3.5 py-2 rounded-xl gold-gradient text-emerald-950 font-bold text-xs flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+                        className="px-3.5 py-2 rounded-xl gold-gradient text-emerald-950 font-bold text-xs shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
                       >
                         <Send className="w-3.5 h-3.5 text-emerald-950" />
                         <span>{isSendingFriend ? 'Invio...' : 'Invia'}</span>
                       </button>
                     </form>
 
-                    {/* Suggerimenti live SOLO durante la digitazione di almeno 2 caratteri */}
                     {filteredSuggestions.length > 0 && (
-                      <div className="mt-1 p-1.5 rounded-xl bg-emerald-900/90 border border-amber-400/40 space-y-1 shadow-lg animate-in fade-in">
-                        <span className="text-[10px] uppercase font-bold text-amber-300 px-2 block">
-                          Giocatori trovati:
+                      <div className="space-y-1 pt-1 border-t border-emerald-800/40">
+                        <span className="text-[10px] text-emerald-400/80 font-bold uppercase tracking-wider">
+                          Membri Club suggeriti:
                         </span>
                         {filteredSuggestions.map(sug => (
                           <div
@@ -636,16 +1139,16 @@ export default function UserProfileModal({
 
             </div>
 
-            {/* FOOTER FISSO PINNATO (Sempre visibile, non si sposta mai fuori schermo) */}
-            <div className="p-3 border-t border-emerald-700/50 flex justify-between items-center shrink-0 bg-emerald-950/90">
+            {/* FOOTER FISSO */}
+            <div className="p-2.5 sm:p-3 border-t border-emerald-700/50 flex justify-between items-center shrink-0 bg-emerald-950/90">
               {activeTab === 'profile' ? (
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="px-3.5 py-2 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                  className="px-3.5 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>Esci</span>
+                  <span>Esci dall'Account</span>
                 </button>
               ) : (
                 <div />
@@ -654,7 +1157,7 @@ export default function UserProfileModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 text-xs font-bold cursor-pointer transition-all active:scale-95"
+                className="px-4 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 text-xs font-bold cursor-pointer transition-all active:scale-95"
               >
                 Chiudi
               </button>
@@ -673,7 +1176,7 @@ export default function UserProfileModal({
                 Collega il tuo Account Google
               </h3>
               <p className="text-xs text-emerald-300/80 max-w-xs mx-auto leading-relaxed">
-                Accedi per salvare la tua carriera personale a vita, aggiungere i tuoi amici del Burraco Club, vedere quando sono online e sfidarli ai tavoli!
+                Accedi per salvare la tua carriera personale a vita, scalare la classifica del Club, sbloccare i trofei, aggiungere i tuoi amici e sfidarli ai tavoli!
               </p>
             </div>
 

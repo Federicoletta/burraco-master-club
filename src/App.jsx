@@ -3,7 +3,6 @@ import Header from './components/Header';
 import ScoreBoard from './components/ScoreBoard';
 import NewGameModal from './components/NewGameModal';
 import RoundCalculatorModal from './components/RoundCalculatorModal';
-import PlayersStatsModal from './components/PlayersStatsModal';
 import HistoryModal from './components/HistoryModal';
 import VictoryModal from './components/VictoryModal';
 import CloudSyncModal from './components/CloudSyncModal';
@@ -82,7 +81,13 @@ export default function App() {
   // User Auth & Profile state
   const [currentUser, setCurrentUser] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState('profile');
   const [welcomeUser, setWelcomeUser] = useState(null);
+
+  const handleOpenProfile = (tab = 'profile') => {
+    setProfileInitialTab(tab);
+    setIsProfileOpen(true);
+  };
 
   // Social & Notifications state
   const [notifications, setNotifications] = useState([]);
@@ -97,7 +102,6 @@ export default function App() {
   // Modals state
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
   const [isRoundCalcOpen, setIsRoundCalcOpen] = useState(false);
-  const [isPlayersOpen, setIsPlayersOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
@@ -831,7 +835,6 @@ export default function App() {
   };
 
   const handleChallengeFriend = (friend) => {
-    setIsPlayersOpen(false);
     const myName = currentUser?.displayName || 'Io';
     const friendName = friend.displayName || friend.email || 'Amico';
     setNewGameInitialSetup({
@@ -1060,7 +1063,6 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       {/* Barra Superiore */}
       <Header
         onNewGame={handleOpenNewGame}
-        onOpenPlayers={() => setIsPlayersOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenCloud={() => setIsCloudModalOpen(true)}
         onOpenTournament={() => setIsTournamentOpen(true)}
@@ -1069,7 +1071,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onShareGame={handleShareGame}
         hasActiveGame={Boolean(activeGame)}
         currentUser={currentUser}
-        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenProfile={handleOpenProfile}
         onLogin={handleLogin}
         notificationCount={notifications.length}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
@@ -1208,17 +1210,6 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         roundNumber={(activeGame?.rounds?.length || 0) + 1}
       />
 
-      {/* 3. Modal Partecipanti & Statistiche */}
-      <PlayersStatsModal
-        isOpen={isPlayersOpen}
-        onClose={() => setIsPlayersOpen(false)}
-        recentPlayers={recentPlayers}
-        gamesHistory={gamesHistory}
-        activeGame={activeGame}
-        currentUser={currentUser}
-        friendsList={friendsList}
-      />
-
       {/* 4. Modal Storico Partite */}
       <HistoryModal
         isOpen={isHistoryOpen}
@@ -1288,7 +1279,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         playersList={recentPlayers}
       />
 
-      {/* 10. Modal Profilo Personale & Google Account */}
+      {/* 10. Modal Profilo Personale, Trofei, Classifica & Amici */}
       <UserProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
@@ -1297,6 +1288,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onLogout={handleLogout}
         gamesHistory={gamesHistory}
         activeGame={activeGame}
+        recentPlayers={recentPlayers}
         tablePlayers={tablePlayers}
         friendsList={friendsList}
         clubUsers={clubUsers}
@@ -1307,6 +1299,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         onChallengeFriend={handleChallengeFriend}
         onInviteFriendToActiveGame={handleInviteFriendToActiveGame}
         onRemoveFriend={handleRemoveFriend}
+        initialTab={profileInitialTab}
       />
 
       {/* 11. Modal Notifiche & Inviti Amici */}

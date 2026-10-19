@@ -29,7 +29,6 @@ import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
 
 export default function Header({ 
   onNewGame, 
-  onOpenPlayers, 
   onOpenHistory, 
   onOpenCloud,
   onOpenRules,
@@ -230,7 +229,7 @@ export default function Header({
                       type="button"
                       onClick={() => {
                         setIsMenuOpen(false);
-                        onOpenProfile();
+                        onOpenProfile('profile');
                       }}
                       className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer border border-amber-500/30 shadow-xs"
                     >
@@ -349,21 +348,23 @@ export default function Header({
                     </div>
 
                     <div className="space-y-0.5">
-                      {/* Statistiche & Rubrica con BarChart3 */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          onOpenPlayers();
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                      >
-                        <BarChart3 className="w-4 h-4 text-amber-400 shrink-0" />
-                        <div>
-                          <div className="text-white font-bold">Statistiche & Rubrica</div>
-                          <div className="text-[10px] text-emerald-300/70 font-normal">Classifiche, compagni e bacheca trofei</div>
-                        </div>
-                      </button>
+                      {/* Classifica & Club (apre la modale del Profilo sulla scheda Classifica) */}
+                      {onOpenProfile && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            onOpenProfile('ranking');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                        >
+                          <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+                          <div>
+                            <div className="text-white font-bold">Classifica & Club</div>
+                            <div className="text-[10px] text-emerald-300/70 font-normal">Podio amici, statistiche e trofei</div>
+                          </div>
+                        </button>
+                      )}
 
                       {/* Cloud Database & Invita al Tavolo */}
                       <button
@@ -485,7 +486,7 @@ export default function Header({
           {onOpenProfile && (
             <button
               type="button"
-              onClick={onOpenProfile}
+              onClick={() => onOpenProfile('profile')}
               className={`hidden sm:flex h-9 sm:h-10 px-2 sm:px-2.5 rounded-xl border transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
                 currentUser
                   ? 'bg-emerald-950/80 hover:bg-emerald-900 text-amber-200 border-amber-400/50 shadow-sm'
