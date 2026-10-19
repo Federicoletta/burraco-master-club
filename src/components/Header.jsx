@@ -25,7 +25,6 @@ import { wakeLock } from '../utils/wakeLock';
 import { checkForUpdates, forceAppUpdate, getFormattedBuildDate } from '../utils/versionCheck';
 import { getFriendOnlineStatus } from '../services/social';
 import AudioSettingsModal from './AudioSettingsModal';
-import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
 
 export default function Header({ 
   onNewGame, 
@@ -185,7 +184,7 @@ export default function Header({
             <button
               type="button"
               onClick={() => onOpenProfile('profile')}
-              className={`flex h-8.5 sm:h-10 px-1.5 sm:px-2.5 rounded-xl border transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
+              className={`flex h-8.5 w-8.5 sm:w-auto sm:h-10 px-0 sm:px-2.5 rounded-xl border transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
                 currentUser
                   ? 'bg-emerald-950/80 hover:bg-emerald-900 text-amber-200 border-amber-400/50 shadow-sm'
                   : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
@@ -201,10 +200,10 @@ export default function Header({
                   <img
                     src={currentUser.photoURL}
                     alt={currentUser.displayName || 'Avatar'}
-                    className="w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full border border-amber-400 shrink-0 object-cover"
+                    className="w-6 h-6 rounded-full border border-amber-400 shrink-0 object-cover"
                   />
                 ) : currentUser ? (
-                  <div className="w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full bg-amber-400 text-emerald-950 font-black text-[10px] sm:text-[11px] flex items-center justify-center shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-amber-400 text-emerald-950 font-black text-[11px] flex items-center justify-center shrink-0">
                     {(currentUser.displayName || currentUser.email || 'U').slice(0, 1).toUpperCase()}
                   </div>
                 ) : (
@@ -212,7 +211,7 @@ export default function Header({
                 )}
                 {onlineFriendsCount > 0 && (
                   <span 
-                    className="absolute -top-1 -right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-950 animate-pulse" 
+                    className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-950 animate-pulse" 
                     title={`${onlineFriendsCount} online adesso`}
                   />
                 )}
@@ -220,9 +219,6 @@ export default function Header({
               <span className="hidden sm:inline pointer-events-none max-w-[85px] truncate">
                 {currentUser ? (currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Profilo') : 'Accedi'}
               </span>
-              {isDeveloperAccount(currentUser) && (
-                <DeveloperBadge size="xs" className="hidden md:inline-flex pointer-events-none" />
-              )}
             </button>
           )}
 
