@@ -29,6 +29,7 @@ import {
   getActiveGame, 
   saveActiveGame, 
   getGamesHistory, 
+  getHistoryKey,
   archiveCurrentGame, 
   deleteGameFromHistory,
   computeUserCareerStats
@@ -193,8 +194,14 @@ export default function App() {
     // Ascolto real-time storico partite isolato per l'utente loggato
     const unsubHistory = subscribeToCloudGamesHistory(currentUser, (cloudHistory) => {
       if (Array.isArray(cloudHistory)) {
-        setGamesHistory(cloudHistory);
-        localStorage.setItem(currentUser ? `burraco_history_${currentUser.uid}` : 'burraco_history_guest', JSON.stringify(cloudHistory));
+        const localGames = getGamesHistory(userKey);
+        const map = new Map();
+        localGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
+        cloudHistory.forEach(g => { if (g && g.id) map.set(g.id, g); });
+        const merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+        setGamesHistory(merged);
+        localStorage.setItem(getHistoryKey(userKey), JSON.stringify(merged));
       }
     });
 
@@ -359,10 +366,11 @@ export default function App() {
 
     // Se c'è una partita corrente con mani registrate che NON è questa partita di torneo, archiviala prima
     if (activeGame && activeGame.rounds && activeGame.rounds.length > 0 && activeGame.tournamentMatchId !== match.id) {
-      const updatedHistory = archiveCurrentGame(activeGame);
+      const userKey = currentUser ? currentUser.uid : 'guest';
+      const updatedHistory = archiveCurrentGame(activeGame, userKey);
       setGamesHistory(updatedHistory);
       if (updatedHistory && updatedHistory[0]) {
-        syncGameToCloud(updatedHistory[0]);
+        syncGameToCloud(updatedHistory[0], currentUser);
       }
     }
 
@@ -413,7 +421,7 @@ export default function App() {
 
     setActiveGame(tournamentGame);
     saveActiveGame(tournamentGame);
-    syncGameToCloud(tournamentGame);
+    syncGameToCloud(tournamentGame, currentUser);
     setIsTournamentOpen(false);
   };
 
@@ -917,10 +925,17 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
 
   const handleDataImported = (importedGames) => {
     const userKey = currentUser ? currentUser.uid : 'guest';
+    const localGames = getGamesHistory(userKey);
     if (Array.isArray(importedGames)) {
-      setGamesHistory(importedGames);
+      const map = new Map();
+      localGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
+      importedGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
+      const merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+      localStorage.setItem(getHistoryKey(userKey), JSON.stringify(merged));
+      setGamesHistory(merged);
     } else {
-      setGamesHistory(getGamesHistory(userKey));
+      setGamesHistory(localGames);
     }
     const current = getActiveGame();
     if (current) setActiveGame(current);

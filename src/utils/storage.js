@@ -12,11 +12,11 @@ const DEFAULT_PLAYERS = [];
 const MOCK_NAMES = ['Marco', 'Anna', 'Luca', 'Sofia'];
 const GENERIC_LABELS = ['coppia 1', 'coppia 2', 'giocatore 1', 'giocatore 2', 'squadra 1', 'squadra 2'];
 
-function getPlayersKey(userKey) {
+export function getPlayersKey(userKey) {
   return userKey ? `burraco_players_${userKey}` : STORAGE_KEYS.PLAYERS;
 }
 
-function getHistoryKey(userKey) {
+export function getHistoryKey(userKey) {
   return userKey ? `burraco_history_${userKey}` : STORAGE_KEYS.HISTORY;
 }
 
@@ -113,7 +113,7 @@ export function renamePlayer(oldName, newName, userKey) {
   }
 
   // 3. Aggiorna storico partite
-  const history = getGamesHistory();
+  const history = getGamesHistory(userKey);
   if (history && history.length > 0) {
     const updatedHistory = history.map(game => {
       let gMod = false;
@@ -145,7 +145,7 @@ export function renamePlayer(oldName, newName, userKey) {
 
       return gMod ? { ...game, team1: t1, team2: t2, ...(game.team3 ? { team3: t3 } : {}) } : game;
     });
-    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(updatedHistory));
+    localStorage.setItem(getHistoryKey(userKey), JSON.stringify(updatedHistory));
   }
 
   return unique;

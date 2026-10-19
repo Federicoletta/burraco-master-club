@@ -16,7 +16,7 @@ import {
   Edit2,
   PlusCircle
 } from 'lucide-react';
-import { exportBackupData, importBackupData } from '../utils/storage';
+import { exportBackupData, importBackupData, getGamesHistory, getHistoryKey } from '../utils/storage';
 import { loadCloudGamesHistory } from '../services/firebase';
 
 const formatDate = (dateVal) => {
@@ -87,9 +87,15 @@ export default function HistoryModal({
       const cloudGames = await loadCloudGamesHistory(currentUser);
       if (Array.isArray(cloudGames)) {
         const userKey = currentUser ? currentUser.uid : 'guest';
-        localStorage.setItem(userKey ? `burraco_history_${userKey}` : 'burraco_history_v1', JSON.stringify(cloudGames));
+        const localGames = getGamesHistory(userKey);
+        const map = new Map();
+        localGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
+        cloudGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
+        const merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+        localStorage.setItem(getHistoryKey(userKey), JSON.stringify(merged));
         if (onDataImported) {
-          onDataImported(cloudGames);
+          onDataImported(merged);
         }
       }
       setSyncDone(true);
