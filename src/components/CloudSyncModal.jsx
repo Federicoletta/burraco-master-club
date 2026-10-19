@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Cloud, ExternalLink, QrCode, Copy, Check, Smartphone, Users, UserPlus, MessageCircle, Share2, Sparkles } from 'lucide-react';
+import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
 
 export default function CloudSyncModal({
   isOpen,
@@ -236,6 +237,7 @@ export default function CloudSyncModal({
                           </div>
                         )}
                         <span className="text-white font-medium truncate">{player.displayName || player.email}</span>
+                        {isDeveloperAccount(player, currentUser) && <DeveloperBadge size="xs" />}
                         {isMe && <span className="text-[10px] text-emerald-400 font-bold">(Tu)</span>}
                         {isFriend && <span className="text-[10px] text-amber-400">⭐ Amico</span>}
                       </div>
@@ -315,7 +317,10 @@ export default function CloudSyncModal({
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-white truncate">{friend.displayName || 'Amico'}</div>
+                            <div className="font-bold text-white truncate flex items-center gap-1.5 flex-wrap">
+                              <span>{friend.displayName || 'Amico'}</span>
+                              {isDeveloperAccount(friend, currentUser) && <DeveloperBadge size="xs" />}
+                            </div>
                             <div className="text-[10px] text-emerald-300/70 truncate">{friend.email}</div>
                           </div>
                         </div>

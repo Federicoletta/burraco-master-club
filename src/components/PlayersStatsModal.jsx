@@ -4,6 +4,7 @@ import { calculatePlayerStats, computeUserCareerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 import StatsCharts from './StatsCharts';
 import TrophiesShowcase from './TrophiesShowcase';
+import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
 
 export default function PlayersStatsModal({
   isOpen,
@@ -428,6 +429,9 @@ export default function PlayersStatsModal({
                                     <h4 className="text-sm sm:text-base font-extrabold text-white m-0 truncate">
                                       {p.displayName || p.name}
                                     </h4>
+                                    {isDeveloperAccount(p, currentUser) && (
+                                      <DeveloperBadge size="xs" />
+                                    )}
                                     {p.isMe && (
                                       <span className="px-1.5 py-0.2 rounded-md bg-amber-400 text-emerald-950 font-black text-[10px]">
                                         Tu
@@ -553,6 +557,9 @@ export default function PlayersStatsModal({
                                     <h4 className="text-sm sm:text-base font-extrabold text-white m-0 truncate">
                                       {p.name}
                                     </h4>
+                                    {isDeveloperAccount(p, currentUser) && (
+                                      <DeveloperBadge size="xs" />
+                                    )}
                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-900/90 text-amber-300 border border-amber-500/30 flex items-center gap-1 shrink-0">
                                       <span>{titleInfo.icon}</span>
                                       <span>{titleInfo.title}</span>

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getFriendOnlineStatus } from '../services/social';
 import { computeUserCareerStats } from '../utils/storage';
+import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
 
 export default function UserProfileModal({
   isOpen,
@@ -266,20 +267,27 @@ export default function UserProfileModal({
                     )}
                     
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <h3 className="text-base font-black text-white m-0 truncate">
                           {userDisplayName}
                         </h3>
                         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" title="Account Google Verificato" />
+                        {isDeveloperAccount(currentUser) && (
+                          <DeveloperBadge size="sm" />
+                        )}
                       </div>
                       <p className="text-xs text-emerald-300/80 truncate flex items-center gap-1 mt-0.5">
                         <Mail className="w-3 h-3 text-emerald-400 shrink-0" />
                         <span className="truncate">{userEmail}</span>
                       </p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/40">
-                          Membro Ufficiale Club
-                        </span>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        {isDeveloperAccount(currentUser) ? (
+                          <DeveloperBadge />
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                            Membro Ufficiale Club
+                          </span>
+                        )}
                         {onlineCount > 0 && (
                           <span className="inline-flex items-center gap-1 text-[11px] text-emerald-300 font-bold">
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -461,11 +469,15 @@ export default function UserProfileModal({
                                 </div>
 
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="font-bold text-sm text-white truncate">
                                       {friend.displayName || 'Giocatore'}
                                     </span>
-                                    <span className="text-[10px] text-amber-400">⭐</span>
+                                    {isDeveloperAccount(friend) ? (
+                                      <DeveloperBadge size="xs" />
+                                    ) : (
+                                      <span className="text-[10px] text-amber-400">⭐</span>
+                                    )}
                                   </div>
                                   <div className="text-[11px] text-emerald-300/70 truncate">
                                     {friend.email}
@@ -595,7 +607,10 @@ export default function UserProfileModal({
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <span className="text-xs font-bold text-white truncate block">{sug.displayName}</span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs font-bold text-white truncate">{sug.displayName}</span>
+                                  {isDeveloperAccount(sug) && <DeveloperBadge size="xs" />}
+                                </div>
                                 <span className="text-[10px] text-emerald-300/70 truncate block">{sug.email}</span>
                               </div>
                             </div>

@@ -18,6 +18,7 @@ import { getGamesHistory, calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 import { wakeLock } from '../utils/wakeLock';
 import { sound } from '../utils/soundEffects';
+import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
 
 // Componente per renderizzare le pillole/chip degli eventi di gioco (Burrachi, Chiusura, Pozzetto)
 function RoundEventChips({ details }) {
@@ -439,8 +440,9 @@ export default function ScoreBoard({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <div className="text-[11px] sm:text-xs font-bold text-white truncate flex items-center gap-1">
+                        <div className="text-[11px] sm:text-xs font-bold text-white truncate flex items-center gap-1 flex-wrap">
                           <span className="truncate">{player.displayName || 'Giocatore'}</span>
+                          {isDeveloperAccount(player, currentUser) && <DeveloperBadge size="xs" />}
                           {isMe && <span className="text-[9px] text-emerald-400 font-semibold shrink-0">(Tu)</span>}
                           {isFriend && <span className="text-[9px] text-amber-400 shrink-0" title="Amico confermato">⭐</span>}
                         </div>

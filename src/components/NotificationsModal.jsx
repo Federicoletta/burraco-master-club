@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Bell, UserPlus, Trophy, Check, Trash2, Clock, Mail } from 'lucide-react';
+import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
 
 export default function NotificationsModal({
   isOpen,
@@ -91,7 +92,10 @@ export default function NotificationsModal({
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="text-xs text-emerald-300/80">Invito da</div>
-                        <div className="text-sm font-bold text-white truncate">{notif.fromName}</div>
+                        <div className="text-sm font-bold text-white truncate flex items-center gap-1.5 flex-wrap">
+                          <span>{notif.fromName}</span>
+                          {isDeveloperAccount(notif.fromEmail || notif.fromUid || notif.fromName) && <DeveloperBadge size="xs" />}
+                        </div>
                         <div className="text-[11px] text-amber-300 font-medium mt-0.5">
                           Ti ha aggiunto in: <span className="font-bold text-amber-200">{notif.teamName || 'Squadra'}</span>
                         </div>
@@ -147,7 +151,10 @@ export default function NotificationsModal({
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-white truncate">{notif.fromName}</div>
+                        <div className="text-sm font-bold text-white truncate flex items-center gap-1.5 flex-wrap">
+                          <span>{notif.fromName}</span>
+                          {isDeveloperAccount(notif.fromEmail || notif.fromUid || notif.fromName) && <DeveloperBadge size="xs" />}
+                        </div>
                         <div className="text-xs text-emerald-300/80 truncate flex items-center gap-1">
                           <Mail className="w-3 h-3 text-emerald-400" />
                           <span>{notif.fromEmail}</span>

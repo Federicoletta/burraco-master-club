@@ -25,6 +25,7 @@ import { wakeLock } from '../utils/wakeLock';
 import { checkForUpdates, forceAppUpdate, getFormattedBuildDate } from '../utils/versionCheck';
 import { getFriendOnlineStatus } from '../services/social';
 import AudioSettingsModal from './AudioSettingsModal';
+import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
 
 export default function Header({ 
   onNewGame, 
@@ -520,6 +521,9 @@ export default function Header({
               <span className="hidden sm:inline pointer-events-none max-w-[85px] truncate">
                 {currentUser ? (currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Profilo') : 'Accedi'}
               </span>
+              {isDeveloperAccount(currentUser) && (
+                <DeveloperBadge size="xs" className="hidden md:inline-flex pointer-events-none" />
+              )}
             </button>
           )}
 
