@@ -180,7 +180,74 @@ export default function Header({
             )}
           </button>
 
-          {/* 3. Menu Compatto "Altro" (Design responsivo & pulito per mobile e desktop) */}
+          {/* 3. Profilo & Account Utente Google (Visibile su mobile e desktop) */}
+          {onOpenProfile && (
+            <button
+              type="button"
+              onClick={() => onOpenProfile('profile')}
+              className={`flex h-8.5 sm:h-10 px-1.5 sm:px-2.5 rounded-xl border transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
+                currentUser
+                  ? 'bg-emerald-950/80 hover:bg-emerald-900 text-amber-200 border-amber-400/50 shadow-sm'
+                  : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
+              }`}
+              title={
+                currentUser 
+                  ? `Profilo: ${currentUser.displayName || currentUser.email}${onlineFriendsCount > 0 ? ` (${onlineFriendsCount} amici online)` : ''}` 
+                  : "Accedi con Google"
+              }
+            >
+              <div className="relative shrink-0 flex items-center justify-center">
+                {currentUser?.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName || 'Avatar'}
+                    className="w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full border border-amber-400 shrink-0 object-cover"
+                  />
+                ) : currentUser ? (
+                  <div className="w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full bg-amber-400 text-emerald-950 font-black text-[10px] sm:text-[11px] flex items-center justify-center shrink-0">
+                    {(currentUser.displayName || currentUser.email || 'U').slice(0, 1).toUpperCase()}
+                  </div>
+                ) : (
+                  <User className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
+                )}
+                {onlineFriendsCount > 0 && (
+                  <span 
+                    className="absolute -top-1 -right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-950 animate-pulse" 
+                    title={`${onlineFriendsCount} online adesso`}
+                  />
+                )}
+              </div>
+              <span className="hidden sm:inline pointer-events-none max-w-[85px] truncate">
+                {currentUser ? (currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Profilo') : 'Accedi'}
+              </span>
+              {isDeveloperAccount(currentUser) && (
+                <DeveloperBadge size="xs" className="hidden md:inline-flex pointer-events-none" />
+              )}
+            </button>
+          )}
+
+          {/* 4. Campanella Notifiche & Inviti */}
+          {currentUser && onOpenNotifications && (
+            <button
+              type="button"
+              onClick={onOpenNotifications}
+              className={`relative h-8.5 sm:h-10 px-2 sm:px-2.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
+                notificationCount > 0
+                  ? 'bg-amber-500/25 border-amber-400 text-amber-200 ring-2 ring-amber-400/40 shadow-md shadow-amber-950/40'
+                  : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-300 border-emerald-600/40'
+              }`}
+              title={notificationCount > 0 ? `${notificationCount} notifiche non lette` : "Notifiche & Inviti"}
+            >
+              <Bell className={`w-4 h-4 ${notificationCount > 0 ? 'text-amber-300 animate-bounce' : 'text-emerald-300'}`} />
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-amber-400 text-emerald-950 text-[9px] font-black flex items-center justify-center shadow-md border-2 border-emerald-950 animate-pulse">
+                  {notificationCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* 5. Menu Compatto "Altro" (Design responsivo & pulito per mobile e desktop) */}
           <div className="relative">
             <button
               type="button"
@@ -463,84 +530,15 @@ export default function Header({
               </>
             )}
           </div>
-
-          {/* 4. Profilo & Account Utente Google (Su desktop; su mobile è in primo piano nel menu) */}
-          {onOpenProfile && (
-            <button
-              type="button"
-              onClick={() => onOpenProfile('profile')}
-              className={`hidden sm:flex h-9 sm:h-10 px-2 sm:px-2.5 rounded-xl border transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
-                currentUser
-                  ? 'bg-emerald-950/80 hover:bg-emerald-900 text-amber-200 border-amber-400/50 shadow-sm'
-                  : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
-              }`}
-              title={
-                currentUser 
-                  ? `Profilo: ${currentUser.displayName || currentUser.email}${onlineFriendsCount > 0 ? ` (${onlineFriendsCount} amici online)` : ''}` 
-                  : "Accedi con Google"
-              }
-            >
-              <div className="relative shrink-0 flex items-center justify-center">
-                {currentUser?.photoURL ? (
-                  <img
-                    src={currentUser.photoURL}
-                    alt={currentUser.displayName || 'Avatar'}
-                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-amber-400 shrink-0 object-cover"
-                  />
-                ) : currentUser ? (
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-400 text-emerald-950 font-black text-[11px] flex items-center justify-center shrink-0">
-                    {(currentUser.displayName || currentUser.email || 'U').slice(0, 1).toUpperCase()}
-                  </div>
-                ) : (
-                  <User className="w-4 h-4 text-emerald-300 shrink-0 pointer-events-none" />
-                )}
-                {onlineFriendsCount > 0 && (
-                  <span 
-                    className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-950 animate-pulse" 
-                    title={`${onlineFriendsCount} online adesso`}
-                  />
-                )}
-              </div>
-              <span className="hidden sm:inline pointer-events-none max-w-[85px] truncate">
-                {currentUser ? (currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Profilo') : 'Accedi'}
-              </span>
-              {isDeveloperAccount(currentUser) && (
-                <DeveloperBadge size="xs" className="hidden md:inline-flex pointer-events-none" />
-              )}
-            </button>
-          )}
-
-          {/* 6. Campanella Notifiche & Inviti */}
-          {currentUser && onOpenNotifications && (
-            <button
-              type="button"
-              onClick={onOpenNotifications}
-              className={`relative h-9 sm:h-10 px-2 sm:px-2.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
-                notificationCount > 0
-                  ? 'bg-amber-500/25 border-amber-400 text-amber-200 ring-2 ring-amber-400/40 shadow-md shadow-amber-950/40'
-                  : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-300 border-emerald-600/40'
-              }`}
-              title={notificationCount > 0 ? `${notificationCount} notifiche non lette` : "Notifiche & Inviti"}
-            >
-              <Bell className={`w-4 h-4 ${notificationCount > 0 ? 'text-amber-300 animate-bounce' : 'text-emerald-300'}`} />
-              {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-400 text-emerald-950 text-[10px] font-black flex items-center justify-center shadow-md border-2 border-emerald-950 animate-pulse">
-                  {notificationCount}
-                </span>
-              )}
-            </button>
-          )}
-
-          {/* 7. Nuova Partita (Il Bottone Principale Dorato - sempre ben visibile e protetto) */}
+          {/* 6. Nuova Partita (Opzione A: compatto su mobile, esteso su schermi più ampi) */}
           <button
             type="button"
             onClick={onNewGame}
-            className="h-8.5 sm:h-10 px-2.5 sm:px-4 py-1.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-md shadow-amber-950/40 transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap touch-manipulation select-none"
+            className="h-8.5 w-8.5 sm:w-auto sm:h-10 px-0 sm:px-4 py-0 sm:py-1.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black shadow-md shadow-amber-950/40 transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap touch-manipulation select-none"
             title="Inizia una nuova partita"
           >
-            <PlusCircle className="w-4 h-4 text-emerald-950 shrink-0 pointer-events-none" />
-            <span className="pointer-events-none hidden sm:inline">+ Nuova Partita</span>
-            <span className="pointer-events-none sm:hidden font-black">+ Nuova</span>
+            <PlusCircle className="w-4.5 h-4.5 sm:w-4 sm:h-4 text-emerald-950 shrink-0 pointer-events-none" />
+            <span className="pointer-events-none hidden sm:inline text-xs sm:text-sm font-black">+ Nuova Partita</span>
           </button>
 
         </div>
