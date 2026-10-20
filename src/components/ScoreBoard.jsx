@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, memo } from 'react';
 import { 
   PlusCircle, 
   Trophy, 
@@ -9,7 +9,6 @@ import {
   Table,
   UserPlus,
   Check,
-  Users,
   LogOut,
   ChevronDown,
   ChevronUp
@@ -75,7 +74,7 @@ function RoundEventChips({ details }) {
   return <div className="flex flex-wrap gap-1.5 mt-1.5">{chips}</div>;
 }
 
-export default function ScoreBoard({
+function ScoreBoard({
   activeGame,
   gamesHistory = [],
   currentUser = null,
@@ -211,7 +210,7 @@ export default function ScoreBoard({
       map[s.name] = getPlayerTitle(s);
     });
     return map;
-  }, [activeGame, gamesHistory]);
+  }, [activeGame, gamesHistory, currentUser]);
 
   // Calcola totali progressivi in modo immutabile
   const { roundsWithProgressive, totalTeam1, totalTeam2, totalTeam3 } = useMemo(() => {
@@ -1189,3 +1188,5 @@ export default function ScoreBoard({
     </div>
   );
 }
+
+export default memo(ScoreBoard);

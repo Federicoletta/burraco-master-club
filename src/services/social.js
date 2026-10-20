@@ -5,10 +5,10 @@ import {
   getDoc, 
   getDocs, 
   query, 
-  where, 
+  where,
+  limit,
   onSnapshot, 
-  deleteDoc,
-  serverTimestamp 
+  deleteDoc, 
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -46,29 +46,35 @@ export async function sendFriendRequest(currentUser, target) {
     throw new Error('Non puoi inviare una richiesta di amicizia a te stesso');
   }
 
-  // Cerca nella collezione burraco_users per completare o arricchire i dati
+  // Cerca nella collezione burraco_users con query mirata per UID o Email (zero full scan)
   try {
     const usersRef = collection(db, 'burraco_users');
-    const snap = await getDocs(usersRef);
-    if (!snap.empty) {
-      const allUsers = snap.docs.map(d => d.data());
-      let matched = null;
-      if (targetUid) {
-        matched = allUsers.find(u => u.uid === targetUid);
-      }
-      if (!matched && cleanEmail) {
-        matched = allUsers.find(u => (u.email || '').trim().toLowerCase() === cleanEmail);
-      }
-      if (!matched && targetName) {
-        matched = allUsers.find(u => (u.displayName || '').trim().toLowerCase() === targetName.toLowerCase());
-      }
+    let matched = null;
 
-      if (matched) {
-        targetUid = matched.uid;
-        targetName = matched.displayName || targetName || cleanEmail;
-        cleanEmail = (matched.email || cleanEmail).trim().toLowerCase();
-        targetPhoto = matched.photoURL || targetPhoto;
+    if (targetUid) {
+      const uSnap = await getDoc(doc(db, 'burraco_users', targetUid));
+      if (uSnap.exists()) {
+        matched = uSnap.data();
       }
+    } else if (cleanEmail) {
+      const q = query(usersRef, where('email', '==', cleanEmail), limit(1));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        matched = snap.docs[0].data();
+      }
+    } else if (targetName) {
+      const q = query(usersRef, where('displayName', '==', targetName), limit(1));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        matched = snap.docs[0].data();
+      }
+    }
+
+    if (matched) {
+      targetUid = matched.uid;
+      targetName = matched.displayName || targetName || cleanEmail;
+      cleanEmail = (matched.email || cleanEmail).trim().toLowerCase();
+      targetPhoto = matched.photoURL || targetPhoto;
     }
   } catch (err) {
     console.warn('Ricerca utente registrato per amicizia:', err);
@@ -97,6 +103,7 @@ export async function sendFriendRequest(currentUser, target) {
     toEmail: cleanEmail || null,
     toUid: targetUid || null,
     toName: targetName || cleanEmail,
+    toPhoto: targetPhoto || null,
     status: 'pending',
     createdAt: new Date().toISOString()
   };
@@ -380,8 +387,9 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
 export function subscribeToClubUsers(currentUser, onUsersChange) {
   if (!db) return () => {};
   const usersRef = collection(db, 'burraco_users');
+  const q = query(usersRef, limit(100));
 
-  return onSnapshot(usersRef, (snapshot) => {
+  return onSnapshot(q, (snapshot) => {
     const list = [];
     snapshot.docs.forEach(docSnap => {
       const u = docSnap.data();

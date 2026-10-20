@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, useCallback, Suspense, lazy } from 'react';
 import Header from './components/Header';
 import ScoreBoard from './components/ScoreBoard';
 import NotificationToast from './components/NotificationToast';
@@ -48,10 +48,28 @@ export default function App() {
     onCelebrate: () => setIsVictoryOpen(true),
   });
 
-  const handleOpenNewGame = () => {
+  // Event handlers memoizzati per evitare re-render a cascata su Header e ScoreBoard
+  const handleOpenNewGame = useCallback(() => {
     game.setNewGameInitialSetup(null);
     setIsNewGameOpen(true);
-  };
+  }, [game.setNewGameInitialSetup]);
+
+  const handleOpenHistory = useCallback(() => setIsHistoryOpen(true), []);
+  const handleOpenCloud = useCallback(() => setIsCloudModalOpen(true), []);
+  const handleOpenTournament = useCallback(() => tournament.setIsTournamentOpen(true), [tournament.setIsTournamentOpen]);
+  const handleOpenRules = useCallback(() => setIsRulesOpen(true), []);
+  const handleOpenNotifications = useCallback(() => social.setIsNotificationsOpen(true), [social.setIsNotificationsOpen]);
+  const handleOpenEditTeams = useCallback(() => setIsEditTeamsOpen(true), []);
+
+  const handleAddRound = useCallback(() => {
+    setRoundToEdit(null);
+    setIsRoundCalcOpen(true);
+  }, []);
+
+  const handleEditRound = useCallback((round) => {
+    setRoundToEdit(round);
+    setIsRoundCalcOpen(true);
+  }, []);
 
   return (
     <div className="min-h-screen felt-bg flex flex-col selection:bg-amber-400 selection:text-emerald-950">
@@ -59,18 +77,18 @@ export default function App() {
       {/* Barra Superiore */}
       <Header
         onNewGame={handleOpenNewGame}
-        onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenCloud={() => setIsCloudModalOpen(true)}
-        onOpenTournament={() => tournament.setIsTournamentOpen(true)}
+        onOpenHistory={handleOpenHistory}
+        onOpenCloud={handleOpenCloud}
+        onOpenTournament={handleOpenTournament}
         hasActiveTournament={Boolean(tournament.activeTournament)}
-        onOpenRules={() => setIsRulesOpen(true)}
+        onOpenRules={handleOpenRules}
         onShareGame={game.handleShareGame}
         hasActiveGame={Boolean(game.activeGame)}
         currentUser={social.currentUser}
         onOpenProfile={social.handleOpenProfile}
         onLogin={social.handleLogin}
         notificationCount={social.notifications.length}
-        onOpenNotifications={() => social.setIsNotificationsOpen(true)}
+        onOpenNotifications={handleOpenNotifications}
         friendsList={social.friendsList}
       />
 
@@ -126,7 +144,7 @@ export default function App() {
               </div>
             </div>
             <button
-              onClick={() => tournament.setIsTournamentOpen(true)}
+              onClick={handleOpenTournament}
               className="px-2.5 py-1 rounded-lg gold-gradient text-emerald-950 font-black text-[11px] shadow-sm hover:brightness-110 active:scale-95 cursor-pointer shrink-0 transition-transform"
             >
               Classifica 🏆
@@ -145,19 +163,13 @@ export default function App() {
             onLeaveCloudTable={game.handleLeaveCloudTable}
             onSendFriendRequest={social.handleSendFriendRequest}
             onOpenLogin={social.handleLogin}
-            onAddRound={() => {
-              setRoundToEdit(null);
-              setIsRoundCalcOpen(true);
-            }}
-            onEditRound={(round) => {
-              setRoundToEdit(round);
-              setIsRoundCalcOpen(true);
-            }}
+            onAddRound={handleAddRound}
+            onEditRound={handleEditRound}
             onDeleteLastRound={game.handleDeleteLastRound}
             onEndGame={game.handleEndGame}
-            onShareGame={() => setIsCloudModalOpen(true)}
-            onOpenRules={() => setIsRulesOpen(true)}
-            onOpenEditTeams={() => setIsEditTeamsOpen(true)}
+            onShareGame={handleOpenCloud}
+            onOpenRules={handleOpenRules}
+            onOpenEditTeams={handleOpenEditTeams}
           />
         ) : (
           /* Schermata di Benvenuto se nessuna partita */
@@ -220,11 +232,8 @@ export default function App() {
           onResumeGame={game.handleResumeGame}
           onDeleteGame={game.handleDeleteGameHistory}
           onDataImported={game.handleDataImported}
-          onAddRound={() => setIsRoundCalcOpen(true)}
-          onEditRound={(round) => {
-            setRoundToEdit(round);
-            setIsRoundCalcOpen(true);
-          }}
+          onAddRound={handleAddRound}
+          onEditRound={handleEditRound}
         />
 
         {/* 4. Modal Vittoria & Coriandoli */}

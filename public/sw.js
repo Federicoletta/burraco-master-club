@@ -1,0 +1,69 @@
+const CACHE_NAME = 'burraco-cache-v2';
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/version.json'
+];
+
+// Install: precache essential shell
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS);
+    })
+  );
+});
+
+// Activate: clean up older caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Fetch: Network-First for HTML/version, Stale-While-Revalidate for JS/CSS/Audio
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip non-GET and cross-origin Firestore/Google Auth requests
+  if (request.method !== 'GET') return;
+  if (url.origin !== self.location.origin) return;
+
+  // HTML & version: Network First, Fallback to Cache
+  if (request.mode === 'navigate' || url.pathname.endsWith('version.json') || url.pathname === '/') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((res) => res || caches.match('/')))
+    );
+    return;
+  }
+
+  // Assets (JS, CSS, audio, SVG): Cache First / Stale While Revalidate
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      const fetchPromise = fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return networkResponse;
+      }).catch(() => null);
+
+      return cachedResponse || fetchPromise;
+    })
+  );
+});

@@ -26,7 +26,7 @@ import { checkForUpdates, forceAppUpdate, getFormattedBuildDate } from '../utils
 import { getFriendOnlineStatus } from '../services/social';
 import AudioSettingsModal from './AudioSettingsModal';
 
-export default function Header({ 
+function Header({ 
   onNewGame, 
   onOpenHistory, 
   onOpenCloud,
@@ -572,3 +572,5 @@ export default function Header({
     </header>
   );
 }
+
+export default memo(Header);
