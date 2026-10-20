@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trophy, Trash2, Sun, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { PlusCircle, Trophy, Trash2, Sun, LogOut, Cloud, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { wakeLock } from '../../utils/wakeLock';
 
 export default function ScoreBoardToolbar({
@@ -9,17 +9,54 @@ export default function ScoreBoardToolbar({
   onDeleteLastRound,
   onAddRound,
   onCloseTable,
+  onSaveGame,
 }) {
   const [wakeLockState, setWakeLockState] = useState({
     enabled: wakeLock.enabled,
     active: wakeLock.active
   });
 
+  const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'offline' | 'error'
+  const [lastSavedTime, setLastSavedTime] = useState('');
+  const saveTimeoutRef = useRef(null);
+
   useEffect(() => {
     return wakeLock.subscribe((state) => {
       setWakeLockState({ ...state });
     });
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
+
+  const handleSaveClick = async () => {
+    if (!onSaveGame || saveState === 'saving') return;
+    setSaveState('saving');
+    try {
+      const res = await onSaveGame();
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setLastSavedTime(timeStr);
+
+      if (res?.success) {
+        setSaveState('saved');
+      } else if (res?.isOffline) {
+        setSaveState('offline');
+      } else {
+        setSaveState('error');
+      }
+    } catch {
+      setSaveState('error');
+    }
+
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      setSaveState('idle');
+    }, 3000);
+  };
 
   return (
     <div className="py-2 px-3 rounded-xl felt-card flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shadow-sm">
@@ -78,9 +115,70 @@ export default function ScoreBoardToolbar({
         </div>
       </div>
 
-      {/* Pulsanti Azione (Chiudi Tavolo, Termina, Annulla, + Aggiungi Mano) */}
+      {/* Pulsanti Azione (Salva, Chiudi Tavolo, Termina, Annulla, + Aggiungi Mano) */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Tasto Dedicato Salva nel Cloud */}
+          {onSaveGame && (
+            <button
+              type="button"
+              onClick={handleSaveClick}
+              disabled={saveState === 'saving'}
+              className={`px-2.5 py-2 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95 border ${
+                saveState === 'saving'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-400/50 cursor-wait'
+                  : saveState === 'saved'
+                  ? 'bg-emerald-500/25 text-emerald-200 border-emerald-400 font-bold shadow-md shadow-emerald-950/50'
+                  : saveState === 'offline'
+                  ? 'bg-amber-500/25 text-amber-200 border-amber-400 font-bold'
+                  : saveState === 'error'
+                  ? 'bg-rose-500/25 text-rose-200 border-rose-400 font-bold'
+                  : 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 hover:text-white border-emerald-600/50 hover:border-emerald-400'
+              }`}
+              title={
+                lastSavedTime 
+                  ? `Ultimo salvataggio: ${lastSavedTime}. Tocca per salvare adesso nel Cloud.`
+                  : 'Tocca per salvare subito la partita nel Cloud'
+              }
+            >
+              {saveState === 'saving' && (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-300" />
+                  <span>Salvataggio...</span>
+                </>
+              )}
+              {saveState === 'saved' && (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300 animate-in zoom-in-75" />
+                  <span>Salvata nel Cloud!</span>
+                </>
+              )}
+              {saveState === 'offline' && (
+                <>
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Salvata in Locale (Offline)</span>
+                </>
+              )}
+              {saveState === 'error' && (
+                <>
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-300" />
+                  <span>Errore Salvataggio</span>
+                </>
+              )}
+              {saveState === 'idle' && (
+                <>
+                  <Cloud className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>Salva</span>
+                  {lastSavedTime && (
+                    <span className="text-[10px] text-emerald-400/80 font-normal">
+                      ({lastSavedTime})
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
+          )}
+
           {onCloseTable && (
             <button
               type="button"

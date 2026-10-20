@@ -916,6 +916,39 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     syncWithStatus(resumedGame, true);
   };
 
+  // Salvataggio manuale forzato con feedback (Cloud Firestore + Locale)
+  const handleManualSave = useCallback(async () => {
+    if (!activeGame) return { success: false, reason: 'no_game' };
+
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    // 1. Salva subito in localStorage (stato attivo e storico)
+    saveActiveGame(activeGame);
+    setGamesHistory(prev => {
+      const filtered = (prev || []).filter(g => g?.id !== activeGame.id);
+      const updated = [activeGame, ...filtered];
+      safeSetItem(getHistoryKey(userKey), JSON.stringify(updated));
+      return updated;
+    });
+
+    // 2. Controlla connessione di rete
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setSyncStatus('offline');
+      return { success: false, isOffline: true };
+    }
+
+    // 3. Sincronizza nel Cloud Firestore (force: true)
+    setSyncStatus('syncing');
+    try {
+      const ok = await syncGameToCloud(activeGame, currentUser, true);
+      setSyncStatus(ok ? 'synced' : 'offline');
+      return { success: ok, isOffline: !ok };
+    } catch (err) {
+      console.warn('Errore salvataggio manuale nel cloud:', err);
+      setSyncStatus('offline');
+      return { success: false, isOffline: false, error: err };
+    }
+  }, [activeGame, currentUser]);
+
   // Importazione dati
   const handleDataImported = (importedGames) => {
     const userKey = currentUser ? currentUser.uid : 'guest';
@@ -1035,6 +1068,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     handleUpdateTeams,
     handleEndGame,
     handleCloseTable,
+    handleManualSave,
     handleRematch,
     handleArchiveAndNew,
     handleLeaveCloudTable,

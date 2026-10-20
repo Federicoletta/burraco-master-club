@@ -185,6 +185,7 @@ function BurracoAppContent() {
             onDeleteRound={handleDeleteRound}
             onDeleteLastRound={handleDeleteLastRound}
             onCloseTable={handleCloseTable}
+            onSaveGame={game.handleManualSave}
             onEndGame={game.handleEndGame}
             onShareGame={handleOpenCloud}
             onOpenRules={handleOpenRules}

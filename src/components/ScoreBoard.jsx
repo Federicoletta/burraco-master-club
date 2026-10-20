@@ -24,6 +24,7 @@ function ScoreBoard({
   onDeleteRound,
   onDeleteLastRound,
   onCloseTable = null,
+  onSaveGame = null,
   onEndGame,
   onShareGame,
   onOpenEditTeams,
@@ -211,6 +212,7 @@ function ScoreBoard({
         onEndGame={onEndGame}
         onDeleteLastRound={onDeleteLastRound}
         onCloseTable={onCloseTable}
+        onSaveGame={onSaveGame}
         onAddRound={onAddRound}
       />
 

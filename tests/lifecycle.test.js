@@ -238,4 +238,27 @@ describe('Game Engine - End-to-End Match Lifecycle Simulation', () => {
     expect(closed).toBe(true);
     expect(submitted).toBe(false);
   });
+
+  it('guarantees manual save updates local active game and preserves match data', () => {
+    const testGame = {
+      id: 'game_manual_save_1',
+      mode: 'pairs',
+      targetScore: 2005,
+      team1: { name: 'I Bufu', players: ['P1', 'P2'] },
+      team2: { name: 'I Susi', players: ['P3', 'P4'] },
+      rounds: [
+        { roundNumber: 1, team1Score: 450, team2Score: 120 }
+      ],
+      isFinished: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    saveActiveGame(testGame);
+    const restored = getActiveGame();
+    expect(restored).not.toBeNull();
+    expect(restored.id).toBe('game_manual_save_1');
+    expect(restored.rounds.length).toBe(1);
+    expect(restored.team1.name).toBe('I Bufu');
+    expect(restored.rounds[0].team1Score).toBe(450);
+  });
 });
