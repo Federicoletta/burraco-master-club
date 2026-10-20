@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useAlert } from '../context/ConfirmContext';
 import { 
   X, 
   History, 
@@ -48,6 +49,7 @@ export default function HistoryModal({
   const [syncDone, setSyncDone] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const fileInputRef = useRef(null);
+  const customAlert = useAlert();
 
   // Unisci la partita attiva corrente (se ha mani giocate) per renderla sempre visibile
   const allDisplayGames = React.useMemo(() => {
@@ -116,10 +118,18 @@ export default function HistoryModal({
       const userKey = currentUser ? currentUser.uid : 'guest';
       const ok = importBackupData(event.target.result, userKey);
       if (ok) {
-        alert('Dati ripristinati con successo!');
+        customAlert({
+          title: 'Ripristino Completato',
+          message: 'Tutti i dati e lo storico partite sono stati ripristinati con successo!',
+          variant: 'success'
+        });
         if (onDataImported) onDataImported();
       } else {
-        alert('Errore: formato file non valido.');
+        customAlert({
+          title: 'Errore Ripristino',
+          message: 'Il formato del file di backup selezionato non è valido.',
+          variant: 'danger'
+        });
       }
     };
     reader.readAsText(file);

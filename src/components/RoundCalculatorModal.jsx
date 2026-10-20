@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calculator, Zap, Plus, Minus, Check, Sparkles } from 'lucide-react';
-import { CARD_VALUES, HONOR_POINTS, calculateTeamRoundScore, calculateCardsPoints } from '../constants/burraco';
+import { X, Calculator, Zap, Check } from 'lucide-react';
+import { HONOR_POINTS, calculateTeamRoundScore, calculateCardsPoints } from '../constants/burraco';
 import { sound } from '../utils/soundEffects';
+import TrioLoneSelector from './round/TrioLoneSelector';
+import QuickEntryPad from './round/QuickEntryPad';
+import BurracoToggles from './round/BurracoToggles';
+import CardsPointsInput from './round/CardsPointsInput';
+import RoundReceiptSummary from './round/RoundReceiptSummary';
 
 const DEFAULT_ENTITY = {
   chiusura: false,
@@ -276,6 +281,28 @@ export default function RoundCalculatorModal({
     setActiveTab(targetTab);
   };
 
+  const handleTableCountChange = (key, delta) => {
+    setCurrentData(p => ({
+      ...p,
+      cardsOnTableDirect: '',
+      cardsOnTableCount: {
+        ...p.cardsOnTableCount,
+        [key]: Math.max(0, (p.cardsOnTableCount[key] || 0) + delta)
+      }
+    }));
+  };
+
+  const handleHandCountChange = (key, delta) => {
+    setCurrentData(p => ({
+      ...p,
+      cardsInHandDirect: '',
+      cardsInHandCount: {
+        ...p.cardsInHandCount,
+        [key]: Math.max(0, (p.cardsInHandCount[key] || 0) + delta)
+      }
+    }));
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
       {/* Scheda allargata orizzontalmente: max-w-3xl */}
@@ -336,134 +363,30 @@ export default function RoundCalculatorModal({
 
         {/* CONTENUTO INSERIMENTO RAPIDO */}
         {entryMode === 'quick' ? (
-          <div className="my-5 space-y-4">
-            <p className="text-xs text-emerald-300/90 text-center">
-              Inserisci direttamente il punteggio netto calcolato per ciascun partecipante per questa smazzata.
-            </p>
-            <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3.5`}>
-              
-              {/* SQUADRA 1 */}
-              <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-amber-500/40">
-                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block mb-0.5">
-                  ♦ {activeGame.team1.name}
-                </span>
-                <span className="text-[11px] text-emerald-400 block mb-2">
-                  {(activeGame.team1.players || []).join(' & ')}
-                </span>
-                <div className="relative">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={team1Data.manualScore}
-                    onChange={(e) => setTeam1Data(p => ({ ...p, manualScore: e.target.value }))}
-                    placeholder="0"
-                    className="w-full text-center text-3xl font-black py-2.5 rounded-xl bg-emerald-900/80 border border-amber-400/50 text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-                  />
-                  <span className="text-[10px] text-emerald-400/70 block text-center mt-1">
-                    Supporta anche negativi (-100)
-                  </span>
-                </div>
-              </div>
-
-              {/* SQUADRA 2 */}
-              <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-blue-500/40">
-                <span className="text-xs font-bold text-blue-300 uppercase tracking-wider block mb-0.5">
-                  ♠ {activeGame.team2.name}
-                </span>
-                <span className="text-[11px] text-emerald-400 block mb-2">
-                  {(activeGame.team2.players || []).join(' & ')}
-                </span>
-                <div className="relative">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={team2Data.manualScore}
-                    onChange={(e) => setTeam2Data(p => ({ ...p, manualScore: e.target.value }))}
-                    placeholder="0"
-                    className="w-full text-center text-3xl font-black py-2.5 rounded-xl bg-emerald-900/80 border border-blue-400/50 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  />
-                  <span className="text-[10px] text-emerald-400/70 block text-center mt-1">
-                    Supporta anche negativi (-100)
-                  </span>
-                </div>
-              </div>
-
-              {/* SQUADRA 3 (SE IN MODALITÀ A 3) */}
-              {isTrio && (
-                <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-rose-500/40">
-                  <span className="text-xs font-bold text-rose-300 uppercase tracking-wider block mb-0.5">
-                    ♥ {activeGame.team3?.name || 'Giocatore 3'}
-                  </span>
-                  <span className="text-[11px] text-emerald-400 block mb-2">
-                    {(activeGame.team3?.players || []).join(' & ')}
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={team3Data.manualScore}
-                      onChange={(e) => setTeam3Data(p => ({ ...p, manualScore: e.target.value }))}
-                      placeholder="0"
-                      className="w-full text-center text-3xl font-black py-2.5 rounded-xl bg-emerald-900/80 border border-rose-400/50 text-white focus:outline-none focus:ring-2 focus:ring-rose-400"
-                    />
-                    <span className="text-[10px] text-emerald-400/70 block text-center mt-1">
-                      Supporta anche negativi (-100)
-                    </span>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </div>
+          <QuickEntryPad
+            isTrio={isTrio}
+            activeGame={activeGame}
+            team1Data={team1Data}
+            setTeam1Data={setTeam1Data}
+            team2Data={team2Data}
+            setTeam2Data={setTeam2Data}
+            team3Data={team3Data}
+            setTeam3Data={setTeam3Data}
+          />
         ) : (
           /* CONTENUTO CALCOLO GUIDATO */
           <div className="mt-3 space-y-3">
             
             {/* SE MODALITÀ A 3: SELETTORE CHI È IL SOLITARIO (18 CARTE) */}
             {isTrio && (
-              <div className="p-3 rounded-xl bg-emerald-950/90 border border-amber-400/50 shadow-md">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>👤</span> Chi ha preso il Pozzetto da 18 carte (Solitario)?
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-medium">Regola Ufficiale FIBUR</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { key: 'team1', icon: '♦' },
-                    { key: 'team2', icon: '♠' },
-                    { key: 'team3', icon: '♥' },
-                  ].map(({ key, icon }) => {
-                    const isSelected = lonePlayer === key;
-                    const team = activeGame[key];
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setLonePlayer(key)}
-                        className={`py-2 px-2 rounded-xl border text-center transition-all cursor-pointer font-bold text-xs flex flex-col items-center justify-center gap-0.5 ${
-                          isSelected
-                            ? 'gold-gradient text-emerald-950 font-black shadow-md ring-2 ring-amber-300/60 scale-[1.02]'
-                            : 'bg-emerald-900/60 border-emerald-700/60 text-emerald-200 hover:text-white hover:bg-emerald-800/60'
-                        }`}
-                      >
-                        <span className="text-xs truncate max-w-full">{icon} {team?.name}</span>
-                        <span className={`text-[10px] ${isSelected ? 'text-emerald-950 font-extrabold' : 'text-emerald-400'}`}>
-                          {isSelected ? '★ Solitario' : 'In Coppia'}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="mt-2 text-[11px] text-emerald-300/90 flex flex-wrap items-center justify-between gap-1 border-t border-emerald-800/50 pt-1.5">
-                  <span>
-                    👥 <strong>Coppia di questa mano:</strong> {pairNames}
-                  </span>
-                  <span className="text-amber-300 font-semibold text-[10px]">
-                    Punti coppia divisi al 50% ({pairRawScore} pt ÷ 2 = {pairSplitScore} pt cad.)
-                  </span>
-                </div>
-              </div>
+              <TrioLoneSelector
+                lonePlayer={lonePlayer}
+                setLonePlayer={setLonePlayer}
+                activeGame={activeGame}
+                pairNames={pairNames}
+                pairRawScore={pairRawScore}
+                pairSplitScore={pairSplitScore}
+              />
             )}
 
             {/* SELETTORE TAB GUIDATO */}
@@ -576,438 +499,64 @@ export default function RoundCalculatorModal({
             {/* AREA COMPILAZIONE SQUADRA ATTIVA */}
             <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-0.5">
               
-              {/* RIGA 1: CHIUSURA (+100) & STATO POZZETTO (AFFIANCATI) */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                
-                {/* Toggle Chiusura */}
-                <div className="sm:col-span-4 p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40 flex items-center justify-between">
-                  <div className="min-w-0 pr-1">
-                    <span className="text-xs font-bold text-white block truncate">Chiusura</span>
-                    <span className="text-[10px] text-emerald-400/80">+100 pt</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleChiusura(activeTab)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                      currentData.chiusura
-                        ? 'gold-gradient text-emerald-950 shadow-md ring-2 ring-amber-300/50'
-                        : 'bg-emerald-900/80 text-emerald-300 border border-emerald-700/60 hover:text-white'
-                    }`}
-                  >
-                    <Check className={`w-3.5 h-3.5 stroke-[3] ${currentData.chiusura ? 'opacity-100' : 'opacity-0'}`} />
-                    <span>{currentData.chiusura ? 'Chiuso (+100)' : 'No'}</span>
-                  </button>
-                </div>
+              {/* TOGGLES: Chiusura, Pozzetto e Burrachi */}
+              <BurracoToggles
+                currentData={currentData}
+                setCurrentData={setCurrentData}
+                onToggleChiusura={() => handleChiusura(activeTab)}
+                allowSemipulito={activeGame.allowSemipulito}
+                currentHonorsBurrachi={currentHonorsBurrachi}
+              />
 
-                {/* Segmento Stato Pozzetto */}
-                <div className="sm:col-span-8 p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40 flex flex-col justify-center">
-                  <div className="flex items-center justify-between text-[11px] text-emerald-300 font-semibold mb-1">
-                    <span>Stato Pozzetto:</span>
-                    <span className="text-[10px] text-emerald-400/80 font-normal">
-                      {currentData.pozzetto === 'preso_giocato' ? '0 pt' : '-100 pt'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1 bg-emerald-900/60 p-0.5 rounded-lg border border-emerald-800/60 text-center">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentData(p => ({ ...p, pozzetto: 'preso_giocato' }))}
-                      className={`py-1 px-1 rounded-md text-[11px] font-bold transition-all cursor-pointer truncate ${
-                        currentData.pozzetto === 'preso_giocato'
-                          ? 'bg-emerald-600 text-white shadow-xs font-extrabold'
-                          : 'text-emerald-300 hover:text-white'
-                      }`}
-                    >
-                      Preso & Giocato
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCurrentData(p => ({ ...p, pozzetto: 'non_preso' }))}
-                      className={`py-1 px-1 rounded-md text-[11px] font-bold transition-all cursor-pointer truncate ${
-                        currentData.pozzetto === 'non_preso'
-                          ? 'bg-rose-600 text-white shadow-xs font-extrabold'
-                          : 'text-rose-300/80 hover:text-rose-200'
-                      }`}
-                    >
-                      Non Preso (-100)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCurrentData(p => ({ ...p, pozzetto: 'preso_non_giocato' }))}
-                      className={`py-1 px-1 rounded-md text-[11px] font-bold transition-all cursor-pointer truncate ${
-                        currentData.pozzetto === 'preso_non_giocato'
-                          ? 'bg-rose-600 text-white shadow-xs font-extrabold'
-                          : 'text-rose-300/80 hover:text-rose-200'
-                      }`}
-                    >
-                      Non Giocato (-100)
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* RIGA 2: BURRACHI REALIZZATI (GRIGLIA ORIZZONTALE A 3 COLONNE) */}
-              <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40">
-                <div className="flex items-center justify-between text-xs text-amber-300 font-bold mb-2">
-                  <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Burrachi Realizzati</span>
-                  </span>
-                  <span className="text-[11px] text-emerald-400/90 font-mono font-normal">
-                    Totale Onori: +{currentHonorsBurrachi} pt
-                  </span>
-                </div>
-
-                <div className={`grid ${activeGame.allowSemipulito ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
-                  
-                  {/* Burraco Pulito */}
-                  <div className="p-2 rounded-lg bg-emerald-900/50 border border-emerald-700/40 flex flex-col items-center justify-between text-center">
-                    <div>
-                      <span className="text-xs font-bold text-amber-300 block">💎 Pulito</span>
-                      <span className="text-[10px] text-emerald-400/80 block">+200 pt cad.</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sound.playTap();
-                          setCurrentData(p => ({ ...p, burracoPulito: Math.max(0, p.burracoPulito - 1) }));
-                        }}
-                        className="w-6 h-6 rounded-md bg-emerald-800 text-white flex items-center justify-center hover:bg-emerald-700 active:scale-95 cursor-pointer font-bold"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="w-5 text-center font-black text-sm text-white">{currentData.burracoPulito}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sound.playBurracoChime();
-                          setCurrentData(p => ({ ...p, burracoPulito: p.burracoPulito + 1 }));
-                        }}
-                        className="w-6 h-6 rounded-md bg-amber-500 hover:bg-amber-400 text-emerald-950 flex items-center justify-center active:scale-95 cursor-pointer font-black"
-                      >
-                        <Plus className="w-3 h-3 text-emerald-950 stroke-[3]" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Burraco Semipulito (se attivo) */}
-                  {activeGame.allowSemipulito && (
-                    <div className="p-2 rounded-lg bg-emerald-900/50 border border-emerald-700/40 flex flex-col items-center justify-between text-center">
-                      <div>
-                        <span className="text-xs font-bold text-cyan-300 block">🃏 Semipulito</span>
-                        <span className="text-[10px] text-emerald-400/80 block">+150 pt cad.</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sound.playTap();
-                            setCurrentData(p => ({ ...p, burracoSemipulito: Math.max(0, p.burracoSemipulito - 1) }));
-                          }}
-                          className="w-6 h-6 rounded-md bg-emerald-800 text-white flex items-center justify-center hover:bg-emerald-700 active:scale-95 cursor-pointer font-bold"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="w-5 text-center font-black text-sm text-white">{currentData.burracoSemipulito}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sound.playBurracoChime();
-                            setCurrentData(p => ({ ...p, burracoSemipulito: p.burracoSemipulito + 1 }));
-                          }}
-                          className="w-6 h-6 rounded-md bg-cyan-500 hover:bg-cyan-400 text-emerald-950 flex items-center justify-center active:scale-95 cursor-pointer font-black"
-                        >
-                          <Plus className="w-3 h-3 text-emerald-950 stroke-[3]" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Burraco Sporco */}
-                  <div className="p-2 rounded-lg bg-emerald-900/50 border border-emerald-700/40 flex flex-col items-center justify-between text-center">
-                    <div>
-                      <span className="text-xs font-bold text-orange-300 block">♠ Sporco</span>
-                      <span className="text-[10px] text-emerald-400/80 block">+100 pt cad.</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sound.playTap();
-                          setCurrentData(p => ({ ...p, burracoSporco: Math.max(0, p.burracoSporco - 1) }));
-                        }}
-                        className="w-6 h-6 rounded-md bg-emerald-800 text-white flex items-center justify-center hover:bg-emerald-700 active:scale-95 cursor-pointer font-bold"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="w-5 text-center font-black text-sm text-white">{currentData.burracoSporco}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sound.playBurracoChime();
-                          setCurrentData(p => ({ ...p, burracoSporco: p.burracoSporco + 1 }));
-                        }}
-                        className="w-6 h-6 rounded-md bg-orange-400 hover:bg-orange-300 text-emerald-950 flex items-center justify-center active:scale-95 cursor-pointer font-black"
-                      >
-                        <Plus className="w-3 h-3 text-emerald-950 stroke-[3]" />
-                      </button>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* RIGA 3: CARTE A TERRA (+) E CARTE IN MANO (-) (AFFIANCATE) */}
+              {/* RIGA CARTE: A TERRA (+) E IN MANO (-) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 
-                {/* Colonna Sinistra: Carte a Terra (Punti Positivi) */}
-                <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-emerald-300 uppercase tracking-wider text-[11px]">
-                      Carte a Terra (+)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setCurrentData(p => ({ ...p, showTableCardPad: !p.showTableCardPad }))}
-                      className="text-[10px] text-emerald-400 hover:text-emerald-200 underline cursor-pointer"
-                    >
-                      {currentData.showTableCardPad ? 'Chiudi tastierino' : 'Usa tastierino'}
-                    </button>
-                  </div>
+                {/* Colonna Sinistra: Carte a Terra */}
+                <CardsPointsInput
+                  isHand={false}
+                  directValue={currentData.cardsOnTableDirect}
+                  onChangeDirect={(val) => setCurrentData(p => ({ ...p, cardsOnTableDirect: val }))}
+                  onAddAmount={(val) => setCurrentData(p => {
+                    const current = Number(p.cardsOnTableDirect) || 0;
+                    return { ...p, cardsOnTableDirect: String(current + val) };
+                  })}
+                  onClear={() => setCurrentData(p => ({ ...p, cardsOnTableDirect: '' }))}
+                  showPad={currentData.showTableCardPad}
+                  onTogglePad={() => setCurrentData(p => ({ ...p, showTableCardPad: !p.showTableCardPad }))}
+                  cardCounts={currentData.cardsOnTableCount}
+                  onChangeCount={handleTableCountChange}
+                  totalPoints={currentTablePoints}
+                />
 
-                  {!currentData.showTableCardPad ? (
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          placeholder="0"
-                          value={currentData.cardsOnTableDirect}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, '');
-                            setCurrentData(p => ({ ...p, cardsOnTableDirect: val }));
-                          }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                          className="w-full text-center text-lg sm:text-xl font-black py-1.5 rounded-xl bg-emerald-900/60 border border-emerald-500/50 text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                        />
-                        <span className="text-xs text-emerald-300 font-bold shrink-0">pt calati</span>
-                      </div>
-
-                      {/* Tasti Rapidi Somma Punti Carte a Terra */}
-                      <div className="flex flex-wrap items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-emerald-800/40">
-                        {[5, 10, 15, 20, 50, 100].map(val => (
-                          <button
-                            key={val}
-                            type="button"
-                            onClick={() => {
-                              sound.playTap();
-                              setCurrentData(p => {
-                                const current = Number(p.cardsOnTableDirect) || 0;
-                                return { ...p, cardsOnTableDirect: String(current + val) };
-                              });
-                            }}
-                            className="px-2 py-1 rounded-lg bg-emerald-900/90 hover:bg-emerald-800 active:scale-95 text-emerald-200 hover:text-white border border-emerald-600/50 text-[11px] font-bold transition-all shadow-xs cursor-pointer touch-manipulation"
-                          >
-                            +{val}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sound.playTap();
-                            setCurrentData(p => ({ ...p, cardsOnTableDirect: '' }));
-                          }}
-                          className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 active:scale-95 text-rose-300 border border-rose-800/50 text-[11px] font-bold transition-all cursor-pointer touch-manipulation"
-                          title="Azzera punti a terra"
-                        >
-                          C
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Tastierino espanso a scomparsa per calcolo carte a terra */
-                    <div className="space-y-1 mt-1 pt-1.5 border-t border-emerald-800/40">
-                      {Object.entries(CARD_VALUES).map(([key, val]) => (
-                        <div key={key} className="flex items-center justify-between text-xs py-0.5">
-                          <div>
-                            <span className={`font-semibold ${val.color} text-[11px]`}>{val.label}</span>
-                            <span className="text-[10px] text-emerald-400/70 ml-1">(+{val.points} pt)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setCurrentData(p => ({
-                                ...p,
-                                cardsOnTableDirect: '',
-                                cardsOnTableCount: {
-                                  ...p.cardsOnTableCount,
-                                  [key]: Math.max(0, (p.cardsOnTableCount[key] || 0) - 1)
-                                }
-                              }))}
-                              className="w-5 h-5 rounded bg-emerald-800 text-white flex items-center justify-center hover:bg-emerald-700 cursor-pointer font-bold text-xs"
-                            >
-                              -
-                            </button>
-                            <span className="w-5 text-center font-bold text-xs text-white">
-                              {currentData.cardsOnTableCount[key] || 0}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setCurrentData(p => ({
-                                ...p,
-                                cardsOnTableDirect: '',
-                                cardsOnTableCount: {
-                                  ...p.cardsOnTableCount,
-                                  [key]: (p.cardsOnTableCount[key] || 0) + 1
-                                }
-                              }))}
-                              className="w-5 h-5 rounded bg-emerald-800 text-white flex items-center justify-center hover:bg-emerald-700 cursor-pointer font-bold text-xs"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      <div className="text-right text-[11px] text-emerald-300 font-bold pt-1 border-t border-emerald-800/50">
-                        Totale carte: +{currentTablePoints} pt
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Colonna Destra: Carte in Mano (Punti da Sottrarre) */}
-                <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-700/40 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-rose-300 uppercase tracking-wider text-[11px]">
-                      Carte in Mano (-)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setCurrentData(p => ({ ...p, showHandCardPad: !p.showHandCardPad }))}
-                      className="text-[10px] text-rose-300/80 hover:text-rose-200 underline cursor-pointer"
-                    >
-                      {currentData.showHandCardPad ? 'Chiudi tastierino' : 'Usa tastierino'}
-                    </button>
-                  </div>
-
-                  {!currentData.showHandCardPad ? (
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          placeholder="0"
-                          value={currentData.cardsInHandDirect}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, '');
-                            setCurrentData(p => ({ ...p, cardsInHandDirect: val }));
-                          }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                          className="w-full text-center text-lg sm:text-xl font-black py-1.5 rounded-xl bg-emerald-900/60 border border-rose-500/50 text-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400"
-                        />
-                        <span className="text-xs text-rose-300 font-bold shrink-0">pt da togliere</span>
-                      </div>
-
-                      {/* Tasti Rapidi Somma Punti Carte in Mano */}
-                      <div className="flex flex-wrap items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-emerald-800/40">
-                        {[5, 10, 15, 20, 50, 100].map(val => (
-                          <button
-                            key={val}
-                            type="button"
-                            onClick={() => {
-                              sound.playTap();
-                              setCurrentData(p => {
-                                const current = Number(p.cardsInHandDirect) || 0;
-                                return { ...p, cardsInHandDirect: String(current + val) };
-                              });
-                            }}
-                            className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 active:scale-95 text-rose-200 hover:text-white border border-rose-700/50 text-[11px] font-bold transition-all shadow-xs cursor-pointer touch-manipulation"
-                          >
-                            +{val}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sound.playTap();
-                            setCurrentData(p => ({ ...p, cardsInHandDirect: '' }));
-                          }}
-                          className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 active:scale-95 text-rose-300 border border-rose-800/50 text-[11px] font-bold transition-all cursor-pointer touch-manipulation"
-                          title="Azzera carte in mano"
-                        >
-                          C
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Tastierino espanso a scomparsa per calcolo carte in mano */
-                    <div className="space-y-1 mt-1 pt-1.5 border-t border-emerald-800/40">
-                      {Object.entries(CARD_VALUES).map(([key, val]) => (
-                        <div key={key} className="flex items-center justify-between text-xs py-0.5">
-                          <div>
-                            <span className={`font-semibold ${val.color} text-[11px]`}>{val.label}</span>
-                            <span className="text-[10px] text-rose-400/80 ml-1">(-{val.points} pt)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setCurrentData(p => ({
-                                ...p,
-                                cardsInHandDirect: '',
-                                cardsInHandCount: {
-                                  ...p.cardsInHandCount,
-                                  [key]: Math.max(0, (p.cardsInHandCount[key] || 0) - 1)
-                                }
-                              }))}
-                              className="w-5 h-5 rounded bg-emerald-800 text-white flex items-center justify-center hover:bg-emerald-700 cursor-pointer font-bold text-xs"
-                            >
-                              -
-                            </button>
-                            <span className="w-5 text-center font-bold text-xs text-white">
-                              {currentData.cardsInHandCount[key] || 0}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setCurrentData(p => ({
-                                ...p,
-                                cardsInHandDirect: '',
-                                cardsInHandCount: {
-                                  ...p.cardsInHandCount,
-                                  [key]: (p.cardsInHandCount[key] || 0) + 1
-                                }
-                              }))}
-                              className="w-5 h-5 rounded bg-emerald-800 text-white flex items-center justify-center hover:bg-emerald-700 cursor-pointer font-bold text-xs"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      <div className="text-right text-[11px] text-rose-300 font-bold pt-1 border-t border-emerald-800/50">
-                        Totale carte in mano: -{currentHandPoints} pt
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Colonna Destra: Carte in Mano */}
+                <CardsPointsInput
+                  isHand={true}
+                  directValue={currentData.cardsInHandDirect}
+                  onChangeDirect={(val) => setCurrentData(p => ({ ...p, cardsInHandDirect: val }))}
+                  onAddAmount={(val) => setCurrentData(p => {
+                    const current = Number(p.cardsInHandDirect) || 0;
+                    return { ...p, cardsInHandDirect: String(current + val) };
+                  })}
+                  onClear={() => setCurrentData(p => ({ ...p, cardsInHandDirect: '' }))}
+                  showPad={currentData.showHandCardPad}
+                  onTogglePad={() => setCurrentData(p => ({ ...p, showHandCardPad: !p.showHandCardPad }))}
+                  cardCounts={currentData.cardsInHandCount}
+                  onChangeCount={handleHandCountChange}
+                  totalPoints={currentHandPoints}
+                />
 
               </div>
 
-              {/* RIGA 4: MINI-SCONTRINO DI RIEPILOGO TRASPARENTE IN TEMPO REALE */}
-              <div className="p-2 rounded-xl bg-emerald-950/90 border border-emerald-800/80 flex flex-wrap items-center justify-between gap-1 text-[11px]">
-                <div className="flex flex-wrap items-center gap-1.5 text-emerald-300/90">
-                  <span className="font-semibold text-white">{currentTeamName}:</span>
-                  {currentChiusuraPoints > 0 && <span>Chiusura (+{currentChiusuraPoints})</span>}
-                  {currentHonorsBurrachi > 0 && <span>• Burrachi (+{currentHonorsBurrachi})</span>}
-                  {currentPozzettoPoints !== 0 && <span className="text-rose-400">• Pozzetto ({currentPozzettoPoints})</span>}
-                  <span>• Carte ({currentTablePoints} - {currentHandPoints} = {currentTablePoints - currentHandPoints >= 0 ? `+${currentTablePoints - currentHandPoints}` : currentTablePoints - currentHandPoints})</span>
-                </div>
-                <div className="font-black text-amber-300 ml-auto">
-                  TOTALE: {currentTeamScore >= 0 ? `+${currentTeamScore}` : currentTeamScore} pt
-                </div>
-              </div>
+              {/* MINI-SCONTRINO DI RIEPILOGO TRASPARENTE IN TEMPO REALE */}
+              <RoundReceiptSummary
+                currentTeamName={currentTeamName}
+                currentChiusuraPoints={currentChiusuraPoints}
+                currentHonorsBurrachi={currentHonorsBurrachi}
+                currentPozzettoPoints={currentPozzettoPoints}
+                currentTablePoints={currentTablePoints}
+                currentHandPoints={currentHandPoints}
+                currentTeamScore={currentTeamScore}
+              />
 
             </div>
           </div>

@@ -7,13 +7,14 @@ export default function ConfirmModal({
   message = 'Sei sicuro di voler procedere?',
   confirmText = 'Conferma',
   cancelText = 'Annulla',
-  variant = 'warning', // 'warning' | 'danger' | 'info'
+  variant = 'warning', // 'warning' | 'danger' | 'info' | 'success'
   onConfirm,
   onCancel,
 }) {
   if (!isOpen) return null;
 
   const isDanger = variant === 'danger';
+  const isSuccess = variant === 'success';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
@@ -34,10 +35,14 @@ export default function ConfirmModal({
         <div className={`w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center shadow-lg ${
           isDanger 
             ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' 
+            : isSuccess
+            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
             : 'bg-amber-400/20 text-amber-300 border border-amber-400/40'
         }`}>
           {isDanger ? (
             <Trash2 className="w-7 h-7 text-rose-400" />
+          ) : isSuccess ? (
+            <CheckCircle2 className="w-7 h-7 text-emerald-400" />
           ) : (
             <AlertCircle className="w-7 h-7 text-amber-400" />
           )}
@@ -51,19 +56,23 @@ export default function ConfirmModal({
           {message}
         </p>
 
-        <div className="grid grid-cols-2 gap-2.5">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="py-2.5 px-3 rounded-xl bg-emerald-900/60 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/50 font-bold text-xs sm:text-sm cursor-pointer transition-all active:scale-95"
-          >
-            {cancelText}
-          </button>
+        <div className={cancelText ? "grid grid-cols-2 gap-2.5" : "flex justify-center"}>
+          {cancelText && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="py-2.5 px-3 rounded-xl bg-emerald-900/60 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/50 font-bold text-xs sm:text-sm cursor-pointer transition-all active:scale-95"
+            >
+              {cancelText}
+            </button>
+          )}
 
           <button
             type="button"
             onClick={onConfirm}
-            className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm shadow-md cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+            className={`py-2.5 px-4 rounded-xl font-black text-xs sm:text-sm shadow-md cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+              !cancelText ? 'w-full' : ''
+            } ${
               isDanger
                 ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-950/50'
                 : 'gold-gradient text-emerald-950 hover:brightness-110 shadow-amber-950/40'

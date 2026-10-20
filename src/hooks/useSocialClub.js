@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAlert } from '../context/ConfirmContext';
 import { 
   loginWithGoogle, 
   logoutUser, 
@@ -17,6 +18,7 @@ import {
 import { sound } from '../utils/soundEffects';
 
 export function useSocialClub() {
+  const customAlert = useAlert();
   const [currentUser, setCurrentUser] = useState(null);
   const [friendsList, setFriendsList] = useState([]);
   const [clubUsers, setClubUsers] = useState([]);
@@ -98,7 +100,11 @@ export function useSocialClub() {
     } catch (err) {
       console.error("Login fallito:", err);
       if (err.code !== 'auth/popup-closed-by-user') {
-        alert("Accesso con Google non completato: " + (err.message || err));
+        customAlert({
+          title: 'Accesso Google',
+          message: 'Accesso con Google non completato: ' + (err.message || err),
+          variant: 'warning'
+        });
       }
     }
   };
@@ -125,7 +131,11 @@ export function useSocialClub() {
       await removeFriend(friendshipId);
     } catch (err) {
       console.error('Errore rimozione amicizia:', err);
-      alert('Impossibile rimuovere l\'amico: ' + (err.message || err));
+      customAlert({
+        title: 'Errore Rimozione',
+        message: 'Impossibile rimuovere l\'amico: ' + (err.message || err),
+        variant: 'danger'
+      });
     }
   };
 
@@ -140,7 +150,11 @@ export function useSocialClub() {
       await respondToFriendRequest(notification, true, currentUser);
     } catch (err) {
       console.error('Errore accettazione amicizia:', err);
-      alert('Impossibile accettare la richiesta: ' + (err.message || err));
+      customAlert({
+        title: 'Richiesta Amicizia',
+        message: 'Impossibile accettare la richiesta: ' + (err.message || err),
+        variant: 'danger'
+      });
     }
   };
 
@@ -172,7 +186,11 @@ export function useSocialClub() {
       }
     } catch (err) {
       console.error('Errore accettazione partita:', err);
-      alert('Impossibile entrare al tavolo: ' + (err.message || err));
+      customAlert({
+        title: 'Tavolo di Gioco',
+        message: 'Impossibile entrare al tavolo: ' + (err.message || err),
+        variant: 'warning'
+      });
     }
   };
 

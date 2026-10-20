@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useAlert } from '../context/ConfirmContext';
 import {
   getActiveGame,
   saveActiveGame,
@@ -26,6 +27,7 @@ export function useBurracoGame({
   handleUpdateTournament = () => {},
   onCelebrate = () => {},
 }) {
+  const customAlert = useAlert();
   const [activeGame, setActiveGame] = useState(null);
   const [gamesHistory, setGamesHistory] = useState([]);
   const [isCloudJoined, setIsCloudJoined] = useState(false);
@@ -175,7 +177,11 @@ export function useBurracoGame({
       },
       () => {
         if (urlGameId) {
-          alert(`Il tavolo "${urlGameId}" non è stato trovato o è stato eliminato.`);
+          customAlert({
+            title: 'Tavolo non trovato',
+            message: `Il tavolo "${urlGameId}" non è stato trovato o è stato eliminato.`,
+            variant: 'warning'
+          });
           const url = new URL(window.location.href);
           url.searchParams.delete('game');
           window.history.replaceState({}, '', url.pathname);
@@ -657,7 +663,11 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       navigator.share({ title: 'Punteggio Burraco', text });
     } else {
       navigator.clipboard.writeText(text);
-      alert('Punteggio copiato negli appunti! Puoi incollarlo su WhatsApp o inviarlo agli amici.');
+      customAlert({
+        title: 'Punteggio Copiato',
+        message: 'Punteggio copiato negli appunti! Puoi incollarlo su WhatsApp o inviarlo agli amici.',
+        variant: 'success'
+      });
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Trophy, Sparkles, RotateCcw, Home, Share2, X } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
@@ -10,6 +10,7 @@ export default function VictoryModal({
   onRematch,
   onArchiveAndNew
 }) {
+  const [copiedToast, setCopiedToast] = useState(false);
   useEffect(() => {
     if (isOpen) {
       sound.playVictoryFanfare();
@@ -100,7 +101,8 @@ export default function VictoryModal({
       navigator.share({ title: 'Vittoria a Burraco!', text });
     } else {
       navigator.clipboard.writeText(text);
-      alert('Resoconto vittoria copiato negli appunti!');
+      setCopiedToast(true);
+      setTimeout(() => setCopiedToast(false), 3000);
     }
   };
 
@@ -191,7 +193,7 @@ export default function VictoryModal({
             className="w-full py-2.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700/80 text-emerald-100 font-bold text-xs sm:text-sm border border-emerald-600/40 flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
             <Share2 className="w-4 h-4 text-emerald-300" />
-            <span>Condividi Vittoria</span>
+            <span>{copiedToast ? 'Resoconto Copiato!' : 'Condividi Vittoria'}</span>
           </button>
 
           <button

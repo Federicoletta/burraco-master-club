@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Users, ArrowLeftRight, Check, AlertCircle, Sparkles, User, Wand2, Plus } from 'lucide-react';
 import PlayerAutocompleteInput from './PlayerAutocompleteInput';
+import { useAlert } from '../context/ConfirmContext';
 
 export default function EditTeamsModal({
   isOpen,
@@ -28,6 +29,7 @@ export default function EditTeamsModal({
 
   // Campo attualmente selezionato per l'inserimento rapido con un tocco
   const [activeTargetField, setActiveTargetField] = useState('t1P1');
+  const customAlert = useAlert();
 
   // Sincronizza lo stato ogni volta che il modale si apre o activeGame cambia
   useEffect(() => {
@@ -239,7 +241,11 @@ export default function EditTeamsModal({
     const p3 = isTrio ? [t3P1.trim()].filter(Boolean) : [];
 
     if (p1.length === 0 || p2.length === 0 || (isTrio && p3.length === 0)) {
-      alert('Inserisci almeno un giocatore per ciascuna postazione.');
+      customAlert({
+        title: 'Postazione Incompleta',
+        message: 'Inserisci almeno un giocatore per ciascuna postazione.',
+        variant: 'warning'
+      });
       return;
     }
 

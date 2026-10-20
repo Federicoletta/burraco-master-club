@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo, lazy, Suspense } from 'react';
 import { 
   PlusCircle, 
   Users, 
@@ -24,7 +24,7 @@ import { bgMusic } from '../utils/backgroundMusic';
 import { wakeLock } from '../utils/wakeLock';
 import { checkForUpdates, forceAppUpdate, getFormattedBuildDate } from '../utils/versionCheck';
 import { getFriendOnlineStatus } from '../services/social';
-import AudioSettingsModal from './AudioSettingsModal';
+const AudioSettingsModal = lazy(() => import('./AudioSettingsModal'));
 
 function Header({ 
   onNewGame, 
@@ -561,14 +561,18 @@ function Header({
       )}
 
       {/* Modale Regolazione Volume & Effetti Sonori */}
-      <AudioSettingsModal
-        isOpen={isAudioModalOpen}
-        onClose={() => setIsAudioModalOpen(false)}
-        soundOn={soundOn}
-        onToggleSound={handleToggleSound}
-        volume={volume}
-        onChangeVolume={handleVolumeChange}
-      />
+      {isAudioModalOpen && (
+        <Suspense fallback={null}>
+          <AudioSettingsModal
+            isOpen={isAudioModalOpen}
+            onClose={() => setIsAudioModalOpen(false)}
+            soundOn={soundOn}
+            onToggleSound={handleToggleSound}
+            volume={volume}
+            onChangeVolume={handleVolumeChange}
+          />
+        </Suspense>
+      )}
     </header>
   );
 }
