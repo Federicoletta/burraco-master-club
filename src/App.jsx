@@ -81,6 +81,10 @@ function BurracoAppContent() {
     game.handleLeaveCloudTable(confirm);
   }, [game, confirm]);
 
+  const handleCloseTable = useCallback(() => {
+    game.handleCloseTable(confirm);
+  }, [game, confirm]);
+
   return (
     <div className="min-h-screen felt-bg flex flex-col selection:bg-amber-400 selection:text-emerald-950">
       
@@ -180,6 +184,7 @@ function BurracoAppContent() {
             onEditRound={handleEditRound}
             onDeleteRound={handleDeleteRound}
             onDeleteLastRound={handleDeleteLastRound}
+            onCloseTable={handleCloseTable}
             onEndGame={game.handleEndGame}
             onShareGame={handleOpenCloud}
             onOpenRules={handleOpenRules}
@@ -196,12 +201,22 @@ function BurracoAppContent() {
             <p className="text-sm text-emerald-300/80 my-3">
               Tieni traccia dei punteggi per coppia o singolo, calcola automaticamente carte, burrachi e pozzetti, e consulta le statistiche di ogni partecipante.
             </p>
-            <button
-              onClick={handleOpenNewGame}
-              className="mt-2 w-full py-3.5 rounded-2xl gold-gradient text-emerald-950 font-black text-sm shadow-xl hover:brightness-110 active:scale-95 cursor-pointer"
-            >
-              Inizia la Prima Partita
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2.5 mt-4">
+              <button
+                onClick={handleOpenNewGame}
+                className="flex-1 py-3.5 px-4 rounded-2xl gold-gradient text-emerald-950 font-black text-sm shadow-xl hover:brightness-110 active:scale-95 cursor-pointer transition-all"
+              >
+                {game.gamesHistory?.length > 0 ? 'Nuova Partita' : 'Inizia la Prima Partita'}
+              </button>
+              {game.gamesHistory?.length > 0 && (
+                <button
+                  onClick={handleOpenHistory}
+                  className="flex-1 py-3.5 px-4 rounded-2xl bg-emerald-900/80 hover:bg-emerald-800 text-amber-300 font-bold text-sm border border-amber-400/40 shadow-xl active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                >
+                  <span>📁 Riprendi dall'Archivio</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
       </main>

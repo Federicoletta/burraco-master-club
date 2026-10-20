@@ -164,7 +164,10 @@ export function useBurracoGame({
         // ma nel cloud esiste una partita in sospeso recente dell'utente, ripristinala sul tavolo!
         setActiveGame(current => {
           if (!current || !current.rounds || current.rounds.length === 0) {
-            const pendingCloudGame = merged.find(g => g && !g.isFinished && ((Array.isArray(g.rounds) && g.rounds.length > 0) || (g.createdAt && (Date.now() - new Date(g.createdAt).getTime() < 4 * 60 * 60 * 1000))));
+            if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('burraco_table_closed_explicitly') === 'true') {
+              return current;
+            }
+            const pendingCloudGame = merged.find(g => g && !g.isFinished && !g.tableClosed && ((Array.isArray(g.rounds) && g.rounds.length > 0) || (g.createdAt && (Date.now() - new Date(g.createdAt).getTime() < 4 * 60 * 60 * 1000))));
             if (pendingCloudGame) {
               saveActiveGame(pendingCloudGame);
               return pendingCloudGame;
@@ -198,6 +201,31 @@ export function useBurracoGame({
       targetId, 
       (cloudGame) => {
         if (cloudGame && cloudGame.id === targetId) {
+          // Se l'host ha chiuso il tavolo, avvisa i partecipanti e svuota il tavolo
+          if (cloudGame.tableClosed) {
+            setActiveGame(null);
+            saveActiveGame(null);
+            setIsCloudJoined(false);
+            if (typeof sessionStorage !== 'undefined') {
+              sessionStorage.setItem('burraco_table_closed_explicitly', 'true');
+            }
+            try {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('game');
+              window.history.replaceState({}, '', url.pathname);
+            } catch {
+              // ignore
+            }
+            if (typeof customAlert === 'function') {
+              customAlert({
+                title: 'Tavolo Chiuso',
+                message: "L'organizzatore ha chiuso questo tavolo di gioco. La partita rimane salvata nell'archivio.",
+                variant: 'info'
+              });
+            }
+            return;
+          }
+
           setActiveGame(prev => {
             const prevRounds = Array.isArray(prev?.rounds) ? prev.rounds : [];
             const cloudRounds = Array.isArray(cloudGame.rounds) ? cloudGame.rounds : [];
@@ -249,6 +277,9 @@ export function useBurracoGame({
 
   // Avvio nuova partita
   const handleStartGame = (newGame) => {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('burraco_table_closed_explicitly');
+    }
     const userKey = currentUser ? currentUser.uid : 'guest';
     if (activeGame && activeGame.rounds && activeGame.rounds.length > 0) {
       const updatedHistory = archiveCurrentGame(activeGame, userKey);
@@ -751,43 +782,81 @@ export function useBurracoGame({
     }
   };
 
+  // Chiudi tavolo di gioco (sospendi e torna alla schermata principale)
+  const handleCloseTable = async (customConfirm) => {
+    if (!activeGame) return;
+
+    const hasRounds = activeGame.rounds && activeGame.rounds.length > 0;
+    const ok = typeof customConfirm === 'function'
+      ? await customConfirm({
+          title: 'Chiudi Tavolo',
+          message: hasRounds
+            ? `Vuoi chiudere questo tavolo? La partita corrente (${activeGame.rounds.length} mani) rimarrà salvata al sicuro nell'archivio cloud e potrai riprenderla quando vuoi.`
+            : 'Vuoi chiudere questo tavolo e tornare alla schermata iniziale?',
+          confirmText: 'Chiudi Tavolo',
+          cancelText: 'Continua a giocare',
+          variant: 'warning'
+        })
+      : window.confirm('Vuoi chiudere questo tavolo?');
+
+    if (!ok) return;
+
+    // 1. Marca il tavolo come chiuso nel cloud per avvisare gli altri dispositivi collegati
+    const closedGame = {
+      ...activeGame,
+      tableClosed: true,
+    };
+    await syncWithStatus(closedGame, true);
+
+    // 2. Salva la partita nello storico locale
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const currentHistory = getGamesHistory(userKey);
+    const updatedHistory = [closedGame, ...currentHistory.filter(g => g.id !== closedGame.id)];
+    setGamesHistory(updatedHistory);
+    safeSetItem(getHistoryKey(userKey), JSON.stringify(updatedHistory));
+
+    // 3. Rimuovi la partita attiva locale e memorizza che il tavolo è stato chiuso intenzionalmente
+    saveActiveGame(null);
+    setActiveGame(null);
+    setIsCloudJoined(false);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('burraco_table_closed_explicitly', 'true');
+    }
+
+    // 4. Rimuovi eventuale parametro ?game= dall'URL
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('game');
+      window.history.replaceState({}, '', url.pathname);
+    } catch {
+      // ignore
+    }
+  };
+
   // Scollegati dal tavolo condiviso
   const handleLeaveCloudTable = async (customConfirm) => {
     const ok = typeof customConfirm === 'function'
       ? await customConfirm({
           title: 'Scollegati dal Tavolo',
-          message: 'Vuoi scollegarti da questo tavolo condiviso online e tornare alla tua partita locale?',
+          message: 'Vuoi scollegarti da questo tavolo condiviso online e tornare alla schermata iniziale?',
           confirmText: 'Sì, scollegati',
           variant: 'warning'
         })
-      : window.confirm("Vuoi scollegarti da questo tavolo condiviso e tornare a una tua partita locale?");
+      : window.confirm("Vuoi scollegarti da questo tavolo condiviso?");
     if (ok) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('game');
-      window.history.replaceState({}, '', url.pathname);
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('game');
+        window.history.replaceState({}, '', url.pathname);
+      } catch {
+        // ignore
+      }
       setIsCloudJoined(false);
-
-      const newLocalGame = {
-        id: 'game_' + Date.now(),
-        createdAt: new Date().toISOString(),
-        mode: 'pairs',
-        allowSemipulito: true,
-        targetScore: 2505,
-        team1: {
-          name: 'Coppia 1',
-          players: [],
-        },
-        team2: {
-          name: 'Coppia 2',
-          players: [],
-        },
-        rounds: [],
-        winner: null,
-        isFinished: false,
-      };
-      setActiveGame(newLocalGame);
-      saveActiveGame(newLocalGame);
-      syncWithStatus(newLocalGame, false);
+      setActiveGame(null);
+      saveActiveGame(null);
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('burraco_table_closed_explicitly', 'true');
+      }
     }
   };
 
@@ -835,9 +904,16 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
 
   // Riprendi partita passata
   const handleResumeGame = (game) => {
-    setActiveGame(game);
-    saveActiveGame(game);
-    syncWithStatus(game, true);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('burraco_table_closed_explicitly');
+    }
+    const resumedGame = {
+      ...game,
+      tableClosed: false,
+    };
+    setActiveGame(resumedGame);
+    saveActiveGame(resumedGame);
+    syncWithStatus(resumedGame, true);
   };
 
   // Importazione dati
@@ -958,6 +1034,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     handleDeleteLastRound,
     handleUpdateTeams,
     handleEndGame,
+    handleCloseTable,
     handleRematch,
     handleArchiveAndNew,
     handleLeaveCloudTable,

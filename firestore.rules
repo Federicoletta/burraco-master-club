@@ -34,6 +34,7 @@ service cloud.firestore {
     //   - ownerName: string | null (optional, max 100 chars)
     //   - playerUids: list of strings (optional, max 10 items)
     //   - playerEmails: list of strings (optional, max 10 items)
+    //   - tableClosed: bool (optional)
     //
     // Collection: burraco_meta
     // Document ID: {docId} (e.g., 'players')
@@ -133,7 +134,7 @@ service cloud.firestore {
       let allowedFields = [
         'id', 'createdAt', 'mode', 'allowSemipulito', 'targetScore',
         'team1', 'team2', 'team3', 'rounds', 'winner', 'isFinished', 'completedAt', 'updatedAt',
-        'ownerUid', 'ownerEmail', 'ownerName', 'playerUids', 'playerEmails'
+        'ownerUid', 'ownerEmail', 'ownerName', 'playerUids', 'playerEmails', 'tableClosed'
       ];
       let requiredFields = [
         'id', 'mode', 'allowSemipulito', 'targetScore', 'team1', 'team2', 'rounds', 'isFinished'
@@ -165,7 +166,8 @@ service cloud.firestore {
              (!('ownerEmail' in data) || data.ownerEmail == null || (data.ownerEmail is string && data.ownerEmail.size() <= 150)) &&
              (!('ownerName' in data) || data.ownerName == null || (data.ownerName is string && data.ownerName.size() <= 100)) &&
              (!('playerUids' in data) || (data.playerUids is list && data.playerUids.size() <= 10)) &&
-             (!('playerEmails' in data) || (data.playerEmails is list && data.playerEmails.size() <= 10));
+             (!('playerEmails' in data) || (data.playerEmails is list && data.playerEmails.size() <= 10)) &&
+             (!('tableClosed' in data) || data.tableClosed is bool);
     }
 
     function isValidTournament(data, tournamentId) {

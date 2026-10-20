@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trophy, Trash2, Sun } from 'lucide-react';
+import { PlusCircle, Trophy, Trash2, Sun, LogOut } from 'lucide-react';
 import { wakeLock } from '../../utils/wakeLock';
 
 export default function ScoreBoardToolbar({
@@ -8,6 +8,7 @@ export default function ScoreBoardToolbar({
   onEndGame,
   onDeleteLastRound,
   onAddRound,
+  onCloseTable,
 }) {
   const [wakeLockState, setWakeLockState] = useState({
     enabled: wakeLock.enabled,
@@ -77,33 +78,43 @@ export default function ScoreBoardToolbar({
         </div>
       </div>
 
-      {/* Pulsanti Azione (Termina, Annulla, + Aggiungi Mano) */}
+      {/* Pulsanti Azione (Chiudi Tavolo, Termina, Annulla, + Aggiungi Mano) */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        {roundsCount > 0 && (
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-            {onEndGame && (
-              <button
-                onClick={onEndGame}
-                className="px-2.5 py-2 sm:py-1.5 rounded-lg bg-emerald-900/70 hover:bg-emerald-800 text-amber-300 border border-emerald-600/40 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-all shadow-sm hover:brightness-110 active:scale-95"
-                title="Concludi ora la partita e salvala nello storico"
-              >
-                <Trophy className="w-3.5 h-3.5" />
-                <span>Termina</span>
-              </button>
-            )}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {onCloseTable && (
+            <button
+              type="button"
+              onClick={onCloseTable}
+              className="px-2.5 py-2 sm:py-1.5 rounded-lg bg-emerald-950/80 hover:bg-rose-950/70 text-emerald-300 hover:text-rose-200 border border-emerald-700/50 hover:border-rose-600/50 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
+              title="Chiudi questo tavolo di gioco (la partita rimane salvata nell'archivio)"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-400" />
+              <span>Chiudi Tavolo</span>
+            </button>
+          )}
 
-            {onDeleteLastRound && (
-              <button
-                onClick={onDeleteLastRound}
-                className="px-2.5 py-2 sm:py-1.5 rounded-lg bg-emerald-900/70 hover:bg-rose-950/70 text-rose-300 border border-rose-800/40 hover:border-rose-600/50 text-xs font-medium flex items-center justify-center gap-1 cursor-pointer transition-all shadow-sm active:scale-95"
-                title="Annulla ed elimina l'ultima mano registrata"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Annulla</span>
-              </button>
-            )}
-          </div>
-        )}
+          {roundsCount > 0 && onEndGame && (
+            <button
+              onClick={onEndGame}
+              className="px-2.5 py-2 sm:py-1.5 rounded-lg bg-emerald-900/70 hover:bg-emerald-800 text-amber-300 border border-emerald-600/40 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-all shadow-sm hover:brightness-110 active:scale-95"
+              title="Concludi ora la partita e salvala nello storico"
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              <span>Termina</span>
+            </button>
+          )}
+
+          {roundsCount > 0 && onDeleteLastRound && (
+            <button
+              onClick={onDeleteLastRound}
+              className="px-2.5 py-2 sm:py-1.5 rounded-lg bg-emerald-900/70 hover:bg-rose-950/70 text-rose-300 border border-rose-800/40 hover:border-rose-600/50 text-xs font-medium flex items-center justify-center gap-1 cursor-pointer transition-all shadow-sm active:scale-95"
+              title="Annulla ed elimina l'ultima mano registrata"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Annulla</span>
+            </button>
+          )}
+        </div>
 
         {onAddRound && (
           <button
