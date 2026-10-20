@@ -151,6 +151,7 @@ function BurracoAppContent() {
         {game.activeGame ? (
           <ScoreBoard
             activeGame={game.activeGame}
+            syncStatus={game.syncStatus}
             gamesHistory={game.gamesHistory}
             currentUser={social.currentUser}
             tablePlayers={game.tablePlayers}

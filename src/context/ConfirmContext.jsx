@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, useMemo } from 'react';
 import ConfirmModal from '../components/ConfirmModal';
 
 const ConfirmContext = createContext(null);
@@ -7,9 +7,13 @@ export function ConfirmProvider({ children }) {
   const [config, setConfig] = useState(null);
   const resolveRef = useRef(null);
 
+  /**
+   * Richiede una conferma modale personalizzata all'utente.
+   * Ritorna una Promise che si risolve in true (confermato) o false (annullato).
+   */
   const confirm = useCallback(({
-    title = 'Conferma operazione',
-    message = 'Sei sicuro di voler procedere?',
+    title = 'Conferma Operazione',
+    message,
     confirmText = 'Conferma',
     cancelText = 'Annulla',
     variant = 'warning',
@@ -26,6 +30,9 @@ export function ConfirmProvider({ children }) {
     });
   }, []);
 
+  /**
+   * Mostra un messaggio di avviso o notifica a singolo pulsante ("OK").
+   */
   const alert = useCallback(({
     title = 'Avviso',
     message,
@@ -33,12 +40,12 @@ export function ConfirmProvider({ children }) {
     variant = 'info',
   }) => {
     return new Promise((resolve) => {
-      resolveRef.current = resolve;
+      resolveRef.current = () => resolve(true);
       setConfig({
         title,
         message,
         confirmText,
-        cancelText: null,
+        cancelText: null, // nasconde il tasto annulla
         variant,
       });
     });
@@ -60,12 +67,10 @@ export function ConfirmProvider({ children }) {
     setConfig(null);
   }, []);
 
-  const value = useMemo(() => {
-    const fn = (opts) => confirm(opts);
-    fn.confirm = confirm;
-    fn.alert = alert;
-    return fn;
-  }, [confirm, alert]);
+  const value = useMemo(() => ({
+    confirm,
+    alert,
+  }), [confirm, alert]);
 
   return (
     <ConfirmContext.Provider value={value}>
@@ -87,15 +92,15 @@ export function ConfirmProvider({ children }) {
 export function useConfirm() {
   const context = useContext(ConfirmContext);
   if (!context) {
-    const fallback = async ({ message }) => window.confirm(message);
-    fallback.confirm = async ({ message }) => window.confirm(message);
-    fallback.alert = async ({ message }) => window.alert(message);
-    return fallback;
+    return async ({ message }) => window.confirm(message);
   }
-  return context;
+  return context.confirm;
 }
 
 export function useAlert() {
-  const api = useConfirm();
-  return api?.alert || (async ({ message }) => window.alert(message));
+  const context = useContext(ConfirmContext);
+  if (!context) {
+    return async ({ message }) => window.alert(message);
+  }
+  return context.alert;
 }

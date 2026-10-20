@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, Trophy, UserCheck, X, Check, Users, Sparkles } from 'lucide-react';
+import { Trophy, UserCheck, X, Check, Users, Sparkles } from 'lucide-react';
 
 export default function NotificationToast({
   notification,
@@ -29,7 +29,7 @@ export default function NotificationToast({
     }, intervalTime);
 
     return () => clearInterval(interval);
-  }, [notification]);
+  }, [notification, onClose]);
 
   if (!notification) return null;
 

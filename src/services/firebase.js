@@ -11,7 +11,10 @@ import {
   collection, 
   getDocs, 
   deleteDoc,
-  serverTimestamp 
+  serverTimestamp,
+  query,
+  where,
+  limit
 } from 'firebase/firestore';
 import {
   getAuth,
@@ -46,7 +49,7 @@ try {
         tabManager: persistentMultipleTabManager()
       })
     });
-  } catch (_cacheErr) {
+  } catch {
     db = getFirestore(app);
   }
   auth = getAuth(app);
@@ -265,20 +268,31 @@ export function isGameAssociatedWithUser(data, currentUser) {
  * Carica le partite archiviate dal cloud per l'utente specificato
  */
 export async function loadCloudGamesHistory(currentUser = null) {
-  if (!db) return [];
+  if (!db || !currentUser?.uid) return [];
   try {
-    const snapshot = await getDocs(collection(db, 'burraco_games'));
-    const games = [];
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      if (data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0))) {
-        if (isGameAssociatedWithUser(data, currentUser)) {
-          games.push(data);
-        }
-      }
-    });
-    games.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    return games;
+    const colRef = collection(db, 'burraco_games');
+    const gamesMap = new Map();
+
+    try {
+      const qOwner = query(colRef, where('ownerUid', '==', currentUser.uid), limit(60));
+      const snapOwner = await getDocs(qOwner);
+      snapOwner.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
+    } catch (e1) {
+      console.warn('Errore query ownerUid:', e1.message);
+    }
+
+    try {
+      const qPart = query(colRef, where('playerUids', 'array-contains', currentUser.uid), limit(40));
+      const snapPart = await getDocs(qPart);
+      snapPart.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
+    } catch (e2) {
+      console.warn('Errore query playerUids:', e2.message);
+    }
+
+    const list = Array.from(gamesMap.values())
+      .filter(data => data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0)))
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    return list;
   } catch (err) {
     console.warn('Errore caricamento partite da Firestore:', err.message);
     return [];
@@ -378,22 +392,43 @@ export function subscribeToCloudPlayers(onUpdate) {
 export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
   if (!db) return () => {};
   try {
+    if (!currentUser?.uid) {
+      if (onUpdate) onUpdate([]);
+      return () => {};
+    }
+
     const colRef = collection(db, 'burraco_games');
-    return onSnapshot(colRef, (snapshot) => {
-      const games = [];
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0))) {
-          if (isGameAssociatedWithUser(data, currentUser)) {
-            games.push(data);
-          }
-        }
-      });
-      games.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      onUpdate(games);
+    const gamesMap = new Map();
+
+    const emitMerged = () => {
+      const list = Array.from(gamesMap.values())
+        .filter(data => data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0)))
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      if (onUpdate) onUpdate(list);
+    };
+
+    // 1. Partite in cui l'utente è proprietario
+    const qOwner = query(colRef, where('ownerUid', '==', currentUser.uid), limit(60));
+    const unsubOwner = onSnapshot(qOwner, (snapshot) => {
+      snapshot.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
+      emitMerged();
     }, (err) => {
-      console.warn('Errore listener Firestore history:', err.message);
+      console.warn('Errore listener owner history:', err.message);
     });
+
+    // 2. Partite in cui l'utente è registrato come partecipante
+    const qPart = query(colRef, where('playerUids', 'array-contains', currentUser.uid), limit(40));
+    const unsubPart = onSnapshot(qPart, (snapshot) => {
+      snapshot.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
+      emitMerged();
+    }, (err) => {
+      console.warn('Errore listener participant history:', err.message);
+    });
+
+    return () => {
+      unsubOwner();
+      unsubPart();
+    };
   } catch (err) {
     console.warn('subscribeToCloudGamesHistory error:', err);
     return () => {};
@@ -557,7 +592,7 @@ export async function fetchTablePlayers(uids = [], emails = []) {
               seenEmails.add(clean);
             }
           }
-        } catch (_e) {
+        } catch {
           // ignore lookup error
         }
       }

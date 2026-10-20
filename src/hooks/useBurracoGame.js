@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAlert } from '../context/ConfirmContext';
 import {
   getActiveGame,
@@ -33,6 +33,30 @@ export function useBurracoGame({
   const [isCloudJoined, setIsCloudJoined] = useState(false);
   const [tablePlayers, setTablePlayers] = useState([]);
   const [newGameInitialSetup, setNewGameInitialSetup] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(() => (typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced'));
+
+  useEffect(() => {
+    const handleOnline = () => setSyncStatus('synced');
+    const handleOffline = () => setSyncStatus('offline');
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const syncWithStatus = useCallback(async (gameToSync, force = false) => {
+    if (!gameToSync) return false;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setSyncStatus('offline');
+      return false;
+    }
+    setSyncStatus('syncing');
+    const ok = await syncGameToCloud(gameToSync, currentUser, force);
+    setSyncStatus(ok ? 'synced' : (typeof navigator !== 'undefined' && navigator.onLine ? 'synced' : 'offline'));
+    return ok;
+  }, [currentUser]);
 
   // Giocatori ricavati dinamicamente dallo storico partite e dalla partita in corso
   const recentPlayers = useMemo(() => {
@@ -158,7 +182,7 @@ export function useBurracoGame({
 
             if (prev?.id === targetId && prevRounds.length > cloudRounds.length) {
               console.warn(`[Multiplayer Sync] Stato locale ha ${prevRounds.length} mani, cloud ne ha ${cloudRounds.length}. Mantengo lo stato locale.`);
-              syncGameToCloud(prev, currentUser, true);
+              syncWithStatus(prev, true);
               return prev;
             }
 
@@ -195,7 +219,7 @@ export function useBurracoGame({
     );
 
     return () => unsubscribe();
-  }, [activeGame?.id, currentUser]);
+  }, [activeGame?.id, currentUser, customAlert, syncWithStatus]);
 
   // Avvio nuova partita
   const handleStartGame = (newGame) => {
@@ -204,7 +228,7 @@ export function useBurracoGame({
       const updatedHistory = archiveCurrentGame(activeGame, userKey);
       setGamesHistory(updatedHistory);
       if (updatedHistory && updatedHistory[0]) {
-        syncGameToCloud(updatedHistory[0], currentUser);
+        syncWithStatus(updatedHistory[0], false);
       }
     }
 
@@ -241,7 +265,7 @@ export function useBurracoGame({
 
     setActiveGame(gameWithOwnership);
     saveActiveGame(gameWithOwnership);
-    syncGameToCloud(gameWithOwnership, currentUser);
+    syncWithStatus(gameWithOwnership, false);
 
     // Invita amici registrati se presenti
     if (currentUser && friendsList.length > 0) {
@@ -319,7 +343,7 @@ export function useBurracoGame({
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
-    syncGameToCloud(updatedGame, currentUser, true);
+    syncWithStatus(updatedGame, true);
 
     const userKey = currentUser ? currentUser.uid : 'guest';
     const history = getGamesHistory(userKey);
@@ -337,6 +361,7 @@ export function useBurracoGame({
         matches: r.matches.map(m => {
           if (m.id === activeGame.tournamentMatchId) {
             return {
+    syncStatus,
               ...m,
               team1Score: t1Total,
               team2Score: t2Total,
@@ -379,7 +404,7 @@ export function useBurracoGame({
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
-    syncGameToCloud(updatedGame, currentUser, true);
+    syncWithStatus(updatedGame, true);
 
     const userKey = currentUser ? currentUser.uid : 'guest';
     const history = getGamesHistory(userKey);
@@ -405,7 +430,7 @@ export function useBurracoGame({
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
-    syncGameToCloud(updatedGame, currentUser);
+    syncWithStatus(updatedGame, false);
   };
 
   // Conclude la partita
@@ -434,7 +459,7 @@ export function useBurracoGame({
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
-    syncGameToCloud(updatedGame, currentUser, true);
+    syncWithStatus(updatedGame, true);
 
     if (activeGame.tournamentMatchId && activeTournament?.rounds) {
       const winnerTeamId = winner === 'team1' ? activeGame.team1?.id : activeGame.team2?.id;
@@ -480,7 +505,7 @@ export function useBurracoGame({
     const updatedHistory = archiveCurrentGame(activeGame, userKey);
     setGamesHistory(updatedHistory);
     if (updatedHistory && updatedHistory[0]) {
-      syncGameToCloud(updatedHistory[0], currentUser, true);
+      syncWithStatus(updatedHistory[0], true);
     }
     if (currentUser) {
       const stats = computeUserCareerStats(currentUser, updatedHistory, activeGame);
@@ -512,7 +537,7 @@ export function useBurracoGame({
 
     setActiveGame(rematchGame);
     saveActiveGame(rematchGame);
-    syncGameToCloud(rematchGame, currentUser, true);
+    syncWithStatus(rematchGame, true);
   };
 
   // Archivia e prepara nuova partita pulita
@@ -544,7 +569,7 @@ export function useBurracoGame({
 
       const updatedHistory = archiveCurrentGame(finishedGame, userKey);
       setGamesHistory(updatedHistory);
-      syncGameToCloud(finishedGame, currentUser, true);
+      syncWithStatus(finishedGame, true);
 
       if (currentUser) {
         const stats = computeUserCareerStats(currentUser, updatedHistory, finishedGame);
@@ -625,7 +650,7 @@ export function useBurracoGame({
       };
       setActiveGame(newLocalGame);
       saveActiveGame(newLocalGame);
-      syncGameToCloud(newLocalGame, currentUser);
+      syncWithStatus(newLocalGame, false);
     }
   };
 
@@ -675,7 +700,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
   const handleResumeGame = (game) => {
     setActiveGame(game);
     saveActiveGame(game);
-    syncGameToCloud(game, currentUser, true);
+    syncWithStatus(game, true);
   };
 
   // Importazione dati
@@ -706,7 +731,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       const updatedHistory = archiveCurrentGame(activeGame, userKey);
       setGamesHistory(updatedHistory);
       if (updatedHistory && updatedHistory[0]) {
-        syncGameToCloud(updatedHistory[0], currentUser);
+        syncWithStatus(updatedHistory[0], false);
       }
     }
 
@@ -755,7 +780,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
 
     setActiveGame(tournamentGame);
     saveActiveGame(tournamentGame);
-    syncGameToCloud(tournamentGame, currentUser);
+    syncWithStatus(tournamentGame, false);
 
     if (typeof onTournamentMatchStarted === 'function') {
       onTournamentMatchStarted();

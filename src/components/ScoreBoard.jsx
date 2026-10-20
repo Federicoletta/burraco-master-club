@@ -25,6 +25,7 @@ function ScoreBoard({
   onEndGame,
   onShareGame,
   onOpenEditTeams,
+  syncStatus = 'synced',
 }) {
   const isTrio = activeGame?.mode === 'trio';
 
@@ -171,6 +172,7 @@ function ScoreBoard({
       {/* 3. Toolbar Azioni Rapide Partita */}
       <ScoreBoardToolbar
         roundsCount={activeGame.rounds?.length || 0}
+        syncStatus={syncStatus}
         onEndGame={onEndGame}
         onDeleteLastRound={onDeleteLastRound}
         onAddRound={onAddRound}

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, memo, lazy, Suspense } from 'react';
 import { 
   PlusCircle, 
-  Users, 
   History, 
   Share2, 
   Cloud, 
@@ -13,11 +12,7 @@ import {
   Sparkles,
   Trophy,
   User,
-  LogIn,
-  Bell,
-  BarChart3,
-  Volume2,
-  VolumeX
+  Bell
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
@@ -37,7 +32,6 @@ function Header({
   hasActiveTournament,
   currentUser,
   onOpenProfile,
-  onLogin,
   notificationCount = 0,
   onOpenNotifications,
   friendsList = []

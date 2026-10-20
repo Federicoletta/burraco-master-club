@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Users, ArrowLeftRight, Check, AlertCircle, Sparkles, User, Wand2, Plus } from 'lucide-react';
+import { X, Users, ArrowLeftRight, Check, AlertCircle, Sparkles, Wand2, Plus } from 'lucide-react';
 import PlayerAutocompleteInput from './PlayerAutocompleteInput';
 import { useAlert } from '../context/ConfirmContext';
 

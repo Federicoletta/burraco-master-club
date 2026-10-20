@@ -14,6 +14,73 @@ const STORAGE_KEYS = {
   SETTINGS: 'burraco_settings_v1',
 };
 
+
+/**
+ * Calcola l'utilizzo e la percentuale di memoria occupata in LocalStorage
+ */
+export function getStorageUsage() {
+  try {
+    if (typeof localStorage === 'undefined') return { totalBytes: 0, totalKB: 0, percent: 0, isNearLimit: false };
+    let totalChars = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      const val = localStorage.getItem(key);
+      if (key && val) {
+        totalChars += key.length + val.length;
+      }
+    }
+    const totalBytes = totalChars * 2; // UTF-16
+    const totalKB = Math.round(totalBytes / 1024);
+    const limitKB = 5120; // limite standard browser 5 MB
+    const percent = Math.min(100, Math.round((totalKB / limitKB) * 100));
+    return {
+      totalBytes,
+      totalKB,
+      percent,
+      isNearLimit: percent >= 80,
+    };
+  } catch {
+    return { totalBytes: 0, totalKB: 0, percent: 0, isNearLimit: false };
+  }
+}
+
+/**
+ * Salva in modo sicuro in LocalStorage prevenendo QuotaExceededError
+ */
+export function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    console.warn(`[safeSetItem] Spazio LocalStorage in esaurimento per "${key}". Tento auto-compattazione...`, err);
+    try {
+      const historyKey = STORAGE_KEYS.HISTORY;
+      const raw = localStorage.getItem(historyKey);
+      if (raw) {
+        const history = JSON.parse(raw);
+        if (Array.isArray(history) && history.length > 40) {
+          const compacted = history.map((game, idx) => {
+            if (idx >= 30 && game.rounds && game.rounds.length > 0) {
+              return {
+                ...game,
+                roundsCount: game.rounds.length,
+                rounds: [],
+              };
+            }
+            return game;
+          });
+          localStorage.setItem(historyKey, JSON.stringify(compacted));
+        }
+      }
+      localStorage.setItem(key, value);
+      return true;
+    } catch (retryErr) {
+      console.error('[safeSetItem] Fallimento salvataggio:', retryErr);
+      return false;
+    }
+  }
+}
+
 const MOCK_NAMES = ['Marco', 'Anna', 'Luca', 'Sofia'];
 const GENERIC_LABELS = ['coppia 1', 'coppia 2', 'giocatore 1', 'giocatore 2', 'squadra 1', 'squadra 2'];
 
@@ -205,7 +272,7 @@ export function archiveCurrentGame(game, userKey) {
   };
   // Aggiungi all'inizio dello storico
   const updated = [completedGame, ...history.filter(g => g.id !== game.id)];
-  localStorage.setItem(getHistoryKey(userKey), JSON.stringify(updated));
+  safeSetItem(getHistoryKey(userKey), JSON.stringify(updated));
   return updated;
 }
 

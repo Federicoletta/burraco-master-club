@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { X, Cloud, ExternalLink, QrCode, Copy, Check, Smartphone, Users, UserPlus, MessageCircle, Share2, Sparkles } from 'lucide-react';
-import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
+import { X, QrCode, Copy, Check, Users, UserPlus, MessageCircle, Share2 } from 'lucide-react';
+import DeveloperBadge from './DeveloperBadge';
+import { isDeveloperAccount } from '../utils/developer';
 
 export default function CloudSyncModal({
   isOpen,
   onClose,
   activeGame,
-  cloudStatus, // 'connected' | 'offline' | 'pending'
+  _cloudStatus, // 'connected' | 'offline' | 'pending'
   currentUser = null,
   tablePlayers = [],
   friendsList = [],

@@ -10,17 +10,15 @@ import {
 } from '../services/firebase';
 
 export function useTournament() {
-  const [activeTournament, setActiveTournament] = useState(null);
+  const [activeTournament, setActiveTournament] = useState(() => getActiveTournament());
   const [isTournamentOpen, setIsTournamentOpen] = useState(false);
 
-  // 1. Caricamento iniziale torneo locale
+  // 1. Sincronizzazione iniziale torneo locale col cloud
   useEffect(() => {
-    const storedTournament = getActiveTournament();
-    if (storedTournament) {
-      setActiveTournament(storedTournament);
-      syncTournamentToCloud(storedTournament);
+    if (activeTournament) {
+      syncTournamentToCloud(activeTournament);
     }
-  }, []);
+  }, [activeTournament]);
 
   // 2. Ascolto real-time del torneo attivo da Firestore
   useEffect(() => {

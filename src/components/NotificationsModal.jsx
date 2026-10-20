@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, Bell, UserPlus, Trophy, Check, Trash2, Clock, Mail } from 'lucide-react';
-import DeveloperBadge, { isDeveloperAccount } from './DeveloperBadge';
+import { X, Bell, UserPlus, Trophy, Check, Mail } from 'lucide-react';
+import DeveloperBadge from './DeveloperBadge';
+import { isDeveloperAccount } from '../utils/developer';
 
 export default function NotificationsModal({
   isOpen,
