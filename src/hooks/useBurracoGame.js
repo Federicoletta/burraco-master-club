@@ -161,10 +161,10 @@ export function useBurracoGame({
         safeSetItem(getHistoryKey(userKey), JSON.stringify(merged));
 
         // Se la partita attiva corrente ha 0 mani (es. dopo reset/reload/crash iPad),
-        // ma nel cloud esiste una partita in sospeso recente dell'utente con punti, ripristinala sul tavolo!
+        // ma nel cloud esiste una partita in sospeso recente dell'utente, ripristinala sul tavolo!
         setActiveGame(current => {
           if (!current || !current.rounds || current.rounds.length === 0) {
-            const pendingCloudGame = merged.find(g => g && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0);
+            const pendingCloudGame = merged.find(g => g && !g.isFinished && ((Array.isArray(g.rounds) && g.rounds.length > 0) || (g.createdAt && (Date.now() - new Date(g.createdAt).getTime() < 4 * 60 * 60 * 1000))));
             if (pendingCloudGame) {
               saveActiveGame(pendingCloudGame);
               return pendingCloudGame;
@@ -291,7 +291,15 @@ export function useBurracoGame({
 
     setActiveGame(gameWithOwnership);
     saveActiveGame(gameWithOwnership);
-    syncWithStatus(gameWithOwnership, false);
+
+    // Salva subito nella cronologia locale per non perdere mai la partita appena avviata
+    const currentHistory = getGamesHistory(userKey);
+    const updatedHistory = [gameWithOwnership, ...currentHistory.filter(g => g.id !== gameWithOwnership.id)];
+    setGamesHistory(updatedHistory);
+    safeSetItem(getHistoryKey(userKey), JSON.stringify(updatedHistory));
+
+    // Sincronizza IMMEDIATAMENTE e incondizionatamente su Firestore nel Cloud (force = true)
+    syncWithStatus(gameWithOwnership, true);
 
     // Invita amici registrati se presenti
     if (currentUser && friendsList.length > 0) {
@@ -449,7 +457,7 @@ export function useBurracoGame({
     if (hIndex >= 0) {
       const newHistory = [...history];
       newHistory[hIndex] = updatedGame;
-      localStorage.setItem(currentUser ? `burraco_history_${currentUser.uid}` : 'burraco_history_guest', JSON.stringify(newHistory));
+      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
       setGamesHistory(newHistory);
     }
   };
@@ -467,7 +475,17 @@ export function useBurracoGame({
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
-    syncWithStatus(updatedGame, false);
+    syncWithStatus(updatedGame, true);
+
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const history = getGamesHistory(userKey);
+    const hIndex = history.findIndex(g => g.id === updatedGame.id);
+    if (hIndex >= 0) {
+      const newHistory = [...history];
+      newHistory[hIndex] = updatedGame;
+      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
+      setGamesHistory(newHistory);
+    }
   };
 
   // Conclude la partita

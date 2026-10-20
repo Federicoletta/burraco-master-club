@@ -267,4 +267,24 @@ describe('Firestore Sanitization - sanitizeForFirestore', () => {
     expect('notes' in sanitized).toBe(false);
     expect('bad' in sanitized.nested).toBe(false);
   });
+
+  it('preserves empty rounds array when newly created game starts', () => {
+    const newGame = {
+      id: 'game_test_new',
+      createdAt: new Date().toISOString(),
+      mode: 'pairs',
+      allowSemipulito: true,
+      targetScore: 2505,
+      team1: { name: 'I susi', players: ['Fede'] },
+      team2: { name: 'I bufu', players: ['Amico'] },
+      rounds: [],
+      isFinished: false,
+      winner: null,
+    };
+    const sanitized = sanitizeForFirestore(newGame);
+    expect(sanitized.id).toBe('game_test_new');
+    expect(sanitized.rounds).toEqual([]);
+    expect(sanitized.team1.name).toBe('I susi');
+    expect(sanitized.team2.name).toBe('I bufu');
+  });
 });

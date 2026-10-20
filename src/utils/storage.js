@@ -265,7 +265,7 @@ export function saveActiveGame(game) {
   if (!game) {
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_GAME);
   } else {
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_GAME, JSON.stringify(game));
+    safeSetItem(STORAGE_KEYS.ACTIVE_GAME, JSON.stringify(game));
   }
 }
 

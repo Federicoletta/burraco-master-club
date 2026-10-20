@@ -306,7 +306,7 @@ export async function loadCloudGamesHistory(currentUser = null) {
     }
 
     const list = Array.from(gamesMap.values())
-      .filter(data => data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0)))
+      .filter(data => data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0) || (data.createdAt && (Date.now() - new Date(data.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000))))
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     return list;
   } catch (err) {
@@ -418,7 +418,7 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
 
     const emitMerged = () => {
       const list = Array.from(gamesMap.values())
-        .filter(data => data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0)))
+        .filter(data => data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0) || (data.createdAt && (Date.now() - new Date(data.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000))))
         .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       if (onUpdate) onUpdate(list);
     };
