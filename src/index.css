@@ -4,7 +4,7 @@
   html, body {
     margin: 0;
     padding: 0;
-    background-color: #0b291e;
+    background-color: var(--felt-bg-color, #08291c);
     color: #f3f4f6;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -32,22 +32,59 @@
   }
 }
 
-/* Texture panno da gioco verde con illuminazione centrale e filigrana 4 semi sparsi (♠ ♥ ♦ ♣) con opacità 20-25% */
+/* ============================================================== */
+/* TEMI VISIVI DEL PANNO DA GIOCO (FELT THEMES) */
+/* ============================================================== */
+
+/* 1. TEMA PREDEFINITO: VERDE SMERALDO FIBUR */
+:root, [data-theme="emerald"] {
+  --felt-bg-color: #08291c;
+  --felt-gradient: radial-gradient(circle at 50% 20%, rgba(24, 110, 78, 0.45) 0%, rgba(4, 20, 14, 0.97) 100%);
+  --felt-card-bg: rgba(13, 49, 36, 0.84);
+  --felt-card-border: rgba(212, 175, 55, 0.22);
+}
+
+/* 2. TEMA: BLU NOTTE REALE */
+[data-theme="navy"] {
+  --felt-bg-color: #091833;
+  --felt-gradient: radial-gradient(circle at 50% 20%, rgba(30, 80, 170, 0.45) 0%, rgba(4, 12, 28, 0.98) 100%);
+  --felt-card-bg: rgba(12, 28, 58, 0.86);
+  --felt-card-border: rgba(147, 197, 253, 0.25);
+}
+
+/* 3. TEMA: BORDEAUX CLUB VINTAGE */
+[data-theme="burgundy"] {
+  --felt-bg-color: #280812;
+  --felt-gradient: radial-gradient(circle at 50% 20%, rgba(140, 20, 50, 0.45) 0%, rgba(20, 4, 8, 0.98) 100%);
+  --felt-card-bg: rgba(45, 12, 22, 0.86);
+  --felt-card-border: rgba(251, 191, 36, 0.25);
+}
+
+/* 4. TEMA: DARK VELVET / CARBONE */
+[data-theme="velvet"] {
+  --felt-bg-color: #121316;
+  --felt-gradient: radial-gradient(circle at 50% 20%, rgba(55, 58, 70, 0.45) 0%, rgba(8, 9, 11, 0.98) 100%);
+  --felt-card-bg: rgba(22, 24, 30, 0.88);
+  --felt-card-border: rgba(255, 255, 255, 0.16);
+}
+
 .felt-bg {
-  background-color: #08291c;
+  background-color: var(--felt-bg-color, #08291c);
   background-image: 
-    radial-gradient(circle at 50% 20%, rgba(24, 110, 78, 0.45) 0%, rgba(4, 20, 14, 0.97) 100%),
+    var(--felt-gradient),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cpath transform='translate(35, 32) rotate(-18) scale(1.2)' d='M 0 -9 C -5 -3 -8 2 -8 5.5 C -8 8 -5.5 9 -3 9 C -1 9 -0.5 8 0 6.5 C 0.5 8 1 9 3 9 C 5.5 9 8 8 8 5.5 C 8 2 5 -3 0 -9 Z M -1 8 C -1 9.5 -2 11 -3.5 12 H 3.5 C 2 11 1 9.5 1 8 Z' fill='%23fbbf24' fill-opacity='0.24'/%3E%3Cpath transform='translate(132, 28) rotate(22) scale(1.15)' d='M 0 8.5 C -4.5 4.5 -8.5 1 -8.5 -3.5 C -8.5 -6.5 -6 -8.5 -3 -8.5 C -1.2 -8.5 0 -7 0 -6 C 0 -7 1.2 -8.5 3 -8.5 C 6 -8.5 8.5 -6.5 8.5 -3.5 C 8.5 1 4.5 4.5 0 8.5 Z' fill='%23ffffff' fill-opacity='0.20'/%3E%3Cpath transform='translate(85, 72) rotate(-14) scale(1.1)' d='M 0 -9 A 4.5 4.5 0 0 1 3.5 -2.2 A 4.5 4.5 0 1 1 2 5.5 C 2 7 3.5 9 4 10 H -4 C -3.5 9 -2 7 -2 5.5 A 4.5 4.5 0 1 1 -3.5 -2.2 A 4.5 4.5 0 0 1 0 -9 Z' fill='%23ffffff' fill-opacity='0.20'/%3E%3Cpath transform='translate(30, 114) rotate(20) scale(1.2)' d='M 0 -9.5 L 7 0 L 0 9.5 L -7 0 Z' fill='%23fbbf24' fill-opacity='0.25'/%3E%3Cpath transform='translate(145, 96) rotate(-24) scale(1.1)' d='M 0 8.5 C -4.5 4.5 -8.5 1 -8.5 -3.5 C -8.5 -6.5 -6 -8.5 -3 -8.5 C -1.2 -8.5 0 -7 0 -6 C 0 -7 1.2 -8.5 3 -8.5 C 6 -8.5 8.5 -6.5 8.5 -3.5 C 8.5 1 4.5 4.5 0 8.5 Z' fill='%23fbbf24' fill-opacity='0.22'/%3E%3Cpath transform='translate(92, 142) rotate(16) scale(1.2)' d='M 0 -9 C -5 -3 -8 2 -8 5.5 C -8 8 -5.5 9 -3 9 C -1 9 -0.5 8 0 6.5 C 0.5 8 1 9 3 9 C 5.5 9 8 8 8 5.5 C 8 2 5 -3 0 -9 Z M -1 8 C -1 9.5 -2 11 -3.5 12 H 3.5 C 2 11 1 9.5 1 8 Z' fill='%23ffffff' fill-opacity='0.20'/%3E%3Cpath transform='translate(152, 156) rotate(-16) scale(1.15)' d='M 0 -9 A 4.5 4.5 0 0 1 3.5 -2.2 A 4.5 4.5 0 1 1 2 5.5 C 2 7 3.5 9 4 10 H -4 C -3.5 9 -2 7 -2 5.5 A 4.5 4.5 0 1 1 -3.5 -2.2 A 4.5 4.5 0 0 1 0 -9 Z' fill='%23fbbf24' fill-opacity='0.24'/%3E%3Cpath transform='translate(38, 166) rotate(-10) scale(1.1)' d='M 0 -9.5 L 7 0 L 0 9.5 L -7 0 Z' fill='%23ffffff' fill-opacity='0.20'/%3E%3C/svg%3E");
   background-size: 100% 100%, 180px 180px;
   background-attachment: fixed;
+  transition: background-color 0.35s ease;
 }
 
 .felt-card {
-  background: rgba(13, 49, 36, 0.82);
+  background: var(--felt-card-bg, rgba(13, 49, 36, 0.84));
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid var(--felt-card-border, rgba(212, 175, 55, 0.22));
   box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+  transition: background 0.35s ease, border-color 0.35s ease;
 }
 
 .gold-border {

@@ -8,6 +8,7 @@ import { Trophy } from 'lucide-react';
 import { ConfirmProvider, useConfirm } from './context/ConfirmContext';
 import { SocialProvider } from './context/SocialContext';
 import { GameProvider, useBurraco } from './context/GameContext';
+import { getStoredTheme, applyTheme } from './utils/theme';
 
 // Modali caricati in modo asincrono (Lazy Loading) per ottimizzazione caricamento iniziale
 const NewGameModal = lazy(() => import('./components/NewGameModal'));
@@ -21,6 +22,7 @@ const TournamentModal = lazy(() => import('./components/TournamentModal'));
 const UserProfileModal = lazy(() => import('./components/UserProfileModal'));
 const NotificationsModal = lazy(() => import('./components/NotificationsModal'));
 const WelcomeModal = lazy(() => import('./components/WelcomeModal'));
+const ThemeSelectorModal = lazy(() => import('./components/ThemeSelectorModal'));
 
 function BurracoAppContent() {
   // 1. Modals UI State
@@ -31,6 +33,12 @@ function BurracoAppContent() {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isEditTeamsOpen, setIsEditTeamsOpen] = useState(false);
   const [roundToEdit, setRoundToEdit] = useState(null);
+  const [currentTheme, setCurrentTheme] = useState(() => getStoredTheme());
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+
+  React.useEffect(() => {
+    applyTheme(currentTheme);
+  }, [currentTheme]);
 
   // 2. Accesso unificato ai domini applicativi tramite Context
   const { game, tournament, social, isVictoryOpen, setIsVictoryOpen } = useBurraco();
@@ -48,6 +56,8 @@ function BurracoAppContent() {
   const handleOpenRules = useCallback(() => setIsRulesOpen(true), []);
   const handleOpenNotifications = useCallback(() => social.setIsNotificationsOpen(true), [social]);
   const handleOpenEditTeams = useCallback(() => setIsEditTeamsOpen(true), []);
+  const handleOpenThemeSelector = useCallback(() => setIsThemeModalOpen(true), []);
+  const handleThemeChange = useCallback((newTheme) => setCurrentTheme(newTheme), []);
 
   const handleAddRound = useCallback(() => {
     setRoundToEdit(null);
@@ -86,6 +96,8 @@ function BurracoAppContent() {
         notificationCount={social.notifications.length}
         onOpenNotifications={handleOpenNotifications}
         friendsList={social.friendsList}
+        onOpenThemeSelector={handleOpenThemeSelector}
+        currentTheme={currentTheme}
       />
 
       {/* Toast Notifiche in tempo reale */}
@@ -327,6 +339,14 @@ function BurracoAppContent() {
           onClose={() => social.setWelcomeUser(null)}
           user={social.welcomeUser}
           onOpenProfile={() => social.setIsProfileOpen(true)}
+        />
+
+        {/* 12. Modal Scelta Panno del Tavolo */}
+        <ThemeSelectorModal
+          isOpen={isThemeModalOpen}
+          onClose={() => setIsThemeModalOpen(false)}
+          currentTheme={currentTheme}
+          onThemeChange={handleThemeChange}
         />
       </Suspense>
 

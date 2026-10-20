@@ -12,8 +12,10 @@ import {
   Sparkles,
   Trophy,
   User,
-  Bell
+  Bell,
+  Palette
 } from 'lucide-react';
+import { THEMES } from '../utils/theme';
 import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
 import { wakeLock } from '../utils/wakeLock';
@@ -34,7 +36,9 @@ function Header({
   onOpenProfile,
   notificationCount = 0,
   onOpenNotifications,
-  friendsList = []
+  friendsList = [],
+  onOpenThemeSelector,
+  currentTheme = 'emerald'
 }) {
   const [soundOn, setSoundOn] = useState(sound.enabled);
   const [volume, setVolume] = useState(Math.round(sound.volume * 100));
@@ -448,6 +452,26 @@ function Header({
                     </div>
 
                     <div className="space-y-0.5">
+                      {/* Panno del Tavolo */}
+                      {onOpenThemeSelector && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            onOpenThemeSelector();
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <Palette className="w-4 h-4 text-amber-400 shrink-0" />
+                            <span>Panno del Tavolo</span>
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded font-black bg-emerald-900 text-emerald-300 border border-emerald-700/60 uppercase">
+                            {THEMES.find(t => t.id === currentTheme)?.name.split(' ')[0] || 'VERDE'}
+                          </span>
+                        </button>
+                      )}
+
                       {/* Audio & Musica Jazz Unificato */}
                       <button
                         type="button"
