@@ -73,6 +73,10 @@ function BurracoAppContent() {
     game.handleDeleteLastRound(confirm);
   }, [game, confirm]);
 
+  const handleDeleteRound = useCallback((roundNumber) => {
+    game.handleDeleteRound(roundNumber, confirm);
+  }, [game, confirm]);
+
   const handleLeaveCloudTable = useCallback(() => {
     game.handleLeaveCloudTable(confirm);
   }, [game, confirm]);
@@ -174,6 +178,7 @@ function BurracoAppContent() {
             onOpenLogin={social.handleLogin}
             onAddRound={handleAddRound}
             onEditRound={handleEditRound}
+            onDeleteRound={handleDeleteRound}
             onDeleteLastRound={handleDeleteLastRound}
             onEndGame={game.handleEndGame}
             onShareGame={handleOpenCloud}

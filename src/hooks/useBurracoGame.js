@@ -462,6 +462,88 @@ export function useBurracoGame({
     }
   };
 
+  // Cancella una specifica mano dal tabellone (foglio segnapunti)
+  const handleDeleteRound = async (roundNumber, customConfirm) => {
+    if (!activeGame || !activeGame.rounds || activeGame.rounds.length === 0) return;
+
+    const roundIndex = (activeGame.rounds || []).findIndex(
+      r => r.roundNumber === roundNumber
+    );
+    if (roundIndex === -1) return;
+
+    const targetRound = activeGame.rounds[roundIndex];
+    const isTrio = activeGame.mode === 'trio';
+    const scoreSummary = isTrio
+      ? `${targetRound.team1Score || 0} vs ${targetRound.team2Score || 0} vs ${targetRound.team3Score || 0} pt`
+      : `${targetRound.team1Score || 0} vs ${targetRound.team2Score || 0} pt`;
+
+    const ok = typeof customConfirm === 'function'
+      ? await customConfirm({
+          title: `Elimina Mano #${roundNumber}`,
+          message: `Vuoi davvero cancellare la Mano #${roundNumber} (${scoreSummary})? I punti progressivi e i totali verranno ricalcolati automaticamente.`,
+          confirmText: "Elimina Mano",
+          variant: "danger"
+        })
+      : window.confirm(`Vuoi davvero cancellare la Mano #${roundNumber}?`);
+
+    if (!ok) return;
+
+    // Rimuovi la mano e riallinea i numeri di mano (1, 2, 3...)
+    const remainingRounds = activeGame.rounds
+      .filter((_, idx) => idx !== roundIndex)
+      .map((r, newIdx) => ({
+        ...r,
+        roundNumber: newIdx + 1
+      }));
+
+    // Ricalcola totali e traguardo
+    let t1Total = 0;
+    let t2Total = 0;
+    let t3Total = 0;
+    remainingRounds.forEach(r => {
+      t1Total += Number(r.team1Score) || 0;
+      t2Total += Number(r.team2Score) || 0;
+      t3Total += Number(r.team3Score) || 0;
+    });
+
+    const target = activeGame.targetScore || 2505;
+    const isTargetReached = isTrio
+      ? (t1Total >= target || t2Total >= target || t3Total >= target)
+      : (t1Total >= target || t2Total >= target);
+
+    let winner = null;
+    if (isTargetReached) {
+      if (isTrio) {
+        if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
+        else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
+        else winner = 'team3';
+      } else {
+        winner = t1Total >= t2Total ? 'team1' : 'team2';
+      }
+    }
+
+    const updatedGame = {
+      ...activeGame,
+      rounds: remainingRounds,
+      winner,
+      isFinished: isTargetReached
+    };
+
+    setActiveGame(updatedGame);
+    saveActiveGame(updatedGame);
+    syncWithStatus(updatedGame, true);
+
+    const userKey = currentUser ? currentUser.uid : 'guest';
+    const history = getGamesHistory(userKey);
+    const hIndex = history.findIndex(g => g.id === updatedGame.id);
+    if (hIndex >= 0) {
+      const newHistory = [...history];
+      newHistory[hIndex] = updatedGame;
+      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
+      setGamesHistory(newHistory);
+    }
+  };
+
   // Aggiorna squadre
   const handleUpdateTeams = (updatedTeam1, updatedTeam2, updatedTeam3) => {
     if (!activeGame) return;
@@ -872,6 +954,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     setNewGameInitialSetup,
     handleStartGame,
     handleSaveRound,
+    handleDeleteRound,
     handleDeleteLastRound,
     handleUpdateTeams,
     handleEndGame,

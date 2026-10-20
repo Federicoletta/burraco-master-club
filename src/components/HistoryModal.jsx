@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useAlert } from '../context/ConfirmContext';
+import { useAlert, useConfirm } from '../context/ConfirmContext';
 import { 
   X, 
   History, 
@@ -50,6 +50,25 @@ export default function HistoryModal({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const fileInputRef = useRef(null);
   const customAlert = useAlert();
+  const customConfirm = useConfirm();
+
+  const handleDeleteGameWithConfirm = async (game) => {
+    if (!game || !onDeleteGame) return;
+    const title = `${game.team1?.name || 'Sq. 1'} vs ${game.team2?.name || 'Sq. 2'}`;
+    const dateStr = formatDate(game.createdAt);
+    const ok = await customConfirm({
+      title: "Elimina Partita dall'Archivio",
+      message: `Vuoi davvero eliminare definitivamente la partita "${title}" del ${dateStr}? L'operazione cancellerà la partita anche dal Cloud e non potrà essere annullata.`,
+      confirmText: "Elimina Definitivamente",
+      variant: "danger"
+    });
+    if (ok) {
+      if (selectedGame && selectedGame.id === game.id) {
+        setSelectedGame(null);
+      }
+      onDeleteGame(game.id);
+    }
+  };
 
   // Unisci la partita attiva corrente (se ha mani giocate) per renderla sempre visibile
   const allDisplayGames = React.useMemo(() => {
@@ -237,6 +256,17 @@ export default function HistoryModal({
                     >
                       <PlayCircle className="w-4 h-4 text-emerald-950" />
                       <span>{selectedGame.id === activeGame?.id ? 'Torna al Tabellone' : 'Riprendi sul Tabellone'}</span>
+                    </button>
+                  )}
+
+                  {onDeleteGame && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteGameWithConfirm(selectedGame)}
+                      className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/80 text-rose-300 hover:text-white border border-rose-700/50 transition-colors cursor-pointer"
+                      title="Elimina definitivamente questa partita"
+                    >
+                      <Trash2 className="w-4 h-4 text-rose-400" />
                     </button>
                   )}
                 </div>
@@ -502,7 +532,8 @@ export default function HistoryModal({
 
                       <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={() => onDeleteGame(game.id)}
+                          type="button"
+                          onClick={() => handleDeleteGameWithConfirm(game)}
                           className="p-2 rounded-lg text-emerald-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
                           title="Elimina dal Cloud e dallo Storico"
                         >

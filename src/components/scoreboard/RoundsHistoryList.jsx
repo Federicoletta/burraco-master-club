@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutList, Table, Edit2 } from 'lucide-react';
+import { LayoutList, Table, Edit2, Trash2 } from 'lucide-react';
 import RoundEventChips from './RoundEventChips';
 
 export default function RoundsHistoryList({
@@ -9,6 +9,7 @@ export default function RoundsHistoryList({
   targetScore = 2505,
   onAddRound,
   onEditRound,
+  onDeleteRound,
 }) {
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -120,16 +121,30 @@ export default function RoundsHistoryList({
                     )}
                   </div>
 
-                  {onEditRound && (
-                    <button
-                      onClick={() => onEditRound(r)}
-                      className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white border border-white/15 text-[11px] font-semibold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-xs"
-                      title="Modifica punteggio di questa mano"
-                    >
-                      <Edit2 className="w-3 h-3 text-amber-300" />
-                      <span>Modifica</span>
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {onEditRound && (
+                      <button
+                        type="button"
+                        onClick={() => onEditRound(r)}
+                        className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white border border-white/15 text-[11px] font-semibold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-xs"
+                        title="Modifica punteggio di questa mano"
+                      >
+                        <Edit2 className="w-3 h-3 text-amber-300" />
+                        <span>Modifica</span>
+                      </button>
+                    )}
+                    {onDeleteRound && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteRound(r.roundNumber || index + 1)}
+                        className="px-2 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/80 text-rose-300 hover:text-white border border-rose-700/50 text-[11px] font-semibold flex items-center gap-1 active:scale-95 transition-all cursor-pointer shadow-xs"
+                        title={`Elimina Mano #${r.roundNumber || index + 1}`}
+                      >
+                        <Trash2 className="w-3 h-3 text-rose-400" />
+                        <span className="hidden xs:inline">Elimina</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Confronto Squadre affiancate */}
@@ -383,15 +398,28 @@ export default function RoundsHistoryList({
 
                     {/* Azioni riga */}
                     <td className="py-2.5 px-2.5 sm:px-4 text-right">
-                      {onEditRound && (
-                        <button
-                          onClick={() => onEditRound(r)}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer"
-                          title="Modifica punteggio di questa mano"
-                        >
-                          <Edit2 className="w-4 h-4 text-amber-300" />
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1">
+                        {onEditRound && (
+                          <button
+                            type="button"
+                            onClick={() => onEditRound(r)}
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer"
+                            title="Modifica punteggio di questa mano"
+                          >
+                            <Edit2 className="w-4 h-4 text-amber-300" />
+                          </button>
+                        )}
+                        {onDeleteRound && (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteRound(r.roundNumber || index + 1)}
+                            className="p-1.5 rounded-lg hover:bg-rose-950/60 text-rose-400/80 hover:text-rose-300 transition-colors cursor-pointer"
+                            title={`Elimina Mano #${r.roundNumber || index + 1}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-rose-400" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

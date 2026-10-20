@@ -120,4 +120,25 @@ describe('Burraco Engine - calculateTeamRoundScore', () => {
     const splitScore = Math.round(pairScore / 2);
     expect(splitScore).toBe(188); // 375 / 2 = 187.5 -> 188
   });
+
+  it('correctly re-sequences rounds when an intermediate round is deleted', () => {
+    const initialRounds = [
+      { roundNumber: 1, team1Score: 350, team2Score: 180 },
+      { roundNumber: 2, team1Score: -120, team2Score: 400 },
+      { roundNumber: 3, team1Score: 250, team2Score: 100 },
+    ];
+    // Elimina Mano #2 (index 1)
+    const remaining = initialRounds
+      .filter((_, idx) => idx !== 1)
+      .map((r, newIdx) => ({
+        ...r,
+        roundNumber: newIdx + 1,
+      }));
+
+    expect(remaining).toHaveLength(2);
+    expect(remaining[0].roundNumber).toBe(1);
+    expect(remaining[0].team1Score).toBe(350);
+    expect(remaining[1].roundNumber).toBe(2);
+    expect(remaining[1].team1Score).toBe(250); // ex mano 3 è diventata mano 2
+  });
 });

@@ -21,6 +21,7 @@ function ScoreBoard({
   onOpenLogin,
   onAddRound,
   onEditRound,
+  onDeleteRound,
   onDeleteLastRound,
   onEndGame,
   onShareGame,
@@ -219,6 +220,7 @@ function ScoreBoard({
         targetScore={targetScore}
         onAddRound={onAddRound}
         onEditRound={onEditRound}
+        onDeleteRound={onDeleteRound}
       />
 
     </div>
