@@ -25,6 +25,7 @@ function ScoreBoard({
   onEndGame,
   onShareGame,
   onOpenEditTeams,
+  onResumeGame = null,
   syncStatus = 'synced',
 }) {
   const isTrio = activeGame?.mode === 'trio';
@@ -106,6 +107,12 @@ function ScoreBoard({
 
   const isTargetReached = totalTeam1 >= targetScore || totalTeam2 >= targetScore || (isTrio && totalTeam3 >= targetScore);
 
+  // Se il tavolo corrente ha 0 mani (es. nuova partita o reset accidentale), trova se esiste una partita in sospeso nello storico
+  const pendingGame = useMemo(() => {
+    if (activeGame?.rounds && activeGame.rounds.length > 0) return null;
+    return (gamesHistory || []).find(g => g && g.id !== activeGame?.id && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0) || null;
+  }, [activeGame, gamesHistory]);
+
   const winningTeam = isTrio
     ? (totalTeam1 >= totalTeam2 && totalTeam1 >= totalTeam3 ? activeGame.team1 : totalTeam2 >= totalTeam1 && totalTeam2 >= totalTeam3 ? activeGame.team2 : activeGame.team3)
     : (totalTeam1 >= totalTeam2 ? activeGame.team1 : activeGame.team2);
@@ -135,6 +142,32 @@ function ScoreBoard({
             className="w-full sm:w-auto px-5 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-md cursor-pointer hover:brightness-110 active:scale-95"
           >
             Festeggia & Termina Partita
+          </button>
+        </div>
+      )}
+
+      {/* BANNER RIPRESA PARTITA IN SOSPESO */}
+      {pendingGame && onResumeGame && (
+        <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-emerald-950/90 to-amber-500/20 border-2 border-amber-400/70 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-3 text-left">
+            <div className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 shrink-0 shadow-md font-black text-xl">
+              ⏳
+            </div>
+            <div>
+              <div className="text-xs sm:text-sm font-black text-amber-300 flex items-center gap-1.5 flex-wrap">
+                <span>Partita in sospeso trovata:</span>
+                <span className="text-white">{pendingGame.team1?.name} vs {pendingGame.team2?.name}</span>
+              </div>
+              <div className="text-[11px] text-emerald-200/90 mt-0.5">
+                {pendingGame.rounds?.length || 0} {pendingGame.rounds?.length === 1 ? 'mano registrata' : 'mani registrate'} • Punteggio: {(pendingGame.rounds || []).reduce((a,r)=>a+(r.team1Score||0),0)} a {(pendingGame.rounds || []).reduce((a,r)=>a+(r.team2Score||0),0)} pt
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => onResumeGame(pendingGame)}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md hover:brightness-110 active:scale-95 cursor-pointer shrink-0 transition-all flex items-center justify-center gap-1.5"
+          >
+            <span>Riprendi Partita al Tavolo ▶</span>
           </button>
         </div>
       )}

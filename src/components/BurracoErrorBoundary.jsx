@@ -21,6 +21,50 @@ export default class BurracoErrorBoundary extends Component {
   }
 
   handleReload = () => {
+    // Pulisce eventuali chiavi di lock orfane di Firestore
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('firestore_') || k.startsWith('firebase:'))) {
+            if (k.includes('tab_manager') || k.includes('lease') || k.includes('heartbeat')) {
+              keysToRemove.push(k);
+            }
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch {}
+    }
+    this.setState({ hasError: false, error: null, errorInfo: null });
+    window.location.reload();
+  };
+
+  handleResumeLastGame = () => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const historyKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('burraco_history')) historyKeys.push(k);
+        }
+        for (const hk of historyKeys) {
+          const raw = localStorage.getItem(hk);
+          if (raw) {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+              const pending = list.find(g => g && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0);
+              if (pending) {
+                localStorage.setItem('burraco_active_game_v1', JSON.stringify(pending));
+                break;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
     this.setState({ hasError: false, error: null, errorInfo: null });
     window.location.reload();
   };
@@ -73,6 +117,13 @@ export default class BurracoErrorBoundary extends Component {
               >
                 <RefreshCw className="w-4 h-4 text-emerald-950" />
                 <span>Ricarica Tavolo</span>
+              </button>
+
+              <button
+                onClick={this.handleResumeLastGame}
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 font-bold text-xs shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-2 transition-all"
+              >
+                <span>⏳ Ripristina Ultima Partita in Sospeso</span>
               </button>
 
               <button

@@ -2,8 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getFirestore,
   initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
+  memoryLocalCache,
   doc, 
   setDoc, 
   getDoc, 
@@ -41,13 +40,30 @@ let db;
 let auth;
 const googleProvider = new GoogleAuthProvider();
 
+// Pulisce vecchi frammenti di WebStorage lasciati da precedenti versioni del tab manager su Safari/iOS
+if (typeof localStorage !== 'undefined') {
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('firestore_') || k.startsWith('firebase:'))) {
+        if (k.includes('tab_manager') || k.includes('heartbeat') || k.includes('lease') || k.includes('cache') || k.includes('sequence')) {
+          keysToRemove.push(k);
+        }
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  } catch {
+    // ignora se localStorage non accessibile
+  }
+}
+
 try {
   app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   try {
+    // Usa memoryLocalCache per evitare completamente errori QuotaExceededError su Safari/iOS/iPadOS
     db = initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager()
-      })
+      localCache: memoryLocalCache()
     });
   } catch {
     db = getFirestore(app);

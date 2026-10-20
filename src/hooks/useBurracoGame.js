@@ -113,26 +113,33 @@ export function useBurracoGame({
           setActiveGame(current);
         }
       } else {
-        const initialGame = {
-          id: 'game_' + Date.now(),
-          createdAt: new Date().toISOString(),
-          mode: 'pairs',
-          allowSemipulito: true,
-          targetScore: 2505,
-          team1: {
-            name: 'Coppia 1',
-            players: [],
-          },
-          team2: {
-            name: 'Coppia 2',
-            players: [],
-          },
-          rounds: [],
-          winner: null,
-          isFinished: false,
-        };
-        setActiveGame(initialGame);
-        saveActiveGame(initialGame);
+        // Se non c'è una partita attiva in localStorage, controlla se c'è una partita in sospeso nello storico
+        const pendingGame = (storedHistory || []).find(g => g && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0);
+        if (pendingGame) {
+          setActiveGame(pendingGame);
+          saveActiveGame(pendingGame);
+        } else {
+          const initialGame = {
+            id: 'game_' + Date.now(),
+            createdAt: new Date().toISOString(),
+            mode: 'pairs',
+            allowSemipulito: true,
+            targetScore: 2505,
+            team1: {
+              name: 'Coppia 1',
+              players: [],
+            },
+            team2: {
+              name: 'Coppia 2',
+              players: [],
+            },
+            rounds: [],
+            winner: null,
+            isFinished: false,
+          };
+          setActiveGame(initialGame);
+          saveActiveGame(initialGame);
+        }
       }
     }
   }, []);
@@ -151,7 +158,20 @@ export function useBurracoGame({
         const merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
         setGamesHistory(merged);
-        localStorage.setItem(getHistoryKey(userKey), JSON.stringify(merged));
+        safeSetItem(getHistoryKey(userKey), JSON.stringify(merged));
+
+        // Se la partita attiva corrente ha 0 mani (es. dopo reset/reload/crash iPad),
+        // ma nel cloud esiste una partita in sospeso recente dell'utente con punti, ripristinala sul tavolo!
+        setActiveGame(current => {
+          if (!current || !current.rounds || current.rounds.length === 0) {
+            const pendingCloudGame = merged.find(g => g && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0);
+            if (pendingCloudGame) {
+              saveActiveGame(pendingCloudGame);
+              return pendingCloudGame;
+            }
+          }
+          return current;
+        });
       }
     });
 

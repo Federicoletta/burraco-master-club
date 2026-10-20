@@ -179,6 +179,7 @@ function BurracoAppContent() {
             onShareGame={handleOpenCloud}
             onOpenRules={handleOpenRules}
             onOpenEditTeams={handleOpenEditTeams}
+            onResumeGame={game.handleResumeGame}
           />
         ) : (
           /* Schermata di Benvenuto se nessuna partita */
