@@ -35,6 +35,7 @@ export default function UserProfileModal({
   onChallengeFriend,
   onInviteFriendToActiveGame,
   onRemoveFriend,
+  onToggleCloseFriend,
   initialTab = 'profile'
 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -422,6 +423,7 @@ export default function UserProfileModal({
                   handleInviteToActiveGame={handleInviteToActiveGame}
                   handleChallenge={handleChallenge}
                   onRemoveFriend={onRemoveFriend}
+                  onToggleCloseFriend={onToggleCloseFriend}
                   friendSearchInput={friendSearchInput}
                   setFriendSearchInput={setFriendSearchInput}
                   handleFormSubmit={handleFormSubmit}

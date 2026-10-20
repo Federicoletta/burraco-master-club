@@ -295,8 +295,10 @@ export function useBurracoGame({
       ...(newGame.team3?.players || [])
     ].map(p => typeof p === 'string' ? p.trim() : '').filter(Boolean);
 
+    // Separa gli amici in gioco tra Amici Stretti (entrano direttamente) e Amici Normali (richiedono invito)
     const registeredPlayerUids = currentUser ? [currentUser.uid] : [];
     const registeredPlayerEmails = currentUser?.email ? [currentUser.email] : [];
+    const pendingInviteFriends = [];
 
     if (currentUser && friendsList.length > 0) {
       friendsList.forEach(friend => {
@@ -305,8 +307,14 @@ export function useBurracoGame({
           p => p.toLowerCase() === friendName.toLowerCase() || p.toLowerCase() === (friend.email || '').toLowerCase()
         );
         if (isInGame) {
-          if (friend.uid && !registeredPlayerUids.includes(friend.uid)) registeredPlayerUids.push(friend.uid);
-          if (friend.email && !registeredPlayerEmails.includes(friend.email)) registeredPlayerEmails.push(friend.email);
+          if (friend.isCloseFriend) {
+            // ⭐ Amico Stretto: entra direttamente al tavolo senza dover attendere invito
+            if (friend.uid && !registeredPlayerUids.includes(friend.uid)) registeredPlayerUids.push(friend.uid);
+            if (friend.email && !registeredPlayerEmails.includes(friend.email)) registeredPlayerEmails.push(friend.email);
+          } else {
+            // 👤 Amico Normale: deve accettare l'invito prima di entrare nel tavolo
+            pendingInviteFriends.push(friend);
+          }
         }
       });
     }
@@ -332,24 +340,19 @@ export function useBurracoGame({
     // Sincronizza IMMEDIATAMENTE e incondizionatamente su Firestore nel Cloud (force = true)
     syncWithStatus(gameWithOwnership, true);
 
-    // Invita amici registrati se presenti
-    if (currentUser && friendsList.length > 0) {
-      friendsList.forEach(friend => {
+    // Invia inviti di gioco SOLO agli Amici Normali (gli Amici Stretti sono già dentro)
+    if (currentUser && pendingInviteFriends.length > 0) {
+      pendingInviteFriends.forEach(friend => {
         const friendName = friend.displayName || friend.email;
-        const isInGame = allPlayers.some(
-          p => p.toLowerCase() === friendName.toLowerCase() || p.toLowerCase() === (friend.email || '').toLowerCase()
-        );
-        if (isInGame) {
-          const teamName = (newGame.team1?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
-            ? newGame.team1?.name
-            : (newGame.team2?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
-            ? newGame.team2?.name
-            : newGame.team3?.name || 'In Partita';
+        const teamName = (newGame.team1?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
+          ? newGame.team1?.name
+          : (newGame.team2?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
+          ? newGame.team2?.name
+          : newGame.team3?.name || 'In Partita';
 
-          sendGameInvite(currentUser, friend, gameWithOwnership, teamName).catch(err => {
-            console.warn('Avviso invio notifica partita:', err);
-          });
-        }
+        sendGameInvite(currentUser, friend, gameWithOwnership, teamName).catch(err => {
+          console.warn('Avviso invio notifica partita:', err);
+        });
       });
     }
   };

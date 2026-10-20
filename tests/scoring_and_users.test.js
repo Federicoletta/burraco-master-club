@@ -282,4 +282,60 @@ describe('Statistiche di Carriera Utente Autenticato - computeUserCareerStats', 
     expect(stats.closures).toBe(1);
     expect(stats.bestHandScore).toBe(600);
   });
+
+  it('ordina gli Amici Stretti ⭐ in cima rispetto agli amici normali', () => {
+    const rawFriends = [
+      { uid: 'u1', displayName: 'Zaira', email: 'zaira@test.com' },
+      { uid: 'u2', displayName: 'Alessandro', email: 'alessandro@test.com' },
+      { uid: 'u3', displayName: 'Marco', email: 'marco@test.com' },
+    ];
+    const closeFriendsUids = ['u3']; // Marco è amico stretto
+
+    const sorted = rawFriends.map(f => ({
+      ...f,
+      isCloseFriend: closeFriendsUids.includes(f.uid)
+    })).sort((a, b) => {
+      if (a.isCloseFriend && !b.isCloseFriend) return -1;
+      if (!a.isCloseFriend && b.isCloseFriend) return 1;
+      return (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '');
+    });
+
+    expect(sorted[0].displayName).toBe('Marco');
+    expect(sorted[0].isCloseFriend).toBe(true);
+    expect(sorted[1].displayName).toBe('Alessandro');
+    expect(sorted[1].isCloseFriend).toBe(false);
+    expect(sorted[2].displayName).toBe('Zaira');
+    expect(sorted[2].isCloseFriend).toBe(false);
+  });
+
+  it('inserisce direttamente gli Amici Stretti in playerUids e invia inviti solo agli amici normali', () => {
+    const currentUser = { uid: 'host_123', email: 'host@test.com', displayName: 'Fede' };
+    const friendsList = [
+      { uid: 'close_1', displayName: 'Moglie', email: 'moglie@test.com', isCloseFriend: true },
+      { uid: 'norm_2', displayName: 'Collega', email: 'collega@test.com', isCloseFriend: false },
+    ];
+    const allPlayersInGame = ['Moglie', 'Collega'];
+
+    const registeredPlayerUids = [currentUser.uid];
+    const pendingInviteFriends = [];
+
+    friendsList.forEach(friend => {
+      const friendName = friend.displayName || friend.email;
+      const isInGame = allPlayersInGame.some(p => p.toLowerCase() === friendName.toLowerCase());
+      if (isInGame) {
+        if (friend.isCloseFriend) {
+          registeredPlayerUids.push(friend.uid);
+        } else {
+          pendingInviteFriends.push(friend);
+        }
+      }
+    });
+
+    // Amico Stretto entra subito
+    expect(registeredPlayerUids).toContain('close_1');
+    // Amico Normale NON entra subito ma richiede invito
+    expect(registeredPlayerUids).not.toContain('norm_2');
+    expect(pendingInviteFriends.length).toBe(1);
+    expect(pendingInviteFriends[0].uid).toBe('norm_2');
+  });
 });

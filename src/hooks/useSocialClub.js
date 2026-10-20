@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAlert } from '../context/ConfirmContext';
 import { 
   loginWithGoogle, 
   logoutUser, 
-  subscribeToAuth 
+  subscribeToAuth,
+  joinCloudGame
 } from '../services/firebase';
 import { 
   sendFriendRequest,
@@ -13,14 +14,17 @@ import {
   subscribeToMyNotifications,
   subscribeToMyFriends,
   subscribeToClubUsers,
-  removeFriend
+  removeFriend,
+  toggleCloseFriend,
+  subscribeToMyProfile
 } from '../services/social';
 import { sound } from '../utils/soundEffects';
 
 export function useSocialClub() {
   const customAlert = useAlert();
   const [currentUser, setCurrentUser] = useState(null);
-  const [friendsList, setFriendsList] = useState([]);
+  const [rawFriendsList, setRawFriendsList] = useState([]);
+  const [closeFriends, setCloseFriends] = useState([]);
   const [clubUsers, setClubUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [toastNotification, setToastNotification] = useState(null);
@@ -44,15 +48,22 @@ export function useSocialClub() {
     return () => unsubAuth();
   }, []);
 
-  // 2. Ascolto real-time Notifiche, Amici e Membri Club
+  // 2. Ascolto real-time Notifiche, Amici, Profilo (Amici Stretti) e Membri Club
   useEffect(() => {
     if (!currentUser) {
       setNotifications([]);
-      setFriendsList([]);
+      setRawFriendsList([]);
+      setCloseFriends([]);
       setToastNotification(null);
       prevNotifIdsRef.current = [];
       return;
     }
+
+    const unsubProfile = subscribeToMyProfile(currentUser, (profileData) => {
+      if (profileData && Array.isArray(profileData.closeFriends)) {
+        setCloseFriends(profileData.closeFriends);
+      }
+    });
 
     const unsubNotifs = subscribeToMyNotifications(currentUser, (notifs) => {
       if (Array.isArray(notifs)) {
@@ -75,14 +86,27 @@ export function useSocialClub() {
     });
 
     const unsubFriends = subscribeToMyFriends(currentUser, (friends) => {
-      setFriendsList(friends);
+      setRawFriendsList(friends);
     });
 
     return () => {
+      unsubProfile();
       unsubNotifs();
       unsubFriends();
     };
   }, [currentUser]);
+
+  // Arricchisce gli amici con il flag isCloseFriend e ordina prima gli Amici Stretti in cima
+  const friendsList = useMemo(() => {
+    return (rawFriendsList || []).map(f => ({
+      ...f,
+      isCloseFriend: closeFriends.includes(f.uid)
+    })).sort((a, b) => {
+      if (a.isCloseFriend && !b.isCloseFriend) return -1;
+      if (!a.isCloseFriend && b.isCloseFriend) return 1;
+      return (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '');
+    });
+  }, [rawFriendsList, closeFriends]);
 
   // 3. Ascolto soci e membri club su richiesta (attivato solo all'apertura del profilo/ricerca amici per risparmio letture DB)
   useEffect(() => {
@@ -140,6 +164,34 @@ export function useSocialClub() {
       customAlert({
         title: 'Errore Rimozione',
         message: 'Impossibile rimuovere l\'amico: ' + (err.message || err),
+        variant: 'danger'
+      });
+    }
+  };
+
+  // Imposta o rimuove un amico dagli Amici Stretti ⭐
+  const handleToggleCloseFriend = async (friend) => {
+    if (!currentUser || !friend?.uid) return;
+    const friendUid = friend.uid;
+    // Aggiornamento ottimistico
+    setCloseFriends(prev => {
+      const isClose = prev.includes(friendUid);
+      return isClose ? prev.filter(id => id !== friendUid) : [...prev, friendUid];
+    });
+    try {
+      const isNowClose = await toggleCloseFriend(currentUser, friendUid);
+      sound.playTrophy();
+      return isNowClose;
+    } catch (err) {
+      console.error('Errore toggle close friend:', err);
+      // Rollback
+      setCloseFriends(prev => {
+        const isClose = prev.includes(friendUid);
+        return isClose ? prev.filter(id => id !== friendUid) : [...prev, friendUid];
+      });
+      customAlert({
+        title: 'Amici Stretti',
+        message: 'Impossibile aggiornare gli Amici Stretti: ' + (err.message || err),
         variant: 'danger'
       });
     }
@@ -223,6 +275,10 @@ export function useSocialClub() {
       } else if (t2Count < 2) {
         teamName = activeGame.team2?.name || 'Squadra 2';
       }
+      if (friend.isCloseFriend) {
+        // ⭐ Amico Stretto: entra direttamente nel live sync del tavolo
+        await joinCloudGame(activeGame.id, friend);
+      }
       await sendGameInvite(currentUser, friend, activeGame, teamName);
       sound.playTrophy();
       return { success: true };
@@ -235,6 +291,7 @@ export function useSocialClub() {
   return {
     currentUser,
     friendsList,
+    closeFriends,
     clubUsers,
     notifications,
     toastNotification,
@@ -251,6 +308,7 @@ export function useSocialClub() {
     handleLogout,
     handleSendFriendRequest,
     handleRemoveFriend,
+    handleToggleCloseFriend,
     handleAcceptFriendRequest,
     handleDeclineFriendRequest,
     handleAcceptGameInvite,

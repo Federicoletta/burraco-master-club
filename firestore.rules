@@ -67,6 +67,7 @@ service cloud.firestore {
     //   - updatedAt: string | timestamp (optional, max 50 chars if string)
     //   - guests: list (optional, max 200 items)
     //   - careerStats: map (optional, max 20 keys)
+    //   - closeFriends: list (optional, max 200 items)
     //
     // Collection: burraco_notifications
     // Document ID: {notificationId}
@@ -230,7 +231,7 @@ service cloud.firestore {
     function isValidUser(data, userId) {
       let allowedFields = [
         'uid', 'displayName', 'email', 'photoURL', 'lastLogin', 'lastSeen', 'updatedAt',
-        'guests', 'careerStats'
+        'guests', 'careerStats', 'closeFriends'
       ];
       let requiredFields = [
         'uid', 'displayName'
@@ -248,7 +249,8 @@ service cloud.firestore {
              (!('lastSeen' in data) || (data.lastSeen is string && data.lastSeen.size() <= 50) || data.lastSeen is timestamp) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp) &&
              (!('guests' in data) || (data.guests is list && data.guests.size() <= 200)) &&
-             (!('careerStats' in data) || data.careerStats == null || isValidCareerStats(data.careerStats));
+             (!('careerStats' in data) || data.careerStats == null || isValidCareerStats(data.careerStats)) &&
+             (!('closeFriends' in data) || (data.closeFriends is list && data.closeFriends.size() <= 200));
     }
 
     // ===============================================================

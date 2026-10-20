@@ -412,3 +412,50 @@ export async function removeFriend(friendshipId) {
   const friendRef = doc(db, 'burraco_friends', friendshipId);
   await deleteDoc(friendRef);
 }
+
+/**
+ * Aggiunge o rimuove un amico dalla lista degli "Amici Stretti" (closeFriends)
+ */
+export async function toggleCloseFriend(currentUser, friendUid) {
+  if (!db || !currentUser?.uid || !friendUid) return false;
+  try {
+    const userRef = doc(db, 'burraco_users', currentUser.uid);
+    const snap = await getDoc(userRef);
+    let currentClose = [];
+    if (snap.exists() && Array.isArray(snap.data().closeFriends)) {
+      currentClose = snap.data().closeFriends;
+    }
+    const isClose = currentClose.includes(friendUid);
+    const newClose = isClose 
+      ? currentClose.filter(id => id !== friendUid)
+      : [...currentClose, friendUid];
+    await setDoc(userRef, { 
+      closeFriends: newClose, 
+      updatedAt: new Date().toISOString() 
+    }, { merge: true });
+    return !isClose;
+  } catch (err) {
+    console.warn('Errore toggleCloseFriend:', err.message);
+    throw err;
+  }
+}
+
+/**
+ * Ascolta in tempo reale il profilo utente (inclusi closeFriends e guests)
+ */
+export function subscribeToMyProfile(currentUser, onProfileChange) {
+  if (!db || !currentUser?.uid) return () => {};
+  try {
+    const userRef = doc(db, 'burraco_users', currentUser.uid);
+    return onSnapshot(userRef, (snap) => {
+      if (snap.exists()) {
+        onProfileChange(snap.data());
+      }
+    }, (err) => {
+      console.warn('Errore ascolto profilo utente:', err.message);
+    });
+  } catch (err) {
+    console.warn('subscribeToMyProfile error:', err);
+    return () => {};
+  }
+}

@@ -337,6 +337,7 @@ function BurracoAppContent() {
           onChallengeFriend={(friend) => game.handleChallengeFriend(friend, () => setIsNewGameOpen(true))}
           onInviteFriendToActiveGame={(friend) => social.handleInviteFriendToActiveGame(friend, game.activeGame)}
           onRemoveFriend={social.handleRemoveFriend}
+          onToggleCloseFriend={social.handleToggleCloseFriend}
           initialTab={social.profileInitialTab}
         />
 

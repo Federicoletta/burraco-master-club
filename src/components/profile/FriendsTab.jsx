@@ -17,6 +17,7 @@ export default function FriendsTab({
   handleInviteToActiveGame,
   handleChallenge,
   onRemoveFriend,
+  onToggleCloseFriend,
   friendSearchInput = '',
   setFriendSearchInput,
   handleFormSubmit,
@@ -94,6 +95,16 @@ export default function FriendsTab({
           )}
         </div>
 
+        {/* Banner Spiegazione Amici Stretti ⭐ */}
+        {friendsList.length > 0 && (
+          <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-[11px] text-amber-200/90 flex items-center gap-2">
+            <span className="text-sm">⭐</span>
+            <span>
+              <strong>Amici Stretti:</strong> tocca la stella per promuovere un amico. Gli amici stretti possono essere inseriti al tavolo subito <em>senza attendere che accettino l'invito</em>.
+            </span>
+          </div>
+        )}
+
         {friendsList.length === 0 ? (
           <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800/40 text-center space-y-1.5">
             <p className="text-xs text-emerald-300/80 m-0">
@@ -142,10 +153,13 @@ export default function FriendsTab({
                         <span className="font-bold text-xs sm:text-sm text-white truncate">
                           {friend.displayName || 'Giocatore'}
                         </span>
-                        {isDeveloperAccount(friend) ? (
+                        {isDeveloperAccount(friend) && (
                           <DeveloperBadge size="xs" />
-                        ) : (
-                          <span className="text-[10px] text-amber-400">⭐</span>
+                        )}
+                        {friend.isCloseFriend && (
+                          <span className="text-[10px] text-amber-300 font-bold bg-amber-400/20 px-1.5 py-0.5 rounded-full border border-amber-400/40 flex items-center gap-0.5">
+                            ⭐ Stretto
+                          </span>
                         )}
                       </div>
                       <div className="text-[10px] text-emerald-300/70 truncate">
@@ -164,6 +178,28 @@ export default function FriendsTab({
 
                   {/* Tasti Azione */}
                   <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Tasto Amico Stretto ⭐ */}
+                    {onToggleCloseFriend && (
+                      <button
+                        type="button"
+                        onClick={() => onToggleCloseFriend(friend)}
+                        className={`p-1.5 rounded-lg border text-xs transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
+                          friend.isCloseFriend
+                            ? 'bg-amber-400/25 border-amber-400 text-amber-300 shadow-sm shadow-amber-950/40'
+                            : 'bg-emerald-900/40 border-emerald-700/50 text-emerald-400/60 hover:text-amber-300 hover:border-amber-400/40'
+                        }`}
+                        title={
+                          friend.isCloseFriend
+                            ? 'Amico Stretto (entra subito senza invito). Tocca per toglierlo dagli amici stretti.'
+                            : 'Tocca per rendere Amico Stretto (potrai aggiungerlo subito al tavolo senza attesa invito)'
+                        }
+                      >
+                        <span className={friend.isCloseFriend ? 'text-amber-400 text-sm' : 'opacity-60 text-sm'}>
+                          {friend.isCloseFriend ? '⭐' : '☆'}
+                        </span>
+                      </button>
+                    )}
+
                     {activeGame && activeGame.id && handleInviteToActiveGame && (
                       tablePlayers.some(p => (friend.uid && p.uid === friend.uid) || (friend.email && p.email?.toLowerCase() === friend.email?.toLowerCase())) ? (
                         <span className="px-2 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-400/40">

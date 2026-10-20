@@ -86,7 +86,8 @@ export default function PlayerAutocompleteInput({
           name: name || email,
           email: f.email,
           photoURL: f.photoURL,
-          uid: f.uid
+          uid: f.uid,
+          isCloseFriend: Boolean(f.isCloseFriend)
         });
         seenNames.add((name || email).toLowerCase());
       }
@@ -204,10 +205,15 @@ export default function PlayerAutocompleteInput({
                             <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
                             <span>Tu (Account)</span>
                           </span>
+                        ) : item.isCloseFriend ? (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-400/30 to-amber-500/30 text-amber-300 border border-amber-400/70 flex items-center gap-0.5 shrink-0 shadow-xs">
+                            <span>⭐</span>
+                            <span>Amico Stretto</span>
+                          </span>
                         ) : (
-                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center gap-0.5 shrink-0">
-                            <Sparkles className="w-2.5 h-2.5 text-amber-400" />
-                            <span>Amico Club</span>
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-800/40 text-emerald-300/80 border border-emerald-700/50 flex items-center gap-0.5 shrink-0">
+                            <span>📩</span>
+                            <span>Richiede invito</span>
                           </span>
                         )}
                       </div>
