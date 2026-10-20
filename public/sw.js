@@ -1,12 +1,10 @@
-const CACHE_NAME = 'burraco-cache-v2';
+const CACHE_NAME = 'burraco-cache-v3';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/version.json'
 ];
 
-// Install: precache essential shell
+// Install: precache essential assets and activate immediately
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -16,7 +14,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: clean up older caches
+// Activate: clean up older caches and claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -37,17 +35,17 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   // HTML & version: Network First, Fallback to Cache
-  if (request.mode === 'navigate' || url.pathname.endsWith('version.json') || url.pathname === '/') {
+  if (request.mode === 'navigate' || url.pathname.endsWith('version.json') || url.pathname === '/' || url.pathname.endsWith('.html')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok) {
+          if (response && response.status === 200) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }
           return response;
         })
-        .catch(() => caches.match(request).then((res) => res || caches.match('/')))
+        .catch(() => caches.match(request).then((res) => res || caches.match('/version.json')))
     );
     return;
   }
