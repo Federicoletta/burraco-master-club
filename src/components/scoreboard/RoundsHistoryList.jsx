@@ -19,7 +19,7 @@ export default function RoundsHistoryList({
 
   return (
     <div className="felt-card rounded-2xl border border-emerald-600/30 overflow-hidden shadow-xl">
-      <div className="py-2.5 px-3 sm:px-4 bg-emerald-950/90 border-b border-emerald-700/50 flex flex-wrap items-center justify-between gap-2">
+      <div className="py-2.5 px-3 sm:px-4 bg-black/30 border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-amber-400 font-serif text-base sm:text-lg">♦ ♠</span>
           <h3 className="text-xs sm:text-sm font-bold text-white m-0">Foglio Segnapunti Mani</h3>
@@ -66,7 +66,7 @@ export default function RoundsHistoryList({
 
       {roundsWithProgressive.length === 0 ? (
         <div className="p-8 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-emerald-900/60 border border-emerald-700/50 flex items-center justify-center mx-auto text-emerald-300">
+          <div className="w-12 h-12 rounded-full bg-white/10 border border-white/15 flex items-center justify-center mx-auto text-amber-300">
             ♣
           </div>
           <h4 className="text-sm font-bold text-white">Nessuna mano registrata</h4>

@@ -21,11 +21,11 @@ export default function ScoreBoardToolbar({
   }, []);
 
   return (
-    <div className="py-2 px-3 rounded-xl bg-emerald-950/80 border border-emerald-800/40 backdrop-blur-md flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shadow-sm">
+    <div className="py-2 px-3 rounded-xl felt-card flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shadow-sm">
       
       {/* Info mano in corso & Schermo attivo & Cloud Sync */}
       <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
-        <div className="px-2.5 py-1 rounded-lg bg-emerald-900/60 text-xs font-semibold text-emerald-200 flex items-center gap-1.5">
+        <div className="px-2.5 py-1 rounded-lg bg-black/30 border border-white/10 text-xs font-semibold text-white/90 flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
           <span>Mano in corso: <strong className="text-amber-300">#{roundsCount + 1}</strong></span>
           <span className="text-emerald-600">•</span>

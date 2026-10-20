@@ -22,10 +22,10 @@ export default function TeamScoreCards({
     <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'md:grid-cols-2'} gap-2.5 sm:gap-3.5`}>
       
       {/* CARD SQUADRA 1 (TEMA ORO / AMBRA) */}
-      <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-amber-400 transition-all duration-300 ${
+      <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-amber-400 felt-card transition-all duration-300 ${
         leader === 'team1' 
-          ? 'bg-gradient-to-br from-emerald-950/95 via-emerald-950/85 to-amber-950/30 border-amber-400/80 ring-1 ring-amber-400/30 shadow-xl shadow-amber-950/30' 
-          : 'bg-emerald-950/75 border-emerald-600/30 hover:border-amber-500/40 shadow-md'
+          ? 'border-amber-400/80 ring-2 ring-amber-400/30 shadow-xl shadow-amber-950/30' 
+          : 'hover:border-amber-500/40 shadow-md'
       }`}>
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <div>
@@ -51,7 +51,7 @@ export default function TeamScoreCards({
                   return (
                     <span 
                       key={p} 
-                      className="inline-flex items-center gap-1 bg-emerald-900/90 px-1.5 py-0.5 rounded-md border border-amber-500/25 text-[11px] shadow-sm"
+                      className="inline-flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded-md border border-white/15 text-[11px] shadow-sm"
                       title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
                     >
                       {tInfo && <span>{tInfo.icon}</span>}
@@ -80,7 +80,7 @@ export default function TeamScoreCards({
             <span className="text-sm font-normal text-amber-300/80 ml-1.5">pt</span>
           </div>
           <div className="text-right">
-            <span className="text-[11px] text-emerald-400/80 block">Traguardo: {targetScore}</span>
+            <span className="text-[11px] text-white/70 block">Traguardo: {targetScore}</span>
             <span className="text-xs font-bold text-amber-300">
               {targetScore - totalTeam1 > 0 
                 ? `Mancano ${targetScore - totalTeam1} pt` 
@@ -90,23 +90,23 @@ export default function TeamScoreCards({
         </div>
 
         {/* Barra di Progresso */}
-        <div className="w-full bg-emerald-950/90 rounded-full h-2.5 p-0.5 border border-emerald-700/60 overflow-hidden shadow-inner">
+        <div className="w-full bg-black/40 rounded-full h-2.5 p-0.5 border border-white/10 overflow-hidden shadow-inner">
           <div 
             className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-200 h-full rounded-full transition-all duration-500 shadow-sm"
             style={{ width: `${t1Percent}%` }}
           />
         </div>
-        <div className="flex justify-between text-[10px] sm:text-[11px] text-emerald-400/80 mt-1 font-medium">
+        <div className="flex justify-between text-[10px] sm:text-[11px] text-white/70 mt-1 font-medium">
           <span>Progresso vittoria</span>
           <span className="font-bold text-amber-300">{t1Percent}%</span>
         </div>
       </div>
 
       {/* CARD SQUADRA 2 (TEMA BLU NOTTE / ZAFFIRO) */}
-      <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-blue-400 transition-all duration-300 ${
+      <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-blue-400 felt-card transition-all duration-300 ${
         leader === 'team2' 
-          ? 'bg-gradient-to-br from-emerald-950/95 via-emerald-950/85 to-blue-950/35 border-blue-400/80 ring-1 ring-blue-400/30 shadow-xl shadow-blue-950/30' 
-          : 'bg-emerald-950/75 border-emerald-600/30 hover:border-blue-500/40 shadow-md'
+          ? 'border-blue-400/80 ring-2 ring-blue-400/30 shadow-xl shadow-blue-950/30' 
+          : 'hover:border-blue-500/40 shadow-md'
       }`}>
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <div>
@@ -132,7 +132,7 @@ export default function TeamScoreCards({
                   return (
                     <span 
                       key={p} 
-                      className="inline-flex items-center gap-1 bg-emerald-900/90 px-1.5 py-0.5 rounded-md border border-blue-500/25 text-[11px] shadow-sm"
+                      className="inline-flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded-md border border-white/15 text-[11px] shadow-sm"
                       title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
                     >
                       {tInfo && <span>{tInfo.icon}</span>}
@@ -161,7 +161,7 @@ export default function TeamScoreCards({
             <span className="text-sm font-normal text-blue-300/80 ml-1.5">pt</span>
           </div>
           <div className="text-right">
-            <span className="text-[11px] text-emerald-400/80 block">Traguardo: {targetScore}</span>
+            <span className="text-[11px] text-white/70 block">Traguardo: {targetScore}</span>
             <span className="text-xs font-bold text-blue-300">
               {targetScore - totalTeam2 > 0 
                 ? `Mancano ${targetScore - totalTeam2} pt` 
@@ -171,13 +171,13 @@ export default function TeamScoreCards({
         </div>
 
         {/* Barra di Progresso */}
-        <div className="w-full bg-emerald-950/90 rounded-full h-2.5 p-0.5 border border-emerald-700/60 overflow-hidden shadow-inner">
+        <div className="w-full bg-black/40 rounded-full h-2.5 p-0.5 border border-white/10 overflow-hidden shadow-inner">
           <div 
             className="bg-gradient-to-r from-blue-500 via-sky-400 to-indigo-300 h-full rounded-full transition-all duration-500 shadow-sm"
             style={{ width: `${t2Percent}%` }}
           />
         </div>
-        <div className="flex justify-between text-[10px] sm:text-[11px] text-emerald-400/80 mt-1 font-medium">
+        <div className="flex justify-between text-[10px] sm:text-[11px] text-white/70 mt-1 font-medium">
           <span>Progresso vittoria</span>
           <span className="font-bold text-blue-300">{t2Percent}%</span>
         </div>
@@ -185,10 +185,10 @@ export default function TeamScoreCards({
 
       {/* CARD SQUADRA 3 (TEMA RUBINO / ROSA - SOLO SE A 3) */}
       {isTrio && (
-        <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-rose-400 transition-all duration-300 ${
+        <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-rose-400 felt-card transition-all duration-300 ${
           leader === 'team3' 
-            ? 'bg-gradient-to-br from-emerald-950/95 via-emerald-950/85 to-rose-950/35 border-rose-400/80 ring-1 ring-rose-400/30 shadow-xl shadow-rose-950/30' 
-            : 'bg-emerald-950/75 border-emerald-600/30 hover:border-rose-500/40 shadow-md'
+            ? 'border-rose-400/80 ring-2 ring-rose-400/30 shadow-xl shadow-rose-950/30' 
+            : 'hover:border-rose-500/40 shadow-md'
         }`}>
           <div className="flex items-start justify-between gap-2 mb-1.5">
             <div>
@@ -214,7 +214,7 @@ export default function TeamScoreCards({
                     return (
                       <span 
                         key={p} 
-                        className="inline-flex items-center gap-1 bg-emerald-900/90 px-1.5 py-0.5 rounded-md border border-rose-500/25 text-[11px] shadow-sm"
+                        className="inline-flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded-md border border-white/15 text-[11px] shadow-sm"
                         title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
                       >
                         {tInfo && <span>{tInfo.icon}</span>}
@@ -243,7 +243,7 @@ export default function TeamScoreCards({
               <span className="text-sm font-normal text-rose-300/80 ml-1.5">pt</span>
             </div>
             <div className="text-right">
-              <span className="text-[11px] text-emerald-400/80 block">Traguardo: {targetScore}</span>
+              <span className="text-[11px] text-white/70 block">Traguardo: {targetScore}</span>
               <span className="text-xs font-bold text-rose-300">
                 {targetScore - totalTeam3 > 0 
                   ? `Mancano ${targetScore - totalTeam3} pt` 
@@ -253,13 +253,13 @@ export default function TeamScoreCards({
           </div>
 
           {/* Barra di Progresso */}
-          <div className="w-full bg-emerald-950/90 rounded-full h-2.5 p-0.5 border border-emerald-700/60 overflow-hidden shadow-inner">
+          <div className="w-full bg-black/40 rounded-full h-2.5 p-0.5 border border-white/10 overflow-hidden shadow-inner">
             <div 
               className="bg-gradient-to-r from-rose-500 via-pink-400 to-rose-300 h-full rounded-full transition-all duration-500 shadow-sm"
               style={{ width: `${t3Percent}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] sm:text-[11px] text-emerald-400/80 mt-1 font-medium">
+          <div className="flex justify-between text-[10px] sm:text-[11px] text-white/70 mt-1 font-medium">
             <span>Progresso vittoria</span>
             <span className="font-bold text-rose-300">{t3Percent}%</span>
           </div>

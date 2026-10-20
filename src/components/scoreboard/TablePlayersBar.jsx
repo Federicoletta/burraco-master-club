@@ -102,8 +102,8 @@ export default function TablePlayersBar({
   const isTrio = activeGame.mode === 'trio';
 
   return (
-    <div className="p-2.5 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950 via-emerald-900/60 to-zinc-950 border border-emerald-600/50 shadow-lg">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 mb-2 border-b border-emerald-800/50">
+    <div className="p-2.5 sm:p-3.5 rounded-2xl felt-card shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 mb-2 border-b border-white/10">
         <div className="flex items-start sm:items-center gap-2 min-w-0">
           <span className="relative flex h-2.5 w-2.5 shrink-0 mt-1 sm:mt-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -211,10 +211,10 @@ export default function TablePlayersBar({
                 key={playerKey}
                 className={`p-1.5 sm:p-2.5 rounded-xl border flex items-center justify-between gap-1.5 sm:gap-2 transition-all ${
                   isMe
-                    ? 'bg-emerald-900/40 border-emerald-500/40'
+                    ? 'bg-white/10 border-amber-400/40'
                     : isFriend
-                    ? 'bg-amber-950/20 border-amber-500/30'
-                    : 'bg-emerald-950/70 border-emerald-700/40 hover:border-amber-400/50'
+                    ? 'bg-amber-950/30 border-amber-500/30'
+                    : 'bg-black/30 border-white/10 hover:border-amber-400/50'
                 }`}
               >
                 {/* Avatar & Nome */}

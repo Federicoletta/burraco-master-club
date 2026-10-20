@@ -6,12 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="theme-color" content="#0b291e" />
+    <meta name="theme-color" content="#08291c" />
     <meta name="description" content="Segnapunti digitale per Burraco a coppie e singolo con calcolatore guidato e statistiche per partecipante" />
     <link rel="manifest" href="/manifest.json" />
     <title>Burraco Score - Segnapunti & Statistiche</title>
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('burraco_theme_v1');
+          if (t && ['emerald','navy','burgundy','velvet'].indexOf(t) !== -1) {
+            document.documentElement.setAttribute('data-theme', t);
+            var m = { emerald: '#08291c', navy: '#091833', burgundy: '#280812', velvet: '#121316' }[t];
+            if (m) {
+              var meta = document.querySelector('meta[name="theme-color"]');
+              if (meta) meta.setAttribute('content', m);
+            }
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
-  <body class="bg-[#0b291e] text-white">
+  <body class="text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
