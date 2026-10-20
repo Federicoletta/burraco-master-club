@@ -32,8 +32,14 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/firebase')) {
-            return 'vendor-firebase';
+          if (id.includes('@firebase/firestore') || id.includes('firebase/firestore')) {
+            return 'vendor-firebase-firestore';
+          }
+          if (id.includes('@firebase/auth') || id.includes('firebase/auth')) {
+            return 'vendor-firebase-auth';
+          }
+          if (id.includes('firebase') || id.includes('@firebase')) {
+            return 'vendor-firebase-core';
           }
           if (id.includes('node_modules/lucide-react')) {
             return 'vendor-icons';
