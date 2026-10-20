@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Users, User, Trophy, Sparkles, Check } from 'lucide-react';
-import { DEFAULT_TARGET_SCORES } from '../constants/burraco';
-import PlayerAutocompleteInput from './PlayerAutocompleteInput';
+import { X, Sparkles, Check } from 'lucide-react';
+import GameModeSelector from './newgame/GameModeSelector';
+import PlayerRosterInputs from './newgame/PlayerRosterInputs';
+import QuickPlayerChips from './newgame/QuickPlayerChips';
+import TargetScoreSelector from './newgame/TargetScoreSelector';
+import SemipulitoToggle from './newgame/SemipulitoToggle';
 
 export default function NewGameModal({ 
   isOpen, 
@@ -57,6 +60,15 @@ export default function NewGameModal({
       }
     }
   }, [isOpen, initialSetup]);
+
+  const handleQuickSelectPlayer = useCallback((name) => {
+    if (!p1A) setP1A(name);
+    else if (mode === 'pairs' && !p1B) setP1B(name);
+    else if (!p2A) setP2A(name);
+    else if (mode === 'pairs' && !p2B) setP2B(name);
+    else if (mode === 'trio' && !p3A) setP3A(name);
+    else setP1A(name);
+  }, [mode, p1A, p1B, p2A, p2B, p3A]);
 
   if (!isOpen) return null;
   if (typeof document === 'undefined') return null;
@@ -148,348 +160,52 @@ export default function NewGameModal({
         )}
 
         <form onSubmit={handleStart} className="space-y-4 mt-3.5">
-          
-          {/* Selettore Modalità 2v2, A 3, o 1v1 */}
-          <div>
-            <label className="block text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">
-              Modalità di Gioco
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setMode('pairs')}
-                className={`py-2 px-2 rounded-xl border flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                  mode === 'pairs'
-                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
-                    : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
-                }`}
-              >
-                <Users className="w-4 h-4" />
-                <span>A Coppie (2v2)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('trio')}
-                className={`py-2 px-2 rounded-xl border flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                  mode === 'trio'
-                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400/30'
-                    : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
-                }`}
-              >
-                <Users className="w-4 h-4 text-amber-400" />
-                <span>A 3 (1 vs 2)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('singles')}
-                className={`py-2 px-2 rounded-xl border flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                  mode === 'singles'
-                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
-                    : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
-                }`}
-              >
-                <User className="w-4 h-4" />
-                <span>Singolo (1v1)</span>
-              </button>
-            </div>
-          </div>
+          {/* 1. Selettore Modalità */}
+          <GameModeSelector mode={mode} setMode={setMode} />
 
-          {/* Selezione Partecipanti */}
-          <div className={`grid grid-cols-1 ${mode === 'trio' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
-            
-            {/* SQUADRA / GIOCATORE 1 */}
-            <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30 space-y-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                  <span>♦</span> {mode === 'pairs' ? 'Squadra / Coppia 1' : 'Giocatore 1'}
-                </span>
-              </div>
+          {/* 2. Selezione Partecipanti */}
+          <PlayerRosterInputs
+            mode={mode}
+            team1Name={team1Name}
+            setTeam1Name={setTeam1Name}
+            team2Name={team2Name}
+            setTeam2Name={setTeam2Name}
+            p1A={p1A}
+            setP1A={setP1A}
+            p1B={p1B}
+            setP1B={setP1B}
+            p2A={p2A}
+            setP2A={setP2A}
+            p2B={p2B}
+            setP2B={setP2B}
+            p3A={p3A}
+            setP3A={setP3A}
+            currentUser={currentUser}
+            friendsList={friendsList}
+            availablePlayers={availablePlayers}
+          />
 
-              {mode === 'pairs' && (
-                <input
-                  type="text"
-                  placeholder="Nome Squadra 1 (opzionale)"
-                  value={team1Name}
-                  onChange={(e) => setTeam1Name(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/50 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-amber-400"
-                />
-              )}
+          {/* 3. Suggerimenti veloci Amici Registrati & Giocatori Locali */}
+          <QuickPlayerChips
+            currentUser={currentUser}
+            friendsList={friendsList}
+            availablePlayers={availablePlayers}
+            onSelectPlayer={handleQuickSelectPlayer}
+          />
 
-              <div className="space-y-2">
-                <div>
-                  <label className="text-[11px] text-emerald-300/80 block mb-0.5">
-                    {mode === 'pairs' ? 'Giocatore A' : 'Nome Partecipante'}
-                  </label>
-                  <PlayerAutocompleteInput
-                    value={p1A}
-                    onChange={setP1A}
-                    currentUser={currentUser}
-                    friendsList={friendsList}
-                    availablePlayers={availablePlayers}
-                    alreadySelected={[p1B, p2A, p2B, p3A]}
-                    className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-amber-400"
-                    placeholder={mode === 'pairs' ? 'Nome Giocatore 1 (opzionale)' : 'Nome Giocatore (opzionale)'}
-                  />
-                </div>
+          {/* 4. Punteggio Obiettivo */}
+          <TargetScoreSelector
+            targetScore={targetScore}
+            setTargetScore={setTargetScore}
+            customTarget={customTarget}
+            setCustomTarget={setCustomTarget}
+          />
 
-                {mode === 'pairs' && (
-                  <div>
-                    <label className="text-[11px] text-emerald-300/80 block mb-0.5">Giocatore B</label>
-                    <PlayerAutocompleteInput
-                      value={p1B}
-                      onChange={setP1B}
-                      currentUser={currentUser}
-                      friendsList={friendsList}
-                      availablePlayers={availablePlayers}
-                      alreadySelected={[p1A, p2A, p2B, p3A]}
-                      className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-amber-400"
-                      placeholder="Nome Giocatore 2 (opzionale)"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* SQUADRA / GIOCATORE 2 */}
-            <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30 space-y-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-blue-300 uppercase tracking-wider flex items-center gap-1">
-                  <span>♠</span> {mode === 'pairs' ? 'Squadra / Coppia 2' : 'Giocatore 2'}
-                </span>
-              </div>
-
-              {mode === 'pairs' && (
-                <input
-                  type="text"
-                  placeholder="Nome Squadra 2 (opzionale)"
-                  value={team2Name}
-                  onChange={(e) => setTeam2Name(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/50 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-blue-400"
-                />
-              )}
-
-              <div className="space-y-2">
-                <div>
-                  <label className="text-[11px] text-emerald-300/80 block mb-0.5">
-                    {mode === 'pairs' ? 'Giocatore A' : 'Nome Partecipante'}
-                  </label>
-                  <PlayerAutocompleteInput
-                    value={p2A}
-                    onChange={setP2A}
-                    currentUser={currentUser}
-                    friendsList={friendsList}
-                    availablePlayers={availablePlayers}
-                    alreadySelected={[p1A, p1B, p2B, p3A]}
-                    className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-blue-400"
-                    placeholder={mode === 'pairs' ? 'Nome Giocatore 1 (opzionale)' : 'Nome Giocatore (opzionale)'}
-                  />
-                </div>
-
-                {mode === 'pairs' && (
-                  <div>
-                    <label className="text-[11px] text-emerald-300/80 block mb-0.5">Giocatore B</label>
-                    <PlayerAutocompleteInput
-                      value={p2B}
-                      onChange={setP2B}
-                      currentUser={currentUser}
-                      friendsList={friendsList}
-                      availablePlayers={availablePlayers}
-                      alreadySelected={[p1A, p1B, p2A, p3A]}
-                      className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-blue-400"
-                      placeholder="Nome Giocatore 2 (opzionale)"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* GIOCATORE 3 (Solo in modalità A 3) */}
-            {mode === 'trio' && (
-              <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30 space-y-2 animate-in fade-in">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1">
-                    <span>♥</span> Giocatore 3
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-[11px] text-emerald-300/80 block mb-0.5">
-                      Nome Partecipante
-                    </label>
-                    <PlayerAutocompleteInput
-                      value={p3A}
-                      onChange={setP3A}
-                      currentUser={currentUser}
-                      friendsList={friendsList}
-                      availablePlayers={availablePlayers}
-                      alreadySelected={[p1A, p1B, p2A, p2B]}
-                      className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-rose-400"
-                      placeholder="Nome Giocatore (opzionale)"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-          </div>
-
-          {/* Suggerimenti veloci Amici Registrati & Giocatori Locali */}
-          <div className="space-y-2">
-            {/* 1. Tu & Amici Burraco Club con Account Google */}
-            {(currentUser || (friendsList && friendsList.length > 0)) && (
-              <div className="text-xs">
-                <span className="text-amber-300 font-bold mr-2 flex items-center gap-1 mb-1">
-                  <span>⭐ Amici Burraco Club (Google):</span>
-                </span>
-                <div className="inline-flex flex-wrap gap-1.5">
-                  {/* Chip Utente Attivo (Tu) */}
-                  {currentUser && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const myName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Tu';
-                        if (!p1A) setP1A(myName);
-                        else if (mode === 'pairs' && !p1B) setP1B(myName);
-                        else if (!p2A) setP2A(myName);
-                        else if (mode === 'pairs' && !p2B) setP2B(myName);
-                        else if (mode === 'trio' && !p3A) setP3A(myName);
-                        else setP1A(myName);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-950/90 text-emerald-200 border-2 border-emerald-400 text-[11px] font-bold hover:border-emerald-300 hover:brightness-110 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
-                    >
-                      {currentUser.photoURL ? (
-                        <img src={currentUser.photoURL} alt="" className="w-4 h-4 rounded-full border border-emerald-400 object-cover" />
-                      ) : (
-                        <span className="w-4 h-4 rounded-full bg-emerald-400 text-emerald-950 font-black text-[9px] flex items-center justify-center">
-                          {(currentUser.displayName || 'T').slice(0, 1).toUpperCase()}
-                        </span>
-                      )}
-                      <span>{currentUser.displayName || 'Tu'} (Tu)</span>
-                    </button>
-                  )}
-
-                  {/* Chips Amici */}
-                  {(friendsList || []).map(f => {
-                    const friendName = f.displayName || f.email;
-                    return (
-                      <button
-                        key={f.uid || f.email}
-                        type="button"
-                        onClick={() => {
-                          if (!p1A) setP1A(friendName);
-                          else if (mode === 'pairs' && !p1B) setP1B(friendName);
-                          else if (!p2A) setP2A(friendName);
-                          else if (mode === 'pairs' && !p2B) setP2B(friendName);
-                          else if (mode === 'trio' && !p3A) setP3A(friendName);
-                          else setP1A(friendName);
-                        }}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-950/90 text-amber-200 border border-amber-400/50 text-[11px] font-semibold hover:border-amber-300 hover:brightness-110 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
-                      >
-                        {f.photoURL ? (
-                          <img src={f.photoURL} alt="" className="w-4 h-4 rounded-full border border-amber-400 object-cover" />
-                        ) : (
-                          <span className="w-4 h-4 rounded-full bg-amber-400 text-emerald-950 font-black text-[9px] flex items-center justify-center">
-                            {friendName.slice(0, 1).toUpperCase()}
-                          </span>
-                        )}
-                        <span>{friendName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* 2. Giocatori Locali (Ospiti) */}
-            {availablePlayers && availablePlayers.length > 0 && (
-              <div className="text-xs">
-                <span className="text-emerald-300/70 mr-2 block mb-1">Giocatori Locali (Ospiti):</span>
-                <div className="inline-flex flex-wrap gap-1.5">
-                  {availablePlayers.slice(0, 12).map(name => (
-                    <button
-                      key={name}
-                      type="button"
-                      onClick={() => {
-                        if (!p1A) setP1A(name);
-                        else if (mode === 'pairs' && !p1B) setP1B(name);
-                        else if (!p2A) setP2A(name);
-                        else if (mode === 'pairs' && !p2B) setP2B(name);
-                        else if (mode === 'trio' && !p3A) setP3A(name);
-                        else setP1A(name);
-                      }}
-                      className="px-2 py-0.5 rounded-md bg-emerald-900/80 text-emerald-200 border border-emerald-700/40 text-[11px] hover:border-amber-400 hover:text-white transition-colors cursor-pointer"
-                    >
-                      + {name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Punteggio Obiettivo */}
-          <div>
-            <label className="block text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">
-              Punteggio per la Vittoria
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-              {DEFAULT_TARGET_SCORES.map(item => (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => {
-                    setTargetScore(item.value);
-                    setCustomTarget('');
-                  }}
-                  className={`py-2 px-1.5 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
-                    targetScore === item.value && !customTarget
-                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm ring-1 ring-amber-400/30'
-                      : 'bg-emerald-950/40 border-emerald-700/40 text-emerald-300 hover:bg-emerald-900/40'
-                  }`}
-                >
-                  <span className="text-xs sm:text-sm font-bold">{item.value} pt</span>
-                  {item.desc && (
-                    <span className="text-[10px] text-emerald-400/80 font-normal">
-                      {item.desc}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Punteggio Personalizzato */}
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                type="number"
-                placeholder="Altro punteggio personalizzato (es. 1500, 3000)"
-                value={customTarget}
-                onChange={(e) => setCustomTarget(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/50 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-amber-400"
-              />
-            </div>
-          </div>
-
-          {/* Regola Burraco Semipulito */}
-          <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-700/40 flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold text-white block">Consenti Burraco Semipulito (150 pt)</span>
-              <span className="text-[11px] text-emerald-400/80">Sequenza di 7+ carte con una pinella o jolly agli estremi</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setAllowSemipulito(!allowSemipulito)}
-              className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                allowSemipulito ? 'bg-amber-400' : 'bg-emerald-900 border border-emerald-700'
-              }`}
-            >
-              <div 
-                className={`w-4 h-4 rounded-full bg-emerald-950 transition-transform absolute top-1 ${
-                  allowSemipulito ? 'left-6' : 'left-1'
-                }`}
-              />
-            </button>
-          </div>
+          {/* 5. Regola Burraco Semipulito */}
+          <SemipulitoToggle
+            allowSemipulito={allowSemipulito}
+            setAllowSemipulito={setAllowSemipulito}
+          />
 
           {/* Pulsanti Azione */}
           <div className="pt-2 flex items-center justify-end gap-2 border-t border-emerald-700/50">
@@ -508,7 +224,6 @@ export default function NewGameModal({
               <span>Inizia Partita</span>
             </button>
           </div>
-
         </form>
 
       </div>
