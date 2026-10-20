@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   generateRoundRobinSchedule,
   calculateTournamentStandings,
+  calculateFiburVictoryPoints,
+  formatStandingsForSharing,
+  formatScheduleForSharing,
 } from '../src/utils/tournament';
 
 describe('Tournament Engine - generateRoundRobinSchedule', () => {
@@ -65,6 +68,40 @@ describe('Tournament Engine - generateRoundRobinSchedule', () => {
   });
 });
 
+describe('Tournament Engine - FIBUR Victory Points Calculation', () => {
+  it('converts exact draws and small diffs (0-50) to 10-10', () => {
+    expect(calculateFiburVictoryPoints(2000, 2000)).toEqual({ team1Vp: 10, team2Vp: 10, diff: 0 });
+    expect(calculateFiburVictoryPoints(2040, 2000)).toEqual({ team1Vp: 10, team2Vp: 10, diff: 40 });
+  });
+
+  it('correctly maps all official FIBUR brackets', () => {
+    // 51-150 -> 11-9
+    expect(calculateFiburVictoryPoints(2100, 2000)).toEqual({ team1Vp: 11, team2Vp: 9, diff: 100 });
+    // 151-300 -> 12-8
+    expect(calculateFiburVictoryPoints(2250, 2000)).toEqual({ team1Vp: 12, team2Vp: 8, diff: 250 });
+    // 301-500 -> 13-7
+    expect(calculateFiburVictoryPoints(2450, 2000)).toEqual({ team1Vp: 13, team2Vp: 7, diff: 450 });
+    // 501-750 -> 14-6
+    expect(calculateFiburVictoryPoints(2600, 2000)).toEqual({ team1Vp: 14, team2Vp: 6, diff: 600 });
+    // 751-1050 -> 15-5
+    expect(calculateFiburVictoryPoints(2900, 2000)).toEqual({ team1Vp: 15, team2Vp: 5, diff: 900 });
+    // 1051-1400 -> 16-4
+    expect(calculateFiburVictoryPoints(3200, 2000)).toEqual({ team1Vp: 16, team2Vp: 4, diff: 1200 });
+    // 1401-1800 -> 17-3
+    expect(calculateFiburVictoryPoints(3500, 2000)).toEqual({ team1Vp: 17, team2Vp: 3, diff: 1500 });
+    // 1801-2250 -> 18-2
+    expect(calculateFiburVictoryPoints(4000, 2000)).toEqual({ team1Vp: 18, team2Vp: 2, diff: 2000 });
+    // 2251-2750 -> 19-1
+    expect(calculateFiburVictoryPoints(4500, 2000)).toEqual({ team1Vp: 19, team2Vp: 1, diff: 2500 });
+    // > 2750 -> 20-0
+    expect(calculateFiburVictoryPoints(5000, 2000)).toEqual({ team1Vp: 20, team2Vp: 0, diff: 3000 });
+  });
+
+  it('correctly handles team2 winning', () => {
+    expect(calculateFiburVictoryPoints(1500, 2100)).toEqual({ team1Vp: 6, team2Vp: 14, diff: -600 });
+  });
+});
+
 describe('Tournament Engine - calculateTournamentStandings', () => {
   const teams = [
     { id: 't1', name: 'Coppia Oro', players: ['Mario', 'Luigi'] },
@@ -84,9 +121,8 @@ describe('Tournament Engine - calculateTournamentStandings', () => {
     });
   });
 
-  it('calculates points and rankings accurately for completed matches', () => {
+  it('calculates points and rankings accurately for completed matches in classic mode', () => {
     const matches = [
-      // Match 1: t1 vince contro t2 (2050 - 1500)
       {
         id: 'm1',
         status: 'completed',
@@ -95,7 +131,6 @@ describe('Tournament Engine - calculateTournamentStandings', () => {
         team1Score: 2050,
         team2Score: 1500,
       },
-      // Match 2: t1 vince contro t3 (2200 - 1800)
       {
         id: 'm2',
         status: 'completed',
@@ -104,7 +139,6 @@ describe('Tournament Engine - calculateTournamentStandings', () => {
         team1Score: 2200,
         team2Score: 1800,
       },
-      // Match 3: t2 vince contro t3 (2500 - 1200)
       {
         id: 'm3',
         status: 'completed',
@@ -115,9 +149,8 @@ describe('Tournament Engine - calculateTournamentStandings', () => {
       },
     ];
 
-    const standings = calculateTournamentStandings(teams, matches);
+    const standings = calculateTournamentStandings(teams, matches, 'classic');
 
-    // 1° posto: t1 (2 vittorie = 6 pt)
     expect(standings[0].id).toBe('t1');
     expect(standings[0].tournamentPoints).toBe(6);
     expect(standings[0].won).toBe(2);
@@ -125,74 +158,88 @@ describe('Tournament Engine - calculateTournamentStandings', () => {
     expect(standings[0].pointsAgainst).toBe(3300);
     expect(standings[0].pointDifference).toBe(950);
 
-    // 2° posto: t2 (1 vittoria, 1 sconfitta = 3 pt)
     expect(standings[1].id).toBe('t2');
     expect(standings[1].tournamentPoints).toBe(3);
     expect(standings[1].won).toBe(1);
     expect(standings[1].lost).toBe(1);
 
-    // 3° posto: t3 (0 vittorie, 2 sconfitte = 0 pt)
     expect(standings[2].id).toBe('t3');
     expect(standings[2].tournamentPoints).toBe(0);
     expect(standings[2].lost).toBe(2);
   });
 
-  it('properly handles draws (1 pt each)', () => {
+  it('calculates points accurately with FIBUR Victory Points system', () => {
     const matches = [
+      // t1 vs t2: 2050 - 1500 (diff +550 -> 14 VP to t1, 6 VP to t2)
       {
         id: 'm1',
         status: 'completed',
         team1Id: 't1',
         team2Id: 't2',
-        team1Score: 2000,
-        team2Score: 2000, // Pareggio
+        team1Score: 2050,
+        team2Score: 1500,
       },
-    ];
-
-    const standings = calculateTournamentStandings(teams, matches);
-    const t1 = standings.find(s => s.id === 't1');
-    const t2 = standings.find(s => s.id === 't2');
-
-    expect(t1.tournamentPoints).toBe(1);
-    expect(t1.drawn).toBe(1);
-    expect(t1.pointDifference).toBe(0);
-
-    expect(t2.tournamentPoints).toBe(1);
-    expect(t2.drawn).toBe(1);
-    expect(t2.pointDifference).toBe(0);
-  });
-
-  it('resolves tie-break using Burraco point difference', () => {
-    const matches = [
-      // Entrambe hanno 1 vittoria, ma t1 ha differenza punti migliore (+500 vs +100)
-      {
-        id: 'm1',
-        status: 'completed',
-        team1Id: 't1',
-        team2Id: 't3',
-        team1Score: 2000,
-        team2Score: 1500, // +500
-      },
+      // t1 vs t3: 2400 - 2000 (diff +400 -> 13 VP to t1, 7 VP to t3)
       {
         id: 'm2',
         status: 'completed',
-        team1Id: 't2',
+        team1Id: 't1',
         team2Id: 't3',
-        team1Score: 2000,
-        team2Score: 1900, // +100
+        team1Score: 2400,
+        team2Score: 2000,
       },
     ];
 
-    const standings = calculateTournamentStandings(teams, matches);
+    const standings = calculateTournamentStandings(teams, matches, 'fibur');
 
-    // Sia t1 che t2 hanno 3 punti torneo
-    expect(standings[0].tournamentPoints).toBe(3);
-    expect(standings[1].tournamentPoints).toBe(3);
-
-    // Ma t1 deve essere prima per migliore differenza punti (+500 vs +100)
+    // t1: 14 + 13 = 27 VP
     expect(standings[0].id).toBe('t1');
-    expect(standings[0].pointDifference).toBe(500);
-    expect(standings[1].id).toBe('t2');
-    expect(standings[1].pointDifference).toBe(100);
+    expect(standings[0].tournamentPoints).toBe(27);
+    expect(standings[0].victoryPoints).toBe(27);
+
+    // t3: 7 VP (diff -400)
+    // t2: 6 VP (diff -550)
+    expect(standings[1].id).toBe('t3');
+    expect(standings[1].tournamentPoints).toBe(7);
+
+    expect(standings[2].id).toBe('t2');
+    expect(standings[2].tournamentPoints).toBe(6);
+  });
+
+  it('properly formats standings and schedule for WhatsApp sharing', () => {
+    const tournament = {
+      id: 'tourn_1',
+      name: 'Torneo Sociale',
+      scoringSystem: 'fibur',
+      targetScore: 2505,
+      rounds: [
+        {
+          roundNumber: 1,
+          title: 'Giornata 1',
+          matches: [
+            {
+              tableNumber: 1,
+              team1Name: 'Coppia Oro',
+              team2Name: 'Coppia Argento',
+              team1Score: 2050,
+              team2Score: 1500,
+              status: 'completed',
+            },
+          ],
+        },
+      ],
+    };
+
+    const standings = calculateTournamentStandings(teams, tournament.rounds[0].matches, 'fibur');
+    const shareText = formatStandingsForSharing(tournament, standings);
+
+    expect(shareText).toContain('TORNEO SOCIALE');
+    expect(shareText).toContain('FIBUR (Victory Points)');
+    expect(shareText).toContain('🥇');
+    expect(shareText).toContain('Coppia Oro');
+
+    const scheduleText = formatScheduleForSharing(tournament);
+    expect(scheduleText).toContain('CALENDARIO TORNEO: TORNEO SOCIALE');
+    expect(scheduleText).toContain('Tavolo 1');
   });
 });

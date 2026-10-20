@@ -1,9 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { X, Trophy, Plus, Calendar, Users } from 'lucide-react';
+import { X, Trophy, Plus, Calendar, Users, ArrowLeft } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useConfirm } from '../context/ConfirmContext';
 import { sound } from '../utils/soundEffects';
-import { generateRoundRobinSchedule, calculateTournamentStandings } from '../utils/tournament';
+import {
+  generateRoundRobinSchedule,
+  calculateTournamentStandings,
+  getTournamentsHistory,
+  deleteTournamentFromHistory
+} from '../utils/tournament';
 import TournamentWizard from './tournament/TournamentWizard';
 import TournamentStandingsTab from './tournament/TournamentStandingsTab';
 import TournamentScheduleTab from './tournament/TournamentScheduleTab';
@@ -24,10 +29,13 @@ export default function TournamentModal({
   const [activeTab, setActiveTab] = useState('standings'); // 'standings' | 'schedule' | 'manage'
   const [isCreating, setIsCreating] = useState(!activeTournament);
   const [selectedRoundFilter, setSelectedRoundFilter] = useState('all');
+  const [tournamentsHistory, setTournamentsHistory] = useState(() => getTournamentsHistory());
+  const [viewingHistoricalTournament, setViewingHistoricalTournament] = useState(null);
 
   // Stato form creazione
   const [tournamentName, setTournamentName] = useState('Torneo Burraco');
   const [targetScore, setTargetScore] = useState(2505);
+  const [scoringSystem, setScoringSystem] = useState('fibur'); // 'fibur' | 'classic'
   const [numTeams, setNumTeams] = useState(4);
   const [teamsForm, setTeamsForm] = useState([
     { id: 'team_1', name: 'Coppia 1', player1: '', player2: '' },
@@ -50,12 +58,10 @@ export default function TournamentModal({
       let targetIdx = activePlayerField.teamIndex;
       let targetSlot = activePlayerField.playerSlot;
 
-      // Se lo slot correntemente selezionato è già pieno con questo giocatore, non fare nulla
       if (next[targetIdx] && next[targetIdx][`player${targetSlot}`] === playerName) {
         return next;
       }
 
-      // Se lo slot target ha già un nome, prova a trovare il primo slot vuoto
       if (next[targetIdx] && next[targetIdx][`player${targetSlot}`] !== '') {
         let foundEmpty = false;
         for (let i = 0; i < next.length; i++) {
@@ -83,7 +89,6 @@ export default function TournamentModal({
           ...next[targetIdx],
           [`player${targetSlot}`]: playerName,
         };
-        // Auto-genera il nome della coppia se ancora generico o vuoto
         const p1 = targetSlot === 1 ? playerName : next[targetIdx].player1;
         const p2 = targetSlot === 2 ? playerName : next[targetIdx].player2;
         const combined = [p1, p2].filter(Boolean).join(' & ');
@@ -92,7 +97,6 @@ export default function TournamentModal({
         }
       }
 
-      // Avanza automaticamente al prossimo slot giocatore
       if (targetSlot === 1) {
         setActivePlayerField({ teamIndex: targetIdx, playerSlot: 2 });
       } else if (targetIdx + 1 < next.length) {
@@ -127,11 +131,26 @@ export default function TournamentModal({
     return tournamentRounds.flatMap(r => r.matches || []);
   }, [tournamentRounds]);
 
-  // Calcola classifica live
+  // Calcola classifica live del torneo attivo
   const standings = useMemo(() => {
     if (!tournamentTeams) return [];
-    return calculateTournamentStandings(tournamentTeams, allMatches);
-  }, [tournamentTeams, allMatches]);
+    return calculateTournamentStandings(
+      tournamentTeams, 
+      allMatches, 
+      activeTournament?.scoringSystem || 'fibur'
+    );
+  }, [tournamentTeams, allMatches, activeTournament?.scoringSystem]);
+
+  // Calcola classifica di un eventuale torneo storico in visualizzazione
+  const historicalStandings = useMemo(() => {
+    if (!viewingHistoricalTournament) return [];
+    const histMatches = (viewingHistoricalTournament.rounds || []).flatMap(r => r.matches || []);
+    return calculateTournamentStandings(
+      viewingHistoricalTournament.teams || [],
+      histMatches,
+      viewingHistoricalTournament.scoringSystem || 'fibur'
+    );
+  }, [viewingHistoricalTournament]);
 
   if (!isOpen) return null;
 
@@ -156,6 +175,7 @@ export default function TournamentModal({
       name: tournamentName.trim() || 'Torneo Burraco',
       createdAt: new Date().toISOString(),
       targetScore: Number(targetScore) || 2505,
+      scoringSystem: scoringSystem || 'fibur',
       status: 'in_progress', // 'in_progress' | 'completed'
       teams: formattedTeams,
       rounds,
@@ -204,23 +224,79 @@ export default function TournamentModal({
     setEditingMatch(null);
   };
 
+  // Modifica squadre al volo a torneo in corso
+  const handleUpdateTeamsInTournament = (teamId, updatedData) => {
+    if (!activeTournament) return;
+    const updatedTeams = (activeTournament.teams || []).map(t => {
+      if (t.id === teamId) {
+        return {
+          ...t,
+          name: updatedData.name,
+          players: updatedData.players,
+        };
+      }
+      return t;
+    });
+
+    const updatedRounds = (activeTournament.rounds || []).map(r => ({
+      ...r,
+      matches: (r.matches || []).map(m => {
+        let matchUpdated = { ...m };
+        if (m.team1Id === teamId) {
+          matchUpdated.team1Name = updatedData.name;
+          matchUpdated.team1Players = updatedData.players;
+        }
+        if (m.team2Id === teamId) {
+          matchUpdated.team2Name = updatedData.name;
+          matchUpdated.team2Players = updatedData.players;
+        }
+        return matchUpdated;
+      })
+    }));
+
+    const updatedTournament = {
+      ...activeTournament,
+      teams: updatedTeams,
+      rounds: updatedRounds,
+    };
+    onUpdateTournament(updatedTournament);
+  };
+
   // Proclamazione vincitore e conclusione torneo
   const handleFinishAndCelebrate = async () => {
     const ok = await confirm({
-      title: 'Concludi Torneo',
-      message: 'Vuoi davvero dichiarare concluso il torneo e proclamare i vincitori?',
-      confirmText: 'Sì, concludi',
+      title: 'Concludi Torneo & Premiazione',
+      message: 'Vuoi davvero proclamare i campioni ufficiali e archiviare il torneo nell\'Albo d\'Oro?',
+      confirmText: 'Sì, concludi e premia 🏆',
       variant: 'warning'
     });
     if (!ok) return;
 
     sound.playVictoryFanfare();
     try {
-      confetti({ particleCount: 180, spread: 80, origin: { y: 0.6 } });
+      confetti({ particleCount: 220, spread: 90, origin: { y: 0.6 } });
     } catch {}
 
     onFinishTournament();
+    setTournamentsHistory(getTournamentsHistory());
     setActiveTab('standings');
+  };
+
+  // Elimina torneo storico
+  const handleDeleteHistoricalTournament = async (tournamentId) => {
+    const ok = await confirm({
+      title: 'Elimina Torneo Storico',
+      message: 'Vuoi davvero rimuovere questo torneo dall\'Albo d\'Oro? L\'operazione non è reversibile.',
+      confirmText: 'Elimina definitivamente',
+      variant: 'danger'
+    });
+    if (!ok) return;
+
+    const updated = deleteTournamentFromHistory(tournamentId);
+    setTournamentsHistory(updated);
+    if (viewingHistoricalTournament?.id === tournamentId) {
+      setViewingHistoricalTournament(null);
+    }
   };
 
   const handleEditMatch = (match) => {
@@ -234,7 +310,7 @@ export default function TournamentModal({
       <div className="relative w-full max-w-4xl felt-card rounded-2xl sm:rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
         
         {/* HEADER MODALE */}
-        <div className="flex items-center justify-between pb-3 border-b border-emerald-700/50 shrink-0">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md shrink-0">
               <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-950" />
@@ -242,9 +318,13 @@ export default function TournamentModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-xl font-black text-white m-0">
-                  {isCreating ? 'Nuovo Torneo di Burraco' : activeTournament?.name}
+                  {viewingHistoricalTournament
+                    ? `Albo d'Oro: ${viewingHistoricalTournament.name}`
+                    : isCreating
+                    ? 'Nuovo Torneo di Burraco'
+                    : activeTournament?.name}
                 </h2>
-                {activeTournament && !isCreating && (
+                {activeTournament && !isCreating && !viewingHistoricalTournament && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                     activeTournament.status === 'completed'
                       ? 'bg-amber-400 text-emerald-950'
@@ -254,29 +334,42 @@ export default function TournamentModal({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-emerald-300/80 m-0">
-                {isCreating 
-                  ? 'Configura coppie partecipanti, formule e calendario'
-                  : `Obiettivo partite: ${activeTournament?.targetScore || 2505} pt • 3 pt Vittoria, 1 pt Pareggio`}
+              <p className="text-xs text-white/70 m-0">
+                {viewingHistoricalTournament
+                  ? 'Consulta la classifica finale archiviata'
+                  : isCreating 
+                  ? 'Configura formula, coppie partecipanti e calendario'
+                  : `Obiettivo: ${activeTournament?.targetScore || 2505} pt • Formula: ${activeTournament?.scoringSystem === 'classic' ? 'Classica (3-1-0)' : 'FIBUR Victory Points (20-0)'}`}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {!isCreating && activeTournament && (
+            {viewingHistoricalTournament ? (
               <button
                 type="button"
-                onClick={() => setIsCreating(true)}
-                className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-white border border-emerald-600/40 text-xs font-bold items-center gap-1 cursor-pointer transition-all active:scale-95"
+                onClick={() => setViewingHistoricalTournament(null)}
+                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
               >
-                <Plus className="w-3.5 h-3.5 text-amber-400" />
-                <span>Nuovo Torneo</span>
+                <ArrowLeft className="w-3.5 h-3.5 text-amber-400" />
+                <span>Torna al Torneo</span>
               </button>
+            ) : (
+              !isCreating && activeTournament && (
+                <button
+                  type="button"
+                  onClick={() => setIsCreating(true)}
+                  className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 text-xs font-bold items-center gap-1 cursor-pointer transition-all active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Nuovo Torneo</span>
+                </button>
+              )
             )}
             <button 
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -290,6 +383,8 @@ export default function TournamentModal({
             setTournamentName={setTournamentName}
             targetScore={targetScore}
             setTargetScore={setTargetScore}
+            scoringSystem={scoringSystem}
+            setScoringSystem={setScoringSystem}
             numTeams={numTeams}
             onNumTeamsChange={handleNumTeamsChange}
             playersList={playersList}
@@ -302,19 +397,28 @@ export default function TournamentModal({
             activeTournament={activeTournament}
             onCancelCreating={() => setIsCreating(false)}
           />
+        ) : viewingHistoricalTournament ? (
+          /* VISTA CLASSIFICA STORICA */
+          <div className="flex-1 flex flex-col min-h-0 my-3">
+            <TournamentStandingsTab
+              tournament={viewingHistoricalTournament}
+              standings={historicalStandings}
+              onGoToSchedule={null}
+            />
+          </div>
         ) : (
           /* VISTA TORNEO ATTIVO */
           <div className="flex-1 flex flex-col min-h-0">
             
-            {/* BARRA TAB (Classifica, Calendario, Gestione) */}
-            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-emerald-950/80 border border-emerald-800/60 my-3 shrink-0">
+            {/* BARRA TAB (Classifica, Calendario, Gestione & Albo d'Oro) */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-black/40 border border-white/10 my-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveTab('standings')}
                 className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'standings'
                     ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                    : 'text-emerald-300 hover:text-white'
+                    : 'text-white/80 hover:text-white'
                 }`}
               >
                 <Trophy className="w-3.5 h-3.5 shrink-0" />
@@ -327,7 +431,7 @@ export default function TournamentModal({
                 className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'schedule'
                     ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                    : 'text-emerald-300 hover:text-white'
+                    : 'text-white/80 hover:text-white'
                 }`}
               >
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
@@ -340,18 +444,19 @@ export default function TournamentModal({
                 className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'manage'
                     ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                    : 'text-emerald-300 hover:text-white'
+                    : 'text-white/80 hover:text-white'
                 }`}
               >
                 <Users className="w-3.5 h-3.5 shrink-0" />
-                <span>Gestione & Chiusura</span>
+                <span>Squadre & Albo d'Oro</span>
               </button>
             </div>
 
-            {/* CONTENUTO TAB */}
+            {/* CONTENUTO TAB ATTIVO */}
             <div className="flex-1 overflow-y-auto pr-1">
               {activeTab === 'standings' && (
                 <TournamentStandingsTab
+                  tournament={activeTournament}
                   standings={standings}
                   onGoToSchedule={() => setActiveTab('schedule')}
                 />
@@ -359,6 +464,7 @@ export default function TournamentModal({
 
               {activeTab === 'schedule' && (
                 <TournamentScheduleTab
+                  tournament={activeTournament}
                   rounds={activeTournament?.rounds || []}
                   selectedRoundFilter={selectedRoundFilter}
                   setSelectedRoundFilter={setSelectedRoundFilter}
@@ -372,9 +478,14 @@ export default function TournamentModal({
 
               {activeTab === 'manage' && (
                 <TournamentManageTab
+                  activeTournament={activeTournament}
                   teams={activeTournament?.teams || []}
+                  onUpdateTeams={handleUpdateTeamsInTournament}
                   onFinishAndCelebrate={handleFinishAndCelebrate}
                   onStartNewTournament={() => setIsCreating(true)}
+                  tournamentsHistory={tournamentsHistory}
+                  onDeleteHistoricalTournament={handleDeleteHistoricalTournament}
+                  onViewHistoricalStandings={(t) => setViewingHistoricalTournament(t)}
                 />
               )}
             </div>
@@ -384,6 +495,7 @@ export default function TournamentModal({
         {/* MODALE DI INSERIMENTO MANUALE RAPIDO PUNTEGGIO SCONTRO */}
         <MatchScoreEditModal
           editingMatch={editingMatch}
+          scoringSystem={activeTournament?.scoringSystem || 'fibur'}
           onClose={() => setEditingMatch(null)}
           manualScore1={manualScore1}
           setManualScore1={setManualScore1}
