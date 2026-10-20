@@ -1,0 +1,1728 @@
+{
+  "exportedAt": "2026-10-20T21:28:49.635Z",
+  "projectId": "burraco-score-fedec",
+  "collections": {
+    "burraco_games": [
+      {
+        "id": "game_1792094221892",
+        "playerUids": [
+          "67qoYYkgKackNliy9OxY0GYleWV2",
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+          "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+          "zd47pc3jOLMm5bvu7nK4FkvHqXa2"
+        ],
+        "mode": "pairs",
+        "team1": {
+          "players": [
+            "Cristiano Biagioli",
+            "Federico Coletta"
+          ],
+          "name": "I bufi"
+        },
+        "isFinished": false,
+        "ownerName": "Valerio Coletta",
+        "completedAt": "2026-10-15T23:30:04.821Z",
+        "targetScore": 2505,
+        "updatedAt": {
+          "type": "firestore/timestamp/1.0",
+          "seconds": 1792247715,
+          "nanoseconds": 541000000
+        },
+        "rounds": [
+          {
+            "team2Score": 520,
+            "timestamp": "2026-10-15T21:43:15.372Z",
+            "team1Score": 790,
+            "entryMode": "guided",
+            "roundNumber": 1,
+            "team2Details": {
+              "cardsOnTableDirect": "535",
+              "showHandCardPad": false,
+              "pozzetto": "preso_giocato",
+              "burracoSemipulito": 0,
+              "burracoPulito": 0,
+              "cardsInHandDirect": "15",
+              "burracoSporco": 0,
+              "cardsInHandCount": {
+                "pinella": 0,
+                "basse": 0,
+                "alte": 0,
+                "asso": 0,
+                "jolly": 0
+              },
+              "manualScore": "",
+              "showTableCardPad": false,
+              "chiusura": false,
+              "cardsOnTableCount": {
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0,
+                "basse": 0,
+                "pinella": 0
+              }
+            },
+            "team1Details": {
+              "showHandCardPad": false,
+              "burracoSemipulito": 1,
+              "chiusura": false,
+              "manualScore": "",
+              "burracoPulito": 1,
+              "cardsOnTableDirect": "405",
+              "burracoSporco": 1,
+              "cardsOnTableCount": {
+                "pinella": 0,
+                "basse": 0,
+                "jolly": 0,
+                "asso": 0,
+                "alte": 0
+              },
+              "pozzetto": "preso_giocato",
+              "showTableCardPad": false,
+              "cardsInHandCount": {
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0,
+                "basse": 0,
+                "pinella": 0
+              },
+              "cardsInHandDirect": "65"
+            }
+          }
+        ],
+        "team2": {
+          "players": [
+            "Alessandro Archilletti",
+            "Valerio Coletta"
+          ],
+          "name": "777"
+        },
+        "createdAt": "2026-10-15T19:57:01.892Z",
+        "winner": null,
+        "playerEmails": [
+          "vale.coletta2000@gmail.com",
+          "fedecoletta@gmail.com",
+          "alessandroarchilletti@gmail.com",
+          "francescototti10@hotmail.it",
+          "vultaggiotiziano37@gmail.com"
+        ],
+        "ownerUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "allowSemipulito": true,
+        "ownerEmail": "vale.coletta2000@gmail.com"
+      },
+      {
+        "id": "game_1792276151194",
+        "targetScore": 2005,
+        "playerEmails": [
+          "vale.coletta2000@gmail.com",
+          "fedecoletta@gmail.com",
+          "vultaggiotiziano37@gmail.com"
+        ],
+        "team2": {
+          "name": "I cuoricini",
+          "players": [
+            "Federico Coletta",
+            "Aurora"
+          ]
+        },
+        "ownerName": "Valerio Coletta",
+        "completedAt": "2026-10-19T16:37:57.865Z",
+        "isFinished": true,
+        "playerUids": [
+          "67qoYYkgKackNliy9OxY0GYleWV2",
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "zd47pc3jOLMm5bvu7nK4FkvHqXa2"
+        ],
+        "winner": "team1",
+        "allowSemipulito": true,
+        "ownerEmail": "vale.coletta2000@gmail.com",
+        "updatedAt": {
+          "type": "firestore/timestamp/1.0",
+          "seconds": 1792427878,
+          "nanoseconds": 824000000
+        },
+        "mode": "pairs",
+        "team1": {
+          "players": [
+            "Valerio Coletta",
+            "Tiziano Vultaggio"
+          ],
+          "name": "Chicken munchers"
+        },
+        "createdAt": "2026-10-17T22:29:11.194Z",
+        "ownerUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "rounds": [
+          {
+            "timestamp": "2026-10-17T22:29:40.658Z",
+            "team1Details": {
+              "cardsInHandDirect": "65",
+              "manualScore": "",
+              "chiusura": true,
+              "cardsInHandCount": {
+                "jolly": 0,
+                "pinella": 0,
+                "alte": 0,
+                "asso": 0,
+                "basse": 0
+              },
+              "showTableCardPad": false,
+              "burracoPulito": 0,
+              "burracoSporco": 2,
+              "cardsOnTableCount": {
+                "pinella": 0,
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "cardsOnTableDirect": "475",
+              "pozzetto": "preso_giocato",
+              "showHandCardPad": false,
+              "burracoSemipulito": 0
+            },
+            "team2Details": {
+              "burracoPulito": 0,
+              "burracoSporco": 0,
+              "chiusura": false,
+              "showTableCardPad": false,
+              "burracoSemipulito": 0,
+              "cardsInHandCount": {
+                "basse": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "asso": 0,
+                "alte": 0
+              },
+              "cardsInHandDirect": "55",
+              "cardsOnTableDirect": "240",
+              "showHandCardPad": false,
+              "pozzetto": "preso_non_giocato",
+              "cardsOnTableCount": {
+                "pinella": 0,
+                "alte": 0,
+                "asso": 0,
+                "basse": 0,
+                "jolly": 0
+              },
+              "manualScore": ""
+            },
+            "roundNumber": 1,
+            "entryMode": "guided",
+            "team2Score": 85,
+            "team1Score": 710
+          },
+          {
+            "timestamp": "2026-10-17T23:06:34.160Z",
+            "team2Details": {
+              "cardsInHandDirect": "30",
+              "pozzetto": "preso_giocato",
+              "showHandCardPad": false,
+              "cardsOnTableCount": {
+                "alte": 0,
+                "asso": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "showTableCardPad": false,
+              "cardsInHandCount": {
+                "jolly": 0,
+                "basse": 0,
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0
+              },
+              "burracoPulito": 0,
+              "cardsOnTableDirect": "470",
+              "burracoSporco": 1,
+              "burracoSemipulito": 1,
+              "manualScore": "",
+              "chiusura": false
+            },
+            "team1Details": {
+              "cardsInHandCount": {
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0,
+                "basse": 0,
+                "pinella": 0
+              },
+              "showTableCardPad": false,
+              "showHandCardPad": false,
+              "pozzetto": "preso_giocato",
+              "manualScore": "",
+              "burracoSemipulito": 0,
+              "cardsOnTableDirect": "390",
+              "chiusura": true,
+              "cardsInHandDirect": "60",
+              "cardsOnTableCount": {
+                "basse": 0,
+                "jolly": 0,
+                "alte": 0,
+                "asso": 0,
+                "pinella": 0
+              },
+              "burracoSporco": 0,
+              "burracoPulito": 3
+            },
+            "team2Score": 690,
+            "entryMode": "guided",
+            "team1Score": 1030,
+            "roundNumber": 2
+          },
+          {
+            "entryMode": "guided",
+            "team1Score": 225,
+            "roundNumber": 3,
+            "team2Score": 520,
+            "timestamp": "2026-10-17T23:29:14.739Z",
+            "team2Details": {
+              "pozzetto": "preso_giocato",
+              "showTableCardPad": false,
+              "manualScore": "",
+              "cardsInHandCount": {
+                "asso": 0,
+                "jolly": 0,
+                "alte": 0,
+                "basse": 0,
+                "pinella": 0
+              },
+              "burracoSemipulito": 0,
+              "cardsOnTableDirect": "350",
+              "showHandCardPad": false,
+              "chiusura": true,
+              "cardsInHandDirect": "30",
+              "burracoPulito": 0,
+              "cardsOnTableCount": {
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "burracoSporco": 1
+            },
+            "team1Details": {
+              "chiusura": false,
+              "burracoSporco": 0,
+              "burracoPulito": 1,
+              "showHandCardPad": false,
+              "cardsInHandCount": {
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "showTableCardPad": false,
+              "burracoSemipulito": 0,
+              "cardsOnTableDirect": "235",
+              "cardsInHandDirect": "110",
+              "pozzetto": "preso_non_giocato",
+              "manualScore": "",
+              "cardsOnTableCount": {
+                "asso": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "alte": 0,
+                "basse": 0
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "game_1792427877865",
+        "playerUids": [
+          "67qoYYkgKackNliy9OxY0GYleWV2",
+          "wilqOzXRNVaWL8bp8ITlcoPgcoU2"
+        ],
+        "completedAt": "2026-10-19T19:22:40.852Z",
+        "createdAt": "2026-10-19T16:37:57.865Z",
+        "mode": "singles",
+        "ownerUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "playerEmails": [
+          "vale.coletta2000@gmail.com",
+          "alessandroarchilletti@gmail.com"
+        ],
+        "targetScore": 2005,
+        "updatedAt": {
+          "type": "firestore/timestamp/1.0",
+          "seconds": 1792437762,
+          "nanoseconds": 794000000
+        },
+        "team2": {
+          "name": "Alessandro Archilletti",
+          "players": [
+            "Alessandro Archilletti"
+          ]
+        },
+        "isFinished": true,
+        "allowSemipulito": true,
+        "rounds": [
+          {
+            "team2Details": {
+              "manualScore": "",
+              "showTableCardPad": false,
+              "cardsInHandCount": {
+                "alte": 0,
+                "asso": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "cardsOnTableDirect": "45",
+              "burracoSemipulito": 0,
+              "burracoPulito": 0,
+              "burracoSporco": 0,
+              "pozzetto": "non_preso",
+              "cardsInHandDirect": "135",
+              "chiusura": false,
+              "cardsOnTableCount": {
+                "pinella": 0,
+                "asso": 0,
+                "alte": 0,
+                "basse": 0,
+                "jolly": 0
+              },
+              "showHandCardPad": false
+            },
+            "roundNumber": 1,
+            "team1Details": {
+              "cardsOnTableCount": {
+                "pinella": 0,
+                "basse": 0,
+                "jolly": 0,
+                "alte": 0,
+                "asso": 0
+              },
+              "manualScore": "",
+              "pozzetto": "preso_giocato",
+              "cardsInHandDirect": "",
+              "cardsOnTableDirect": "250",
+              "burracoSemipulito": 0,
+              "cardsInHandCount": {
+                "pinella": 0,
+                "basse": 0,
+                "alte": 0,
+                "asso": 0,
+                "jolly": 0
+              },
+              "showTableCardPad": false,
+              "burracoPulito": 1,
+              "showHandCardPad": false,
+              "chiusura": true,
+              "burracoSporco": 0
+            },
+            "team1Score": 550,
+            "team2Score": -190,
+            "entryMode": "guided",
+            "timestamp": "2026-10-19T16:39:25.363Z"
+          },
+          {
+            "roundNumber": 2,
+            "timestamp": "2026-10-19T16:58:54.999Z",
+            "team2Details": {
+              "burracoPulito": 0,
+              "showTableCardPad": false,
+              "cardsInHandCount": {
+                "basse": 0,
+                "pinella": 0,
+                "asso": 0,
+                "jolly": 0,
+                "alte": 0
+              },
+              "burracoSporco": 1,
+              "manualScore": "",
+              "chiusura": true,
+              "burracoSemipulito": 0,
+              "cardsOnTableDirect": "325",
+              "showHandCardPad": false,
+              "cardsInHandDirect": "",
+              "cardsOnTableCount": {
+                "basse": 0,
+                "jolly": 0,
+                "alte": 0,
+                "asso": 0,
+                "pinella": 0
+              },
+              "pozzetto": "preso_giocato"
+            },
+            "team1Details": {
+              "burracoSemipulito": 0,
+              "burracoSporco": 0,
+              "manualScore": "",
+              "burracoPulito": 0,
+              "chiusura": false,
+              "showHandCardPad": false,
+              "cardsOnTableCount": {
+                "basse": 0,
+                "jolly": 0,
+                "pinella": 0,
+                "alte": 0,
+                "asso": 0
+              },
+              "cardsInHandCount": {
+                "pinella": 0,
+                "alte": 0,
+                "asso": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "showTableCardPad": false,
+              "pozzetto": "non_preso",
+              "cardsInHandDirect": "75",
+              "cardsOnTableDirect": "165"
+            },
+            "team2Score": 525,
+            "team1Score": -10,
+            "entryMode": "guided"
+          },
+          {
+            "team2Score": 695,
+            "team1Score": -5,
+            "timestamp": "2026-10-19T17:12:44.923Z",
+            "roundNumber": 3,
+            "entryMode": "guided",
+            "team1Details": {
+              "chiusura": false,
+              "cardsInHandDirect": "30",
+              "showHandCardPad": false,
+              "cardsOnTableDirect": "125",
+              "cardsInHandCount": {
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "burracoSporco": 0,
+              "showTableCardPad": false,
+              "burracoPulito": 0,
+              "cardsOnTableCount": {
+                "basse": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "asso": 0,
+                "alte": 0
+              },
+              "pozzetto": "non_preso",
+              "manualScore": "",
+              "burracoSemipulito": 0
+            },
+            "team2Details": {
+              "manualScore": "",
+              "burracoSemipulito": 0,
+              "chiusura": true,
+              "cardsInHandCount": {
+                "pinella": 0,
+                "asso": 0,
+                "alte": 0,
+                "basse": 0,
+                "jolly": 0
+              },
+              "showHandCardPad": false,
+              "showTableCardPad": false,
+              "cardsOnTableCount": {
+                "jolly": 0,
+                "basse": 0,
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0
+              },
+              "cardsOnTableDirect": "395",
+              "cardsInHandDirect": "",
+              "burracoPulito": 1,
+              "pozzetto": "preso_giocato",
+              "burracoSporco": 0
+            }
+          },
+          {
+            "team2Score": 330,
+            "timestamp": "2026-10-19T17:30:11.763Z",
+            "roundNumber": 4,
+            "team2Details": {
+              "burracoSemipulito": 0,
+              "manualScore": "",
+              "showHandCardPad": false,
+              "pozzetto": "preso_giocato",
+              "cardsOnTableCount": {
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0,
+                "pinella": 0,
+                "basse": 0
+              },
+              "burracoSporco": 0,
+              "cardsInHandDirect": "10",
+              "cardsOnTableDirect": "340",
+              "showTableCardPad": false,
+              "chiusura": false,
+              "cardsInHandCount": {
+                "pinella": 0,
+                "basse": 0,
+                "jolly": 0,
+                "asso": 0,
+                "alte": 0
+              },
+              "burracoPulito": 0
+            },
+            "team1Details": {
+              "cardsOnTableDirect": "210",
+              "pozzetto": "preso_giocato",
+              "burracoSemipulito": 0,
+              "manualScore": "",
+              "cardsInHandCount": {
+                "alte": 0,
+                "asso": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "burracoPulito": 1,
+              "showTableCardPad": false,
+              "chiusura": true,
+              "showHandCardPad": false,
+              "burracoSporco": 0,
+              "cardsInHandDirect": "",
+              "cardsOnTableCount": {
+                "basse": 0,
+                "pinella": 0,
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0
+              }
+            },
+            "team1Score": 510,
+            "entryMode": "guided"
+          },
+          {
+            "team1Score": -200,
+            "team2Score": 350,
+            "timestamp": "2026-10-19T17:36:57.995Z",
+            "team2Details": {
+              "cardsInHandDirect": "",
+              "burracoPulito": 0,
+              "cardsOnTableCount": {
+                "basse": 0,
+                "jolly": 0,
+                "alte": 0,
+                "asso": 0,
+                "pinella": 0
+              },
+              "pozzetto": "preso_giocato",
+              "burracoSporco": 1,
+              "manualScore": "",
+              "cardsInHandCount": {
+                "jolly": 0,
+                "alte": 0,
+                "asso": 0,
+                "basse": 0,
+                "pinella": 0
+              },
+              "showTableCardPad": false,
+              "showHandCardPad": false,
+              "burracoSemipulito": 0,
+              "cardsOnTableDirect": "250",
+              "chiusura": false
+            },
+            "team1Details": {
+              "burracoSemipulito": 0,
+              "cardsOnTableDirect": "",
+              "cardsInHandCount": {
+                "alte": 0,
+                "asso": 0,
+                "jolly": 0,
+                "pinella": 0,
+                "basse": 0
+              },
+              "chiusura": false,
+              "showTableCardPad": false,
+              "manualScore": "-200",
+              "showHandCardPad": false,
+              "cardsOnTableCount": {
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "cardsInHandDirect": "100",
+              "pozzetto": "non_preso",
+              "burracoSporco": 0,
+              "burracoPulito": 0
+            },
+            "entryMode": "guided",
+            "roundNumber": 5
+          },
+          {
+            "timestamp": "2026-10-19T17:57:15.748Z",
+            "team1Details": {
+              "burracoSporco": 1,
+              "pozzetto": "preso_giocato",
+              "cardsOnTableDirect": "355",
+              "burracoSemipulito": 0,
+              "burracoPulito": 0,
+              "showHandCardPad": false,
+              "cardsInHandCount": {
+                "basse": 0,
+                "jolly": 0,
+                "pinella": 0,
+                "asso": 0,
+                "alte": 0
+              },
+              "showTableCardPad": false,
+              "manualScore": "",
+              "cardsOnTableCount": {
+                "alte": 0,
+                "asso": 0,
+                "jolly": 0,
+                "basse": 0,
+                "pinella": 0
+              },
+              "chiusura": true,
+              "cardsInHandDirect": ""
+            },
+            "team2Details": {
+              "burracoSporco": 0,
+              "showHandCardPad": false,
+              "burracoSemipulito": 1,
+              "cardsOnTableDirect": "255",
+              "chiusura": false,
+              "burracoPulito": 0,
+              "pozzetto": "preso_giocato",
+              "cardsOnTableCount": {
+                "basse": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "asso": 0,
+                "alte": 0
+              },
+              "showTableCardPad": false,
+              "cardsInHandCount": {
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0,
+                "pinella": 0,
+                "basse": 0
+              },
+              "manualScore": "",
+              "cardsInHandDirect": "75"
+            },
+            "roundNumber": 6,
+            "team2Score": 330,
+            "entryMode": "guided",
+            "team1Score": 555
+          }
+        ],
+        "ownerName": "Valerio Coletta",
+        "team1": {
+          "players": [
+            "Valerio Coletta"
+          ],
+          "name": "Valerio Coletta"
+        },
+        "winner": "team2",
+        "ownerEmail": "vale.coletta2000@gmail.com"
+      },
+      {
+        "id": "game_1792437760852",
+        "ownerUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "team2": {
+          "players": [
+            "Tiziano Vultaggio",
+            "Valerio Coletta"
+          ],
+          "name": "Check munchers"
+        },
+        "ownerEmail": "vale.coletta2000@gmail.com",
+        "createdAt": "2026-10-19T19:22:40.852Z",
+        "updatedAt": {
+          "type": "firestore/timestamp/1.0",
+          "seconds": 1792447925,
+          "nanoseconds": 298000000
+        },
+        "playerEmails": [
+          "vale.coletta2000@gmail.com",
+          "fedecoletta@gmail.com",
+          "alessandroarchilletti@gmail.com",
+          "vultaggiotiziano37@gmail.com"
+        ],
+        "mode": "pairs",
+        "team1": {
+          "players": [
+            "Federico Coletta",
+            "Alessandro Archilletti"
+          ],
+          "name": "I brutti bufu"
+        },
+        "completedAt": "2026-10-19T22:12:05.298Z",
+        "rounds": [
+          {
+            "team2Details": {
+              "chiusura": false,
+              "cardsOnTableDirect": "435",
+              "cardsInHandDirect": "30",
+              "cardsOnTableCount": {
+                "jolly": 0,
+                "asso": 0,
+                "alte": 0,
+                "basse": 0,
+                "pinella": 0
+              },
+              "burracoSporco": 1,
+              "burracoPulito": 1,
+              "cardsInHandCount": {
+                "basse": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "alte": 0,
+                "asso": 0
+              },
+              "showHandCardPad": false,
+              "pozzetto": "non_preso",
+              "showTableCardPad": false,
+              "burracoSemipulito": 1,
+              "manualScore": ""
+            },
+            "team1Details": {
+              "showHandCardPad": false,
+              "cardsOnTableDirect": "400",
+              "pozzetto": "preso_giocato",
+              "burracoSemipulito": 1,
+              "burracoSporco": 0,
+              "burracoPulito": 1,
+              "chiusura": true,
+              "cardsOnTableCount": {
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0,
+                "basse": 0,
+                "pinella": 0
+              },
+              "showTableCardPad": false,
+              "cardsInHandCount": {
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "manualScore": "",
+              "cardsInHandDirect": "15"
+            },
+            "timestamp": "2026-10-19T20:04:35.390Z",
+            "entryMode": "guided",
+            "team2Score": 755,
+            "roundNumber": 1,
+            "team1Score": 835
+          },
+          {
+            "team1Score": 705,
+            "team1Details": {
+              "showHandCardPad": false,
+              "burracoSporco": 1,
+              "burracoSemipulito": 1,
+              "burracoPulito": 0,
+              "pozzetto": "preso_giocato",
+              "cardsOnTableCount": {
+                "basse": 0,
+                "jolly": 0,
+                "pinella": 0,
+                "asso": 0,
+                "alte": 0
+              },
+              "chiusura": true,
+              "showTableCardPad": false,
+              "cardsInHandCount": {
+                "basse": 0,
+                "jolly": 0,
+                "alte": 0,
+                "asso": 0,
+                "pinella": 0
+              },
+              "cardsOnTableDirect": "365",
+              "manualScore": "",
+              "cardsInHandDirect": "10"
+            },
+            "team2Details": {
+              "burracoSemipulito": 1,
+              "pozzetto": "preso_non_giocato",
+              "showHandCardPad": false,
+              "cardsOnTableDirect": "355",
+              "cardsOnTableCount": {
+                "pinella": 0,
+                "basse": 0,
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0
+              },
+              "burracoSporco": 1,
+              "cardsInHandCount": {
+                "jolly": 0,
+                "alte": 0,
+                "basse": 0,
+                "asso": 0,
+                "pinella": 0
+              },
+              "manualScore": "",
+              "showTableCardPad": false,
+              "burracoPulito": 0,
+              "cardsInHandDirect": "10",
+              "chiusura": false
+            },
+            "team2Score": 495,
+            "entryMode": "guided",
+            "roundNumber": 2,
+            "timestamp": "2026-10-19T20:36:55.213Z"
+          },
+          {
+            "entryMode": "guided",
+            "team1Details": {
+              "cardsOnTableCount": {
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "pozzetto": "preso_giocato",
+              "burracoPulito": 2,
+              "cardsInHandDirect": "30",
+              "burracoSporco": 0,
+              "burracoSemipulito": 0,
+              "chiusura": true,
+              "showTableCardPad": false,
+              "manualScore": "",
+              "cardsInHandCount": {
+                "jolly": 0,
+                "asso": 0,
+                "alte": 0,
+                "basse": 0,
+                "pinella": 0
+              },
+              "cardsOnTableDirect": "340",
+              "showHandCardPad": false
+            },
+            "team2Details": {
+              "chiusura": false,
+              "cardsInHandDirect": "60",
+              "cardsInHandCount": {
+                "pinella": 0,
+                "basse": 0,
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0
+              },
+              "manualScore": "",
+              "cardsOnTableDirect": "325",
+              "cardsOnTableCount": {
+                "basse": 0,
+                "jolly": 0,
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0
+              },
+              "showTableCardPad": false,
+              "showHandCardPad": false,
+              "pozzetto": "non_preso",
+              "burracoSporco": 1,
+              "burracoSemipulito": 0,
+              "burracoPulito": 0
+            },
+            "team1Score": 810,
+            "roundNumber": 3,
+            "team2Score": 265,
+            "timestamp": "2026-10-19T20:59:56.128Z"
+          },
+          {
+            "team2Details": {
+              "cardsOnTableDirect": "400",
+              "cardsInHandDirect": "30",
+              "cardsInHandCount": {
+                "basse": 0,
+                "jolly": 0,
+                "alte": 0,
+                "asso": 0,
+                "pinella": 0
+              },
+              "showTableCardPad": false,
+              "cardsOnTableCount": {
+                "asso": 0,
+                "pinella": 0,
+                "alte": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "manualScore": "",
+              "pozzetto": "preso_giocato",
+              "burracoPulito": 0,
+              "burracoSporco": 3,
+              "burracoSemipulito": 0,
+              "chiusura": false,
+              "showHandCardPad": false
+            },
+            "team1Details": {
+              "chiusura": true,
+              "manualScore": "",
+              "cardsOnTableCount": {
+                "pinella": 0,
+                "asso": 0,
+                "alte": 0,
+                "jolly": 0,
+                "basse": 0
+              },
+              "showHandCardPad": false,
+              "cardsInHandDirect": "",
+              "cardsOnTableDirect": "420",
+              "showTableCardPad": false,
+              "cardsInHandCount": {
+                "basse": 0,
+                "jolly": 0,
+                "asso": 0,
+                "alte": 0,
+                "pinella": 0
+              },
+              "burracoSporco": 0,
+              "burracoSemipulito": 0,
+              "pozzetto": "preso_giocato",
+              "burracoPulito": 2
+            },
+            "roundNumber": 4,
+            "team1Score": 920,
+            "team2Score": 670,
+            "entryMode": "guided",
+            "timestamp": "2026-10-19T21:45:34.882Z"
+          }
+        ],
+        "targetScore": 2505,
+        "winner": "team1",
+        "playerUids": [
+          "67qoYYkgKackNliy9OxY0GYleWV2",
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+          "zd47pc3jOLMm5bvu7nK4FkvHqXa2"
+        ],
+        "ownerName": "Valerio Coletta",
+        "isFinished": true,
+        "allowSemipulito": true
+      },
+      {
+        "id": "game_1792447925296",
+        "winner": null,
+        "team1": {
+          "players": [
+            "Coppia 1"
+          ],
+          "name": "Coppia 1"
+        },
+        "ownerName": "Federico Coletta",
+        "ownerEmail": "fedecoletta@gmail.com",
+        "targetScore": 2505,
+        "rounds": [],
+        "allowSemipulito": true,
+        "updatedAt": {
+          "type": "firestore/timestamp/1.0",
+          "seconds": 1792447925,
+          "nanoseconds": 370000000
+        },
+        "team2": {
+          "name": "Coppia 2",
+          "players": [
+            "Coppia 2"
+          ]
+        },
+        "createdAt": "2026-10-19T22:12:05.296Z",
+        "mode": "pairs",
+        "playerEmails": [
+          "fedecoletta@gmail.com"
+        ],
+        "playerUids": [
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2"
+        ],
+        "isFinished": false,
+        "ownerUid": "KRpSgqjedNTE3nmF6vnGXixL0EM2"
+      }
+    ],
+    "burraco_tournaments": [],
+    "burraco_meta": [
+      {
+        "id": "players",
+        "list": [
+          "Aurora",
+          "Baffettu",
+          "Baffu",
+          "Elisa",
+          "Federico Coletta",
+          "Nicoletta",
+          "Stanis",
+          "Sub",
+          "U Pá di Pá"
+        ],
+        "updatedAt": {
+          "type": "firestore/timestamp/1.0",
+          "seconds": 1792427301,
+          "nanoseconds": 795000000
+        }
+      }
+    ],
+    "burraco_users": [
+      {
+        "id": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "careerStats": {
+          "gamesWon": 1,
+          "cleanBurrachi": 7,
+          "closures": 5,
+          "winRate": 33,
+          "semiCleanBurrachi": 2,
+          "updatedAt": "2026-10-19T21:46:15.019Z",
+          "bestHandScore": 1030,
+          "totalPoints": 6070,
+          "gamesPlayed": 3,
+          "trophiesCount": 0,
+          "dirtyBurrachi": 9
+        },
+        "guests": [
+          "Alessandro Archilletti",
+          "Cristiano Biagioli",
+          "Federico Coletta",
+          "Valerio Coletta"
+        ],
+        "lastLogin": "2026-10-15T19:34:23.414Z",
+        "displayName": "Valerio Coletta",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "lastSeen": "2026-10-20T20:58:39.686Z",
+        "email": "vale.coletta2000@gmail.com",
+        "uid": "67qoYYkgKackNliy9OxY0GYleWV2"
+      },
+      {
+        "id": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c",
+        "lastSeen": "2026-10-20T21:17:32.384Z",
+        "email": "fedecoletta@gmail.com",
+        "uid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "displayName": "Federico Coletta",
+        "careerStats": {
+          "trophiesCount": 0,
+          "dirtyBurrachi": 1,
+          "semiCleanBurrachi": 1,
+          "updatedAt": "2026-10-17T14:36:22.876Z",
+          "winRate": 0,
+          "totalPoints": 790,
+          "gamesPlayed": 0,
+          "cleanBurrachi": 1,
+          "bestHandScore": 790,
+          "closures": 0,
+          "gamesWon": 0
+        },
+        "lastLogin": "2026-10-20T10:14:03.141Z",
+        "guests": [
+          "Alessandro Archilletti",
+          "Cristiano Biagioli",
+          "Federico Coletta",
+          "Valerio Coletta"
+        ]
+      },
+      {
+        "id": "QcSKjYzcDSSwOsOK32XNfVft19l1",
+        "careerStats": {
+          "dirtyBurrachi": 0,
+          "trophiesCount": 0,
+          "closures": 0,
+          "gamesWon": 0,
+          "gamesPlayed": 0,
+          "totalPoints": 0,
+          "bestHandScore": 0,
+          "winRate": 0,
+          "semiCleanBurrachi": 0,
+          "updatedAt": "2026-10-18T09:53:14.666Z",
+          "cleanBurrachi": 0
+        },
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocKT169btq2mUfFrFFDJRcUOA8OCNpjdoGeykXLcl-vgOQYREHMm=s96-c",
+        "lastSeen": "2026-10-20T21:02:21.957Z",
+        "displayName": "Aurora Lattanzi",
+        "email": "aur.lattanzi@gmail.com",
+        "uid": "QcSKjYzcDSSwOsOK32XNfVft19l1"
+      },
+      {
+        "id": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "careerStats": {
+          "gamesPlayed": 0,
+          "totalPoints": 790,
+          "trophiesCount": 0,
+          "dirtyBurrachi": 1,
+          "winRate": 0,
+          "gamesWon": 0,
+          "closures": 0,
+          "semiCleanBurrachi": 1,
+          "bestHandScore": 790,
+          "cleanBurrachi": 1,
+          "updatedAt": "2026-10-17T14:36:22.876Z"
+        },
+        "lastSeen": "2026-10-15T20:15:28.383Z",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocK23ZpGsFphfOUT8vOlwwSvmHOpWOcDlCEvKo-8pIeKee9E7w=s96-c",
+        "uid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "email": "francescototti10@hotmail.it",
+        "displayName": "Cristiano Biagioli",
+        "lastLogin": "2026-10-15T19:12:09.380Z"
+      },
+      {
+        "id": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "displayName": "Alessandro Archilletti",
+        "lastLogin": "2026-10-15T19:20:50.810Z",
+        "email": "alessandroarchilletti@gmail.com",
+        "uid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocKCQnDlaDIUcQu6VsW3v1pJZnPMnf_9lsA_sMK18sHb2lKj3mus=s96-c",
+        "lastSeen": "2026-10-20T08:40:43.886Z",
+        "careerStats": {
+          "winRate": 0,
+          "bestHandScore": 520,
+          "cleanBurrachi": 0,
+          "gamesPlayed": 0,
+          "totalPoints": 520,
+          "closures": 0,
+          "gamesWon": 0,
+          "semiCleanBurrachi": 0,
+          "trophiesCount": 0,
+          "dirtyBurrachi": 0,
+          "updatedAt": "2026-10-17T14:36:22.876Z"
+        }
+      },
+      {
+        "id": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "uid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "email": "vultaggiotiziano37@gmail.com",
+        "lastLogin": "2026-10-17T14:33:32.193Z",
+        "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocK3AWvDH1cuSwX6gBWMirvcwO9cRB6_dOQN_JaKAQ-ym82PddLc=s96-c",
+        "lastSeen": "2026-10-19T21:54:24.778Z",
+        "displayName": "Tiziano Vultaggio",
+        "careerStats": {
+          "closures": 0,
+          "gamesWon": 0,
+          "winRate": 0,
+          "trophiesCount": 0,
+          "dirtyBurrachi": 0,
+          "updatedAt": "2026-10-17T14:36:20.482Z",
+          "cleanBurrachi": 0,
+          "semiCleanBurrachi": 0,
+          "bestHandScore": 0,
+          "gamesPlayed": 0,
+          "totalPoints": 0
+        }
+      }
+    ],
+    "burraco_friends": [
+      {
+        "id": "friend_67qoYYkgKackNliy9OxY0GYleWV2_KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "user2": {
+          "email": "fedecoletta@gmail.com",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c",
+          "uid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "displayName": "Federico Coletta"
+        },
+        "createdAt": "2026-10-15T19:23:14.752Z",
+        "users": [
+          "67qoYYkgKackNliy9OxY0GYleWV2",
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2"
+        ],
+        "status": "accepted",
+        "user1": {
+          "uid": "67qoYYkgKackNliy9OxY0GYleWV2",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+          "displayName": "Valerio Coletta",
+          "email": "vale.coletta2000@gmail.com"
+        },
+        "emails": [
+          "vale.coletta2000@gmail.com",
+          "fedecoletta@gmail.com"
+        ]
+      },
+      {
+        "id": "friend_67qoYYkgKackNliy9OxY0GYleWV2_Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "createdAt": "2026-10-15T20:14:34.712Z",
+        "user1": {
+          "displayName": "Cristiano Biagioli",
+          "uid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocK23ZpGsFphfOUT8vOlwwSvmHOpWOcDlCEvKo-8pIeKee9E7w=s96-c",
+          "email": "francescototti10@hotmail.it"
+        },
+        "status": "accepted",
+        "emails": [
+          "francescototti10@hotmail.it",
+          "vale.coletta2000@gmail.com"
+        ],
+        "users": [
+          "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+          "67qoYYkgKackNliy9OxY0GYleWV2"
+        ],
+        "user2": {
+          "uid": "67qoYYkgKackNliy9OxY0GYleWV2",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+          "email": "vale.coletta2000@gmail.com",
+          "displayName": "Valerio Coletta"
+        }
+      },
+      {
+        "id": "friend_67qoYYkgKackNliy9OxY0GYleWV2_wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "users": [
+          "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+          "67qoYYkgKackNliy9OxY0GYleWV2"
+        ],
+        "user2": {
+          "email": "vale.coletta2000@gmail.com",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+          "displayName": "Valerio Coletta",
+          "uid": "67qoYYkgKackNliy9OxY0GYleWV2"
+        },
+        "status": "accepted",
+        "createdAt": "2026-10-15T19:56:41.191Z",
+        "emails": [
+          "alessandroarchilletti@gmail.com",
+          "vale.coletta2000@gmail.com"
+        ],
+        "user1": {
+          "email": "alessandroarchilletti@gmail.com",
+          "uid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+          "displayName": "Alessandro Archilletti",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocKCQnDlaDIUcQu6VsW3v1pJZnPMnf_9lsA_sMK18sHb2lKj3mus=s96-c"
+        }
+      },
+      {
+        "id": "friend_67qoYYkgKackNliy9OxY0GYleWV2_zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "users": [
+          "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+          "67qoYYkgKackNliy9OxY0GYleWV2"
+        ],
+        "user2": {
+          "displayName": "Valerio Coletta",
+          "email": "vale.coletta2000@gmail.com",
+          "uid": "67qoYYkgKackNliy9OxY0GYleWV2",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c"
+        },
+        "status": "accepted",
+        "emails": [
+          "vultaggiotiziano37@gmail.com",
+          "vale.coletta2000@gmail.com"
+        ],
+        "user1": {
+          "uid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+          "displayName": "Tiziano Vultaggio",
+          "email": "vultaggiotiziano37@gmail.com",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocK3AWvDH1cuSwX6gBWMirvcwO9cRB6_dOQN_JaKAQ-ym82PddLc=s96-c"
+        },
+        "createdAt": "2026-10-19T19:19:58.938Z"
+      },
+      {
+        "id": "friend_KRpSgqjedNTE3nmF6vnGXixL0EM2_QcSKjYzcDSSwOsOK32XNfVft19l1",
+        "status": "accepted",
+        "users": [
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "QcSKjYzcDSSwOsOK32XNfVft19l1"
+        ],
+        "user2": {
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocKT169btq2mUfFrFFDJRcUOA8OCNpjdoGeykXLcl-vgOQYREHMm=s96-c",
+          "email": "aur.lattanzi@gmail.com",
+          "displayName": "Aurora Lattanzi",
+          "uid": "QcSKjYzcDSSwOsOK32XNfVft19l1"
+        },
+        "emails": [
+          "fedecoletta@gmail.com",
+          "aur.lattanzi@gmail.com"
+        ],
+        "createdAt": "2026-10-20T19:31:26.842Z",
+        "user1": {
+          "displayName": "Federico Coletta",
+          "email": "fedecoletta@gmail.com",
+          "uid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c"
+        }
+      },
+      {
+        "id": "friend_KRpSgqjedNTE3nmF6vnGXixL0EM2_Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "users": [
+          "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2"
+        ],
+        "createdAt": "2026-10-15T19:13:09.399Z",
+        "user2": {
+          "displayName": "Federico Coletta",
+          "email": "fedecoletta@gmail.com",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c",
+          "uid": "KRpSgqjedNTE3nmF6vnGXixL0EM2"
+        },
+        "emails": [
+          "francescototti10@hotmail.it",
+          "fedecoletta@gmail.com"
+        ],
+        "status": "accepted",
+        "user1": {
+          "displayName": "Cristiano Biagioli",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocK23ZpGsFphfOUT8vOlwwSvmHOpWOcDlCEvKo-8pIeKee9E7w=s96-c",
+          "uid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+          "email": "francescototti10@hotmail.it"
+        }
+      },
+      {
+        "id": "friend_KRpSgqjedNTE3nmF6vnGXixL0EM2_wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "user2": {
+          "uid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c",
+          "displayName": "Federico Coletta",
+          "email": "fedecoletta@gmail.com"
+        },
+        "users": [
+          "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2"
+        ],
+        "user1": {
+          "uid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+          "email": "alessandroarchilletti@gmail.com",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocKCQnDlaDIUcQu6VsW3v1pJZnPMnf_9lsA_sMK18sHb2lKj3mus=s96-c",
+          "displayName": "Alessandro Archilletti"
+        },
+        "createdAt": "2026-10-15T19:28:59.963Z",
+        "emails": [
+          "alessandroarchilletti@gmail.com",
+          "fedecoletta@gmail.com"
+        ],
+        "status": "accepted"
+      },
+      {
+        "id": "friend_KRpSgqjedNTE3nmF6vnGXixL0EM2_zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "createdAt": "2026-10-19T16:26:38.582Z",
+        "user1": {
+          "displayName": "Federico Coletta",
+          "uid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "email": "fedecoletta@gmail.com",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c"
+        },
+        "status": "accepted",
+        "emails": [
+          "fedecoletta@gmail.com",
+          "vultaggiotiziano37@gmail.com"
+        ],
+        "users": [
+          "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+          "zd47pc3jOLMm5bvu7nK4FkvHqXa2"
+        ],
+        "user2": {
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocK3AWvDH1cuSwX6gBWMirvcwO9cRB6_dOQN_JaKAQ-ym82PddLc=s96-c",
+          "uid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+          "email": "vultaggiotiziano37@gmail.com",
+          "displayName": "Tiziano Vultaggio"
+        }
+      },
+      {
+        "id": "friend_Um3HKx8BgMbgJqVp7gwpkyXZ3u32_wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "emails": [
+          "alessandroarchilletti@gmail.com",
+          "francescototti10@hotmail.it"
+        ],
+        "status": "accepted",
+        "user1": {
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocKCQnDlaDIUcQu6VsW3v1pJZnPMnf_9lsA_sMK18sHb2lKj3mus=s96-c",
+          "email": "alessandroarchilletti@gmail.com",
+          "displayName": "Alessandro Archilletti",
+          "uid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2"
+        },
+        "users": [
+          "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+          "Um3HKx8BgMbgJqVp7gwpkyXZ3u32"
+        ],
+        "user2": {
+          "uid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocK23ZpGsFphfOUT8vOlwwSvmHOpWOcDlCEvKo-8pIeKee9E7w=s96-c",
+          "email": "francescototti10@hotmail.it",
+          "displayName": "Cristiano Biagioli"
+        },
+        "createdAt": "2026-10-15T19:28:57.921Z"
+      }
+    ],
+    "burraco_notifications": [
+      {
+        "id": "invite_game_1792094221892_KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "fromEmail": "vale.coletta2000@gmail.com",
+        "gameName": "Tavolo Burraco (A Coppie)",
+        "toUid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "gameId": "game_1792094221892",
+        "type": "game_invite",
+        "status": "accepted",
+        "fromUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "fromName": "Valerio Coletta",
+        "createdAt": "2026-10-15T19:57:01.894Z",
+        "respondedAt": "2026-10-15T19:57:16.326Z",
+        "toEmail": "fedecoletta@gmail.com",
+        "teamName": "Coppia Valerio Coletta"
+      },
+      {
+        "id": "invite_game_1792094221892_Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "gameName": "Tavolo Burraco (A Coppie)",
+        "createdAt": "2026-10-15T20:08:05.652Z",
+        "status": "accepted",
+        "gameId": "game_1792094221892",
+        "toUid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "fromName": "Federico Coletta",
+        "fromUid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "toEmail": "francescototti10@hotmail.it",
+        "fromEmail": "fedecoletta@gmail.com",
+        "type": "game_invite",
+        "respondedAt": "2026-10-15T20:10:18.881Z",
+        "teamName": "Coppia Alessandro Archilletti",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c"
+      },
+      {
+        "id": "invite_game_1792094221892_wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "fromEmail": "vale.coletta2000@gmail.com",
+        "gameId": "game_1792094221892",
+        "fromName": "Valerio Coletta",
+        "toUid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "fromUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "gameName": "Tavolo Burraco (A Coppie)",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "status": "accepted",
+        "type": "game_invite",
+        "toEmail": "alessandroarchilletti@gmail.com",
+        "createdAt": "2026-10-15T19:57:01.894Z",
+        "respondedAt": "2026-10-15T19:57:56.013Z",
+        "teamName": "Coppia Alessandro Archilletti"
+      },
+      {
+        "id": "invite_game_1792427877865_wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "toEmail": "alessandroarchilletti@gmail.com",
+        "teamName": "Alessandro Archilletti",
+        "status": "accepted",
+        "gameId": "game_1792427877865",
+        "createdAt": "2026-10-19T16:37:57.867Z",
+        "toUid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "respondedAt": "2026-10-19T19:23:46.871Z",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "fromName": "Valerio Coletta",
+        "gameName": "Tavolo Burraco (A Coppie)",
+        "type": "game_invite",
+        "fromUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "fromEmail": "vale.coletta2000@gmail.com"
+      },
+      {
+        "id": "invite_game_1792437760852_KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "teamName": "I brutti bufu",
+        "createdAt": "2026-10-19T19:22:40.853Z",
+        "respondedAt": "2026-10-19T19:22:46.703Z",
+        "toEmail": "fedecoletta@gmail.com",
+        "fromName": "Valerio Coletta",
+        "fromUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "fromEmail": "vale.coletta2000@gmail.com",
+        "toUid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "gameId": "game_1792437760852",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "status": "accepted",
+        "type": "game_invite",
+        "gameName": "Tavolo Burraco (A Coppie)"
+      },
+      {
+        "id": "invite_game_1792437760852_wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "toUid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "type": "game_invite",
+        "createdAt": "2026-10-19T19:22:40.853Z",
+        "teamName": "I brutti bufu",
+        "toEmail": "alessandroarchilletti@gmail.com",
+        "respondedAt": "2026-10-19T19:23:39.954Z",
+        "fromEmail": "vale.coletta2000@gmail.com",
+        "status": "accepted",
+        "fromUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "gameName": "Tavolo Burraco (A Coppie)",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "fromName": "Valerio Coletta",
+        "gameId": "game_1792437760852"
+      },
+      {
+        "id": "invite_game_1792437760852_zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "toUid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "type": "game_invite",
+        "createdAt": "2026-10-19T19:22:40.853Z",
+        "toEmail": "vultaggiotiziano37@gmail.com",
+        "gameId": "game_1792437760852",
+        "status": "accepted",
+        "teamName": "Check munchers",
+        "gameName": "Tavolo Burraco (A Coppie)",
+        "fromEmail": "vale.coletta2000@gmail.com",
+        "respondedAt": "2026-10-19T19:22:58.721Z",
+        "fromUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "fromName": "Valerio Coletta",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c"
+      },
+      {
+        "id": "req_67qoYYkgKackNliy9OxY0GYleWV2_alessandroarchilletti_gmail_com",
+        "status": "accepted",
+        "fromUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "fromEmail": "vale.coletta2000@gmail.com",
+        "toUid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "toName": "Alessandro Archilletti",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "createdAt": "2026-10-15T19:56:36.364Z",
+        "toPhoto": "https://lh3.googleusercontent.com/a/ACg8ocKCQnDlaDIUcQu6VsW3v1pJZnPMnf_9lsA_sMK18sHb2lKj3mus=s96-c",
+        "fromName": "Valerio Coletta",
+        "toEmail": "alessandroarchilletti@gmail.com",
+        "acceptedAt": "2026-10-15T19:56:40.762Z",
+        "type": "friend_request"
+      },
+      {
+        "id": "req_67qoYYkgKackNliy9OxY0GYleWV2_francescototti10_hotmail_it",
+        "createdAt": "2026-10-15T20:14:28.729Z",
+        "toEmail": "francescototti10@hotmail.it",
+        "fromName": "Valerio Coletta",
+        "toPhoto": "https://lh3.googleusercontent.com/a/ACg8ocK23ZpGsFphfOUT8vOlwwSvmHOpWOcDlCEvKo-8pIeKee9E7w=s96-c",
+        "type": "friend_request",
+        "toUid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "fromEmail": "vale.coletta2000@gmail.com",
+        "toName": "Cristiano Biagioli",
+        "fromUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "acceptedAt": "2026-10-15T20:14:33.071Z",
+        "status": "accepted"
+      },
+      {
+        "id": "req_67qoYYkgKackNliy9OxY0GYleWV2_vultaggiotiziano37_gmail_com",
+        "createdAt": "2026-10-17T14:35:37.609Z",
+        "fromName": "Valerio Coletta",
+        "fromUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "acceptedAt": "2026-10-19T19:19:58.817Z",
+        "fromEmail": "vale.coletta2000@gmail.com",
+        "toEmail": "vultaggiotiziano37@gmail.com",
+        "type": "friend_request",
+        "toName": "Tiziano Vultaggio",
+        "toPhoto": "https://lh3.googleusercontent.com/a/ACg8ocK3AWvDH1cuSwX6gBWMirvcwO9cRB6_dOQN_JaKAQ-ym82PddLc=s96-c",
+        "toUid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "status": "accepted"
+      },
+      {
+        "id": "req_KRpSgqjedNTE3nmF6vnGXixL0EM2_alessandroarchilletti_gmail_com",
+        "type": "friend_request",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c",
+        "fromUid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "toUid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "fromEmail": "fedecoletta@gmail.com",
+        "toPhoto": "https://lh3.googleusercontent.com/a/ACg8ocKCQnDlaDIUcQu6VsW3v1pJZnPMnf_9lsA_sMK18sHb2lKj3mus=s96-c",
+        "acceptedAt": "2026-10-15T19:28:58.107Z",
+        "fromName": "Federico Coletta",
+        "toName": "Alessandro Archilletti",
+        "toEmail": "alessandroarchilletti@gmail.com",
+        "createdAt": "2026-10-15T19:22:15.173Z",
+        "status": "accepted"
+      },
+      {
+        "id": "req_KRpSgqjedNTE3nmF6vnGXixL0EM2_francescototti10_hotmail_it",
+        "toEmail": "francescototti10@hotmail.it",
+        "toUid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "type": "friend_request",
+        "createdAt": "2026-10-15T19:13:04.748Z",
+        "toPhoto": "https://lh3.googleusercontent.com/a/ACg8ocK23ZpGsFphfOUT8vOlwwSvmHOpWOcDlCEvKo-8pIeKee9E7w=s96-c",
+        "fromName": "Federico Coletta",
+        "acceptedAt": "2026-10-15T19:13:08.279Z",
+        "status": "accepted",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c",
+        "toName": "Cristiano Biagioli",
+        "fromUid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "fromEmail": "fedecoletta@gmail.com"
+      },
+      {
+        "id": "req_KRpSgqjedNTE3nmF6vnGXixL0EM2_vale_coletta2000_gmail_com",
+        "createdAt": "2026-10-15T19:22:27.540Z",
+        "toEmail": "vale.coletta2000@gmail.com",
+        "fromName": "Federico Coletta",
+        "toPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "fromEmail": "fedecoletta@gmail.com",
+        "status": "accepted",
+        "type": "friend_request",
+        "toName": "Valerio Coletta",
+        "toUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "acceptedAt": "2026-10-15T19:23:14.396Z",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c",
+        "fromUid": "KRpSgqjedNTE3nmF6vnGXixL0EM2"
+      },
+      {
+        "id": "req_QcSKjYzcDSSwOsOK32XNfVft19l1_KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "toEmail": "fedecoletta@gmail.com",
+        "acceptedAt": "2026-10-20T19:31:26.421Z",
+        "fromName": "Aurora Lattanzi",
+        "createdAt": "2026-10-20T19:31:14.488Z",
+        "toPhoto": "https://lh3.googleusercontent.com/a/ACg8ocJi7vjOmSrYTIekVsHInRS_CY63WyMsZDaM-JCMDaE0weW9MNYCcA=s96-c",
+        "status": "accepted",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocKT169btq2mUfFrFFDJRcUOA8OCNpjdoGeykXLcl-vgOQYREHMm=s96-c",
+        "toUid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "fromEmail": "aur.lattanzi@gmail.com",
+        "toName": "Federico Coletta",
+        "type": "friend_request",
+        "fromUid": "QcSKjYzcDSSwOsOK32XNfVft19l1"
+      },
+      {
+        "id": "req_Um3HKx8BgMbgJqVp7gwpkyXZ3u32_alessandroarchilletti_gmail_com",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocK23ZpGsFphfOUT8vOlwwSvmHOpWOcDlCEvKo-8pIeKee9E7w=s96-c",
+        "toEmail": "alessandroarchilletti@gmail.com",
+        "fromName": "Cristiano Biagioli",
+        "toUid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "fromEmail": "francescototti10@hotmail.it",
+        "type": "friend_request",
+        "toPhoto": "https://lh3.googleusercontent.com/a/ACg8ocKCQnDlaDIUcQu6VsW3v1pJZnPMnf_9lsA_sMK18sHb2lKj3mus=s96-c",
+        "status": "accepted",
+        "acceptedAt": "2026-10-15T19:28:57.506Z",
+        "toName": "Alessandro Archilletti",
+        "createdAt": "2026-10-15T19:28:51.825Z",
+        "fromUid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32"
+      },
+      {
+        "id": "req_zd47pc3jOLMm5bvu7nK4FkvHqXa2_alessandroarchilletti_gmail_com",
+        "createdAt": "2026-10-17T14:36:03.278Z",
+        "fromEmail": "vultaggiotiziano37@gmail.com",
+        "status": "pending",
+        "fromUid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "type": "friend_request",
+        "toEmail": "alessandroarchilletti@gmail.com",
+        "toUid": "wilqOzXRNVaWL8bp8ITlcoPgcoU2",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocK3AWvDH1cuSwX6gBWMirvcwO9cRB6_dOQN_JaKAQ-ym82PddLc=s96-c",
+        "fromName": "Tiziano Vultaggio"
+      },
+      {
+        "id": "req_zd47pc3jOLMm5bvu7nK4FkvHqXa2_fedecoletta_gmail_com",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocK3AWvDH1cuSwX6gBWMirvcwO9cRB6_dOQN_JaKAQ-ym82PddLc=s96-c",
+        "fromName": "Tiziano Vultaggio",
+        "toUid": "KRpSgqjedNTE3nmF6vnGXixL0EM2",
+        "toEmail": "fedecoletta@gmail.com",
+        "fromUid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "fromEmail": "vultaggiotiziano37@gmail.com",
+        "status": "accepted",
+        "type": "friend_request",
+        "acceptedAt": "2026-10-17T22:33:48.493Z",
+        "createdAt": "2026-10-17T14:36:04.103Z"
+      },
+      {
+        "id": "req_zd47pc3jOLMm5bvu7nK4FkvHqXa2_francescototti10_hotmail_it",
+        "toEmail": "francescototti10@hotmail.it",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocK3AWvDH1cuSwX6gBWMirvcwO9cRB6_dOQN_JaKAQ-ym82PddLc=s96-c",
+        "type": "friend_request",
+        "fromName": "Tiziano Vultaggio",
+        "fromUid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "toUid": "Um3HKx8BgMbgJqVp7gwpkyXZ3u32",
+        "createdAt": "2026-10-17T14:36:04.107Z",
+        "status": "pending",
+        "fromEmail": "vultaggiotiziano37@gmail.com"
+      },
+      {
+        "id": "req_zd47pc3jOLMm5bvu7nK4FkvHqXa2_vale_coletta2000_gmail_com",
+        "type": "friend_request",
+        "fromEmail": "vultaggiotiziano37@gmail.com",
+        "acceptedAt": "2026-10-17T14:36:04.277Z",
+        "toPhoto": "https://lh3.googleusercontent.com/a/ACg8ocIcx90XRSvyvAz8JttrXBcr-79AXZjV_5UJMaIR4zxgaFx0j17C=s96-c",
+        "fromPhoto": "https://lh3.googleusercontent.com/a/ACg8ocK3AWvDH1cuSwX6gBWMirvcwO9cRB6_dOQN_JaKAQ-ym82PddLc=s96-c",
+        "toEmail": "vale.coletta2000@gmail.com",
+        "toUid": "67qoYYkgKackNliy9OxY0GYleWV2",
+        "status": "accepted",
+        "fromUid": "zd47pc3jOLMm5bvu7nK4FkvHqXa2",
+        "createdAt": "2026-10-17T14:36:02.713Z",
+        "fromName": "Tiziano Vultaggio",
+        "toName": "Valerio Coletta"
+      }
+    ]
+  }
+}
