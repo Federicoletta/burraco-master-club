@@ -1,18 +1,20 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import Header from './components/Header';
 import ScoreBoard from './components/ScoreBoard';
-import NewGameModal from './components/NewGameModal';
-import RoundCalculatorModal from './components/RoundCalculatorModal';
-import HistoryModal from './components/HistoryModal';
-import VictoryModal from './components/VictoryModal';
-import CloudSyncModal from './components/CloudSyncModal';
-import RulesModal from './components/RulesModal';
-import EditTeamsModal from './components/EditTeamsModal';
-import TournamentModal from './components/TournamentModal';
-import UserProfileModal from './components/UserProfileModal';
-import NotificationsModal from './components/NotificationsModal';
 import NotificationToast from './components/NotificationToast';
-import WelcomeModal from './components/WelcomeModal';
+
+// Modali caricati in modo asincrono (Lazy Loading) per ridurre drasticamente il peso iniziale dell'app
+const NewGameModal = lazy(() => import('./components/NewGameModal'));
+const RoundCalculatorModal = lazy(() => import('./components/RoundCalculatorModal'));
+const HistoryModal = lazy(() => import('./components/HistoryModal'));
+const VictoryModal = lazy(() => import('./components/VictoryModal'));
+const CloudSyncModal = lazy(() => import('./components/CloudSyncModal'));
+const RulesModal = lazy(() => import('./components/RulesModal'));
+const EditTeamsModal = lazy(() => import('./components/EditTeamsModal'));
+const TournamentModal = lazy(() => import('./components/TournamentModal'));
+const UserProfileModal = lazy(() => import('./components/UserProfileModal'));
+const NotificationsModal = lazy(() => import('./components/NotificationsModal'));
+const WelcomeModal = lazy(() => import('./components/WelcomeModal'));
 import { sound } from './utils/soundEffects';
 import { 
   sendFriendRequest,
@@ -1182,6 +1184,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
 
       {/* MODALI */}
       
+      <Suspense fallback={null}>
       {/* 1. Modal Nuova Partita */}
       <NewGameModal
         isOpen={isNewGameOpen}
@@ -1320,6 +1323,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         user={welcomeUser}
         onOpenProfile={() => setIsProfileOpen(true)}
       />
+      </Suspense>
 
     </div>
   );
