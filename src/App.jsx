@@ -211,7 +211,6 @@ function BurracoAppContent() {
             game.setNewGameInitialSetup(null);
           }}
           onStartGame={game.handleStartGame}
-          availablePlayers={game.recentPlayers}
           friendsList={social.friendsList}
           currentUser={social.currentUser}
           hasActiveGame={Boolean(game.activeGame && game.activeGame.rounds && game.activeGame.rounds.length > 0)}
@@ -278,7 +277,6 @@ function BurracoAppContent() {
           isOpen={isEditTeamsOpen}
           onClose={() => setIsEditTeamsOpen(false)}
           activeGame={game.activeGame}
-          playersList={game.recentPlayers}
           tablePlayers={game.tablePlayers}
           currentUser={social.currentUser}
           friendsList={social.friendsList}
@@ -308,7 +306,6 @@ function BurracoAppContent() {
           onLogout={social.handleLogout}
           gamesHistory={game.gamesHistory}
           activeGame={game.activeGame}
-          recentPlayers={game.recentPlayers}
           tablePlayers={game.tablePlayers}
           friendsList={social.friendsList}
           clubUsers={social.clubUsers}

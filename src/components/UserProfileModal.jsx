@@ -38,7 +38,6 @@ export default function UserProfileModal({
   initialTab = 'profile'
 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [rankingScope, setRankingScope] = useState('friends'); // 'friends' | 'local'
   const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
   const [friendSearchInput, setFriendSearchInput] = useState('');
   const [friendFeedback, setFriendFeedback] = useState(null);
@@ -87,11 +86,6 @@ export default function UserProfileModal({
     return (friendsList || []).filter(f => getFriendOnlineStatus(f.lastSeen).isOnline);
   }, [friendsList]);
   const onlineCount = onlineFriends.length;
-
-  // Statistiche calcolate per la classifica dei partecipanti del tavolo locale
-  const stats = useMemo(() => {
-    return calculatePlayerStats(recentPlayers, gamesHistory, activeGame);
-  }, [recentPlayers, gamesHistory, activeGame]);
 
   // Costruzione classifica Amici Club (Cloud Live)
   const sortedFriendsStats = useMemo(() => {
@@ -177,25 +171,6 @@ export default function UserProfileModal({
     if (sortBy === 'winrate') return 100;
     return Math.max(...sortedFriendsStats.map(s => s.totalPoints), 1);
   }, [sortedFriendsStats, sortBy]);
-
-  // Ordinamento partecipanti tavolo
-  const sortedLocalStats = useMemo(() => {
-    return [...stats].sort((a, b) => {
-      if (sortBy === 'burrachi') {
-        return b.totalBurrachi - a.totalBurrachi || b.cleanBurrachi - a.cleanBurrachi || b.totalPoints - a.totalPoints;
-      }
-      if (sortBy === 'winrate') {
-        return b.winRate - a.winRate || b.gamesWon - a.gamesWon || b.totalPoints - a.totalPoints;
-      }
-      return b.totalPoints - a.totalPoints || b.winRate - a.winRate;
-    });
-  }, [stats, sortBy]);
-
-  const maxLocalVal = useMemo(() => {
-    if (sortBy === 'burrachi') return Math.max(...sortedLocalStats.map(s => s.totalBurrachi), 1);
-    if (sortBy === 'winrate') return 100;
-    return Math.max(...sortedLocalStats.map(s => s.totalPoints), 1);
-  }, [sortedLocalStats, sortBy]);
 
   // Trofei personali dell'utente corrente
   const myTrophiesData = useMemo(() => {
@@ -424,14 +399,10 @@ export default function UserProfileModal({
               {/* SCHEDA 2: CLASSIFICA CLUB & PARTECIPANTI */}
               {activeTab === 'ranking' && (
                 <LeaderboardTab
-                  rankingScope={rankingScope}
-                  setRankingScope={setRankingScope}
                   sortBy={sortBy}
                   setSortBy={setSortBy}
                   sortedFriendsStats={sortedFriendsStats}
                   maxFriendsVal={maxFriendsVal}
-                  sortedLocalStats={sortedLocalStats}
-                  maxLocalVal={maxLocalVal}
                   currentUser={currentUser}
                 />
               )}

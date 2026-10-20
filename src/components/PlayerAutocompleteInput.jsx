@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { User, Sparkles, Check, X } from 'lucide-react';
+import { Sparkles, Check, X } from 'lucide-react';
 
 export default function PlayerAutocompleteInput({
   value = '',
@@ -7,7 +7,6 @@ export default function PlayerAutocompleteInput({
   placeholder = 'Nome giocatore (opzionale)',
   currentUser = null,
   friendsList = [],
-  availablePlayers = [],
   alreadySelected = [],
   className = '',
   onFocus,
@@ -37,7 +36,7 @@ export default function PlayerAutocompleteInput({
       .filter(s => s && s !== value.trim().toLowerCase());
   }, [alreadySelected, value]);
 
-  // Filtra e prepara i suggerimenti disponibili
+  // Filtra e prepara i suggerimenti disponibili (SOLO Me stesso e Amici Google confermati)
   const suggestions = useMemo(() => {
     const query = (value || '').trim().toLowerCase();
     const results = [];
@@ -69,7 +68,7 @@ export default function PlayerAutocompleteInput({
       }
     }
 
-    // 1. Amici Google / Club
+    // 1. Amici Google / Club confermati
     (friendsList || []).forEach(f => {
       const name = (f.displayName || '').trim();
       const email = (f.email || '').trim().toLowerCase();
@@ -93,27 +92,8 @@ export default function PlayerAutocompleteInput({
       }
     });
 
-    // 2. Ospiti / Giocatori Locali
-    (availablePlayers || []).forEach(pName => {
-      const name = (pName || '').trim();
-      if (!name) return;
-      if (seenNames.has(name.toLowerCase())) return;
-      if (selectedNormalized.includes(name.toLowerCase())) return;
-
-      const matches = !query || name.toLowerCase().includes(query);
-      if (matches) {
-        results.push({
-          type: 'guest',
-          name,
-          email: null,
-          photoURL: null
-        });
-        seenNames.add(name.toLowerCase());
-      }
-    });
-
     return results;
-  }, [value, currentUser, friendsList, availablePlayers, selectedNormalized]);
+  }, [value, currentUser, friendsList, selectedNormalized]);
 
   const handleSelect = (item) => {
     onChange(item.name);
@@ -161,12 +141,12 @@ export default function PlayerAutocompleteInput({
         </button>
       )}
 
-      {/* Menù a tendina dei suggerimenti */}
+      {/* Menù a tendina dei suggerimenti: SOLO Tu & Amici Google */}
       {isOpen && suggestions.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl bg-gradient-to-b from-emerald-950 via-zinc-950 to-emerald-950 border-2 border-amber-400/80 shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
           
           <div className="px-2.5 py-1.5 bg-emerald-950/90 border-b border-emerald-800/60 flex items-center justify-between text-[10px] text-emerald-300/80 font-bold uppercase tracking-wider">
-            <span>Scegli Compagno:</span>
+            <span>⭐ Amici Burraco Club:</span>
             <span className="text-amber-400 font-semibold normal-case text-[10px]">
               {suggestions.length} {suggestions.length === 1 ? 'disponibile' : 'disponibili'}
             </span>
@@ -180,7 +160,6 @@ export default function PlayerAutocompleteInput({
                   key={`${item.type}_${item.name}_${idx}`}
                   type="button"
                   onPointerDown={(e) => {
-                    // Previene perdita focus prima del click
                     e.preventDefault();
                     handleSelect(item);
                   }}
@@ -203,21 +182,15 @@ export default function PlayerAutocompleteInput({
                           {item.name.slice(0, 1).toUpperCase()}
                         </div>
                       )
-                    ) : item.type === 'friend' ? (
-                      item.photoURL ? (
-                        <img
-                          src={item.photoURL}
-                          alt=""
-                          className="w-7 h-7 rounded-full border border-amber-400 object-cover shrink-0 shadow-sm"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-amber-400 text-emerald-950 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
-                          {item.name.slice(0, 1).toUpperCase()}
-                        </div>
-                      )
+                    ) : item.photoURL ? (
+                      <img
+                        src={item.photoURL}
+                        alt=""
+                        className="w-7 h-7 rounded-full border border-amber-400 object-cover shrink-0 shadow-sm"
+                      />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-emerald-900 border border-emerald-700/80 text-emerald-300 flex items-center justify-center text-xs shrink-0 shadow-sm">
-                        <User className="w-3.5 h-3.5" />
+                      <div className="w-7 h-7 rounded-full bg-amber-400 text-emerald-950 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+                        {item.name.slice(0, 1).toUpperCase()}
                       </div>
                     )}
 
@@ -231,14 +204,10 @@ export default function PlayerAutocompleteInput({
                             <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
                             <span>Tu (Account)</span>
                           </span>
-                        ) : item.type === 'friend' ? (
+                        ) : (
                           <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center gap-0.5 shrink-0">
                             <Sparkles className="w-2.5 h-2.5 text-amber-400" />
                             <span>Amico Club</span>
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-medium bg-emerald-900/80 text-emerald-300 border border-emerald-700/50 shrink-0">
-                            Ospite
                           </span>
                         )}
                       </div>

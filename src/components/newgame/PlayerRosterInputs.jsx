@@ -18,8 +18,7 @@ export default function PlayerRosterInputs({
   p3A,
   setP3A,
   currentUser,
-  friendsList = [],
-  availablePlayers = []
+  friendsList = []
 }) {
   return (
     <div className={`grid grid-cols-1 ${mode === 'trio' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
@@ -52,7 +51,6 @@ export default function PlayerRosterInputs({
               onChange={setP1A}
               currentUser={currentUser}
               friendsList={friendsList}
-              availablePlayers={availablePlayers}
               alreadySelected={[p1B, p2A, p2B, p3A]}
               className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-amber-400"
               placeholder={mode === 'pairs' ? 'Nome Giocatore 1 (opzionale)' : 'Nome Giocatore (opzionale)'}
@@ -67,7 +65,6 @@ export default function PlayerRosterInputs({
                 onChange={setP1B}
                 currentUser={currentUser}
                 friendsList={friendsList}
-                availablePlayers={availablePlayers}
                 alreadySelected={[p1A, p2A, p2B, p3A]}
                 className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-amber-400"
                 placeholder="Nome Giocatore 2 (opzionale)"
@@ -105,7 +102,6 @@ export default function PlayerRosterInputs({
               onChange={setP2A}
               currentUser={currentUser}
               friendsList={friendsList}
-              availablePlayers={availablePlayers}
               alreadySelected={[p1A, p1B, p2B, p3A]}
               className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-blue-400"
               placeholder={mode === 'pairs' ? 'Nome Giocatore 1 (opzionale)' : 'Nome Giocatore (opzionale)'}
@@ -120,7 +116,6 @@ export default function PlayerRosterInputs({
                 onChange={setP2B}
                 currentUser={currentUser}
                 friendsList={friendsList}
-                availablePlayers={availablePlayers}
                 alreadySelected={[p1A, p1B, p2A, p3A]}
                 className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-blue-400"
                 placeholder="Nome Giocatore 2 (opzionale)"
@@ -149,7 +144,6 @@ export default function PlayerRosterInputs({
                 onChange={setP3A}
                 currentUser={currentUser}
                 friendsList={friendsList}
-                availablePlayers={availablePlayers}
                 alreadySelected={[p1A, p1B, p2A, p2B]}
                 className="w-full px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white font-medium text-sm focus:outline-none focus:border-rose-400"
                 placeholder="Nome Giocatore (opzionale)"

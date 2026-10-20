@@ -11,7 +11,6 @@ export default function NewGameModal({
   isOpen, 
   onClose, 
   onStartGame, 
-  availablePlayers = [],
   friendsList = [],
   hasActiveGame,
   initialSetup = null,
@@ -195,14 +194,12 @@ export default function NewGameModal({
             setP3A={setP3A}
             currentUser={currentUser}
             friendsList={friendsList}
-            availablePlayers={availablePlayers}
           />
 
-          {/* 3. Suggerimenti veloci Amici Registrati & Giocatori Locali */}
+          {/* 3. Suggerimenti veloci Tu & Amici Burraco Club Google */}
           <QuickPlayerChips
             currentUser={currentUser}
             friendsList={friendsList}
-            availablePlayers={availablePlayers}
             onSelectPlayer={handleQuickSelectPlayer}
           />
 

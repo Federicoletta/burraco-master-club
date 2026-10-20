@@ -100,12 +100,6 @@ export default function TournamentWizard({
           candidates.push(name);
         }
       });
-      (playersList || []).forEach(name => {
-        const trimmed = (name || '').trim();
-        if (trimmed && !pool.includes(trimmed) && !candidates.includes(trimmed)) {
-          candidates.push(trimmed);
-        }
-      });
 
       // Aggiungi candidati fino a riempire gli slot
       const needed = (numTeams * 2) - pool.length;
@@ -169,16 +163,6 @@ export default function TournamentWizard({
     });
     sound.playTap();
   };
-
-  // Filtra partecipanti locali escludendo chi è già tra gli amici o è l'utente corrente
-  const uniqueLocalPlayers = useMemo(() => {
-    const myName = (currentUser?.displayName || currentUser?.email?.split('@')[0] || '').toLowerCase();
-    const friendNames = new Set((friendsList || []).map(f => (f.displayName || f.email || '').toLowerCase()));
-    return (playersList || []).filter(name => {
-      const low = (name || '').toLowerCase();
-      return low && low !== myName && !friendNames.has(low);
-    });
-  }, [playersList, currentUser, friendsList]);
 
   return (
     <form onSubmit={onCreateTournament} className="overflow-y-auto pr-1 my-3 space-y-4 flex-1">
@@ -407,45 +391,6 @@ export default function TournamentWizard({
           </div>
         )}
 
-        {/* Partecipanti Recenti (Ospiti / Storico) */}
-        {uniqueLocalPlayers && uniqueLocalPlayers.length > 0 && (
-          <div className="space-y-1.5 pt-1.5 border-t border-white/10">
-            <span className="text-[11px] text-white/70 block">
-              Partecipanti Recenti (Ospiti / Locali):
-            </span>
-            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-              {uniqueLocalPlayers.map(name => {
-                const assignedTeamIdx = teamsForm.findIndex(
-                  t => (t.player1 || '').trim().toLowerCase() === name.trim().toLowerCase() ||
-                       (t.player2 || '').trim().toLowerCase() === name.trim().toLowerCase()
-                );
-                const isAssigned = assignedTeamIdx !== -1;
-
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => onAssignPlayer(name)}
-                    className={`px-2 py-0.5 rounded-lg text-xs font-medium border flex items-center gap-1 transition-all cursor-pointer active:scale-95 ${
-                      isAssigned
-                        ? 'bg-white/5 text-white/50 border-white/10 opacity-70'
-                        : 'bg-white/10 hover:bg-white/20 text-white border-white/15 hover:border-amber-400'
-                    }`}
-                    title={isAssigned ? `${name} (assegnato a Coppia #${assignedTeamIdx + 1})` : `Inserisci ${name}`}
-                  >
-                    <User className="w-3 h-3 text-white/60" />
-                    <span>{name}</span>
-                    {isAssigned ? (
-                      <span className="text-[10px] text-amber-400 font-bold">✓ #{assignedTeamIdx + 1}</span>
-                    ) : (
-                      <span className="text-amber-400 text-xs font-black">+</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 5. CONFIGURAZIONE FORMAZIONI COPPIE */}
@@ -524,7 +469,6 @@ export default function TournamentWizard({
                       placeholder="Giocatore 1"
                       currentUser={currentUser}
                       friendsList={friendsList}
-                      availablePlayers={playersList}
                       alreadySelected={allAssignedPlayers}
                       onFocus={() => setActivePlayerField({ teamIndex: idx, playerSlot: 1 })}
                       className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white focus:outline-none transition-all ${
@@ -559,7 +503,6 @@ export default function TournamentWizard({
                       placeholder="Giocatore 2"
                       currentUser={currentUser}
                       friendsList={friendsList}
-                      availablePlayers={playersList}
                       alreadySelected={allAssignedPlayers}
                       onFocus={() => setActivePlayerField({ teamIndex: idx, playerSlot: 2 })}
                       className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white focus:outline-none transition-all ${

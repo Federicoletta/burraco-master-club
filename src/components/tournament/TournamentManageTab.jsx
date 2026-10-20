@@ -146,7 +146,6 @@ export default function TournamentManageTab({
                         placeholder="Giocatore 1"
                         currentUser={currentUser}
                         friendsList={friendsList}
-                        availablePlayers={playersList}
                         alreadySelected={otherAssignedPlayers}
                         className="w-full px-2.5 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400"
                       />
@@ -166,7 +165,6 @@ export default function TournamentManageTab({
                         placeholder="Giocatore 2"
                         currentUser={currentUser}
                         friendsList={friendsList}
-                        availablePlayers={playersList}
                         alreadySelected={otherAssignedPlayers}
                         className="w-full px-2.5 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400"
                       />

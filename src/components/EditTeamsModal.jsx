@@ -7,7 +7,6 @@ export default function EditTeamsModal({
   isOpen,
   onClose,
   activeGame,
-  playersList = [],
   tablePlayers = [],
   currentUser = null,
   friendsList = [],
@@ -125,23 +124,13 @@ export default function EditTeamsModal({
     });
   }, [friendsList, onlineTablePlayers]);
 
-  // 3. Altri partecipanti salvati nella rubrica locale
-  const otherStoredPlayers = useMemo(() => {
-    const takenNames = new Set([
-      ...onlineTablePlayers.map(p => p.displayName.toLowerCase()),
-      ...otherFriends.map(f => (f.displayName || f.email?.split('@')[0] || '').toLowerCase())
-    ]);
-    return (playersList || []).filter(name => name && !takenNames.has(name.toLowerCase()));
-  }, [playersList, onlineTablePlayers, otherFriends]);
-
   // Tutti i nomi noti per autocomplete datalist
   const allKnownPlayerNames = useMemo(() => {
     const set = new Set();
     onlineTablePlayers.forEach(p => set.add(p.displayName));
     otherFriends.forEach(f => set.add(f.displayName || f.email));
-    (playersList || []).forEach(name => set.add(name));
     return Array.from(set).filter(Boolean);
-  }, [onlineTablePlayers, otherFriends, playersList]);
+  }, [onlineTablePlayers, otherFriends]);
 
   // Mappa di dove si trova ciascun giocatore attualmente nelle squadre
   const assignedMap = useMemo(() => {
@@ -387,7 +376,6 @@ export default function EditTeamsModal({
                     onClick={() => setActiveTargetField('t1P1')}
                     currentUser={currentUser}
                     friendsList={friendsList}
-                    availablePlayers={playersList}
                     alreadySelected={[t1P2, t2P1, t2P2, t3P1]}
                     placeholder="Nome giocatore..."
                     className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
@@ -413,7 +401,6 @@ export default function EditTeamsModal({
                       onClick={() => setActiveTargetField('t1P2')}
                       currentUser={currentUser}
                       friendsList={friendsList}
-                      availablePlayers={playersList}
                       alreadySelected={[t1P1, t2P1, t2P2, t3P1]}
                       placeholder="Nome compagno..."
                       className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
@@ -472,7 +459,6 @@ export default function EditTeamsModal({
                     onClick={() => setActiveTargetField('t2P1')}
                     currentUser={currentUser}
                     friendsList={friendsList}
-                    availablePlayers={playersList}
                     alreadySelected={[t1P1, t1P2, t2P2, t3P1]}
                     placeholder="Nome giocatore..."
                     className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
@@ -498,7 +484,6 @@ export default function EditTeamsModal({
                       onClick={() => setActiveTargetField('t2P2')}
                       currentUser={currentUser}
                       friendsList={friendsList}
-                      availablePlayers={playersList}
                       alreadySelected={[t1P1, t1P2, t2P1, t3P1]}
                       placeholder="Nome compagno..."
                       className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
@@ -558,7 +543,6 @@ export default function EditTeamsModal({
                       onClick={() => setActiveTargetField('t3P1')}
                       currentUser={currentUser}
                       friendsList={friendsList}
-                      availablePlayers={playersList}
                       alreadySelected={[t1P1, t1P2, t2P1, t2P2]}
                       placeholder="Nome giocatore..."
                       className={`w-full px-2.5 py-1.5 rounded-lg text-white font-medium text-xs sm:text-sm focus:outline-none transition-all ${
@@ -708,38 +692,6 @@ export default function EditTeamsModal({
               </div>
             )}
 
-            {/* 3. Altri Giocatori Salvati / Storico */}
-            {otherStoredPlayers.length > 0 && (
-              <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-800/60 text-xs space-y-1.5">
-                <div className="flex items-center gap-1.5 text-emerald-400/90 font-semibold text-[11px]">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>Altri giocatori salvati:</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {otherStoredPlayers.map(name => {
-                    const assignedTo = assignedMap[name.toLowerCase()];
-                    return (
-                      <button
-                        key={name}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => handleAssignPlayer(name)}
-                        className={`px-2 py-0.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer active:scale-95 ${
-                          assignedTo
-                            ? 'bg-emerald-800/60 text-emerald-100 border border-emerald-600/50'
-                            : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/50'
-                        }`}
-                      >
-                        <span>+ {name}</span>
-                        {assignedTo && (
-                          <span className="ml-1 text-[9px] text-amber-300">({assignedTo})</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
           </div>
 
