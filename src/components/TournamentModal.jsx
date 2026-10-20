@@ -24,6 +24,8 @@ export default function TournamentModal({
   onFinishTournament,
   onPlayMatch,
   playersList = [],
+  currentUser = null,
+  friendsList = [],
 }) {
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState('standings'); // 'standings' | 'schedule' | 'manage'
@@ -51,17 +53,45 @@ export default function TournamentModal({
   // Traccia quale input giocatore è attualmente attivo per assegnare rapidamente con un tocco
   const [activePlayerField, setActivePlayerField] = useState({ teamIndex: 0, playerSlot: 1 });
 
-  // Assegna un partecipante recente allo slot attivo o al primo slot libero
+  // Assegna un partecipante recente o amico allo slot attivo o al primo slot libero
   const handleAssignPlayer = useCallback((playerName) => {
+    if (!playerName) return;
     setTeamsForm(prev => {
-      const next = [...prev];
+      const next = prev.map(t => ({ ...t }));
       let targetIdx = activePlayerField.teamIndex;
       let targetSlot = activePlayerField.playerSlot;
 
+      // 1. Se il giocatore è già esattamente nello slot attivo, toglilo (toggle off)
       if (next[targetIdx] && next[targetIdx][`player${targetSlot}`] === playerName) {
+        next[targetIdx][`player${targetSlot}`] = '';
+        const p1 = targetSlot === 1 ? '' : next[targetIdx].player1;
+        const p2 = targetSlot === 2 ? '' : next[targetIdx].player2;
+        const combined = [p1, p2].filter(Boolean).join(' & ');
+        if (!next[targetIdx].name || next[targetIdx].name.startsWith('Coppia ') || next[targetIdx].name.includes('&')) {
+          next[targetIdx].name = combined || `Coppia ${targetIdx + 1}`;
+        }
         return next;
       }
 
+      // 2. Se il giocatore è già assegnato ad un altro slot/coppia, rimuovilo da lì (spostamento pulito)
+      for (let i = 0; i < next.length; i++) {
+        if (next[i].player1 === playerName) {
+          next[i].player1 = '';
+          const p2 = next[i].player2;
+          if (next[i].name.startsWith('Coppia ') || next[i].name.includes('&')) {
+            next[i].name = p2 ? `${p2}` : `Coppia ${i + 1}`;
+          }
+        }
+        if (next[i].player2 === playerName) {
+          next[i].player2 = '';
+          const p1 = next[i].player1;
+          if (next[i].name.startsWith('Coppia ') || next[i].name.includes('&')) {
+            next[i].name = p1 ? `${p1}` : `Coppia ${i + 1}`;
+          }
+        }
+      }
+
+      // 3. Se lo slot attivo è già occupato, cerca il primo slot libero
       if (next[targetIdx] && next[targetIdx][`player${targetSlot}`] !== '') {
         let foundEmpty = false;
         for (let i = 0; i < next.length; i++) {
@@ -85,18 +115,16 @@ export default function TournamentModal({
       }
 
       if (next[targetIdx]) {
-        next[targetIdx] = {
-          ...next[targetIdx],
-          [`player${targetSlot}`]: playerName,
-        };
+        next[targetIdx][`player${targetSlot}`] = playerName;
         const p1 = targetSlot === 1 ? playerName : next[targetIdx].player1;
         const p2 = targetSlot === 2 ? playerName : next[targetIdx].player2;
         const combined = [p1, p2].filter(Boolean).join(' & ');
-        if (!next[targetIdx].name || next[targetIdx].name.startsWith('Coppia ')) {
+        if (!next[targetIdx].name || next[targetIdx].name.startsWith('Coppia ') || next[targetIdx].name.includes('&')) {
           next[targetIdx].name = combined || `Coppia ${targetIdx + 1}`;
         }
       }
 
+      // Sposta il cursore di focus al prossimo slot
       if (targetSlot === 1) {
         setActivePlayerField({ teamIndex: targetIdx, playerSlot: 2 });
       } else if (targetIdx + 1 < next.length) {
@@ -388,6 +416,8 @@ export default function TournamentModal({
             numTeams={numTeams}
             onNumTeamsChange={handleNumTeamsChange}
             playersList={playersList}
+            currentUser={currentUser}
+            friendsList={friendsList}
             teamsForm={teamsForm}
             setTeamsForm={setTeamsForm}
             activePlayerField={activePlayerField}
@@ -486,6 +516,9 @@ export default function TournamentModal({
                   tournamentsHistory={tournamentsHistory}
                   onDeleteHistoricalTournament={handleDeleteHistoricalTournament}
                   onViewHistoricalStandings={(t) => setViewingHistoricalTournament(t)}
+                  currentUser={currentUser}
+                  friendsList={friendsList}
+                  playersList={playersList}
                 />
               )}
             </div>

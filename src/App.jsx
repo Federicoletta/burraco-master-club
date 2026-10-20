@@ -294,6 +294,8 @@ function BurracoAppContent() {
           onFinishTournament={tournament.handleFinishTournament}
           onPlayMatch={(match) => game.handlePlayTournamentMatch(match, tournament.activeTournament, () => tournament.setIsTournamentOpen(false))}
           playersList={game.recentPlayers}
+          currentUser={social.currentUser}
+          friendsList={social.friendsList}
         />
 
         {/* 9. Modal Profilo Personale, Trofei, Classifica & Amici */}

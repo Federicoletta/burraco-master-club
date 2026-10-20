@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Trophy, Plus, Edit2, Check, Trash2, Eye, Award, Calendar, Users } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Trophy, Plus, Edit2, Check, Trash2, Eye, Award, Calendar, Users, ArrowLeftRight } from 'lucide-react';
+import PlayerAutocompleteInput from '../PlayerAutocompleteInput';
 import { sound } from '../../utils/soundEffects';
 
 export default function TournamentManageTab({
@@ -11,17 +12,63 @@ export default function TournamentManageTab({
   tournamentsHistory = [],
   onDeleteHistoricalTournament,
   onViewHistoricalStandings,
+  currentUser = null,
+  friendsList = [],
+  playersList = [],
 }) {
   const [editingTeamId, setEditingTeamId] = useState(null);
   const [editTeamName, setEditTeamName] = useState('');
   const [editPlayer1, setEditPlayer1] = useState('');
   const [editPlayer2, setEditPlayer2] = useState('');
 
+  // Giocatori assegnati nelle altre squadre per evitare duplicati
+  const otherAssignedPlayers = useMemo(() => {
+    const list = [];
+    (teams || []).forEach(t => {
+      if (t.id === editingTeamId) return;
+      if (t.players?.[0]) list.push(t.players[0].trim());
+      if (t.players?.[1]) list.push(t.players[1].trim());
+    });
+    return list;
+  }, [teams, editingTeamId]);
+
   const handleStartEditTeam = (team) => {
     setEditingTeamId(team.id);
     setEditTeamName(team.name || '');
     setEditPlayer1(team.players?.[0] || '');
     setEditPlayer2(team.players?.[1] || '');
+  };
+
+  const handlePlayer1Change = (val) => {
+    setEditPlayer1(val);
+    const p1 = val.trim();
+    const p2 = editPlayer2.trim();
+    const combined = [p1, p2].filter(Boolean).join(' & ');
+    if (!editTeamName || editTeamName.startsWith('Coppia ') || editTeamName.includes('&')) {
+      setEditTeamName(combined || 'Coppia');
+    }
+  };
+
+  const handlePlayer2Change = (val) => {
+    setEditPlayer2(val);
+    const p1 = editPlayer1.trim();
+    const p2 = val.trim();
+    const combined = [p1, p2].filter(Boolean).join(' & ');
+    if (!editTeamName || editTeamName.startsWith('Coppia ') || editTeamName.includes('&')) {
+      setEditTeamName(combined || 'Coppia');
+    }
+  };
+
+  const handleSwapEditPlayers = () => {
+    const p1 = editPlayer2;
+    const p2 = editPlayer1;
+    setEditPlayer1(p1);
+    setEditPlayer2(p2);
+    const combined = [p1.trim(), p2.trim()].filter(Boolean).join(' & ');
+    if (!editTeamName || editTeamName.startsWith('Coppia ') || editTeamName.includes('&')) {
+      setEditTeamName(combined || 'Coppia');
+    }
+    sound.playTap();
   };
 
   const handleSaveEditTeam = (teamId) => {
@@ -87,20 +134,36 @@ export default function TournamentManageTab({
                       className="w-full px-2.5 py-1.5 rounded-lg bg-black/50 border border-white/20 text-xs text-white font-bold focus:outline-none focus:border-amber-400"
                     />
 
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <input
-                        type="text"
-                        placeholder="Giocatore 1"
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
+                      <PlayerAutocompleteInput
                         value={editPlayer1}
-                        onChange={(e) => setEditPlayer1(e.target.value)}
-                        className="w-full px-2 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400"
+                        onChange={handlePlayer1Change}
+                        placeholder="Giocatore 1"
+                        currentUser={currentUser}
+                        friendsList={friendsList}
+                        availablePlayers={playersList}
+                        alreadySelected={otherAssignedPlayers}
+                        className="w-full px-2.5 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400"
                       />
-                      <input
-                        type="text"
-                        placeholder="Giocatore 2"
+
+                      <button
+                        type="button"
+                        onClick={handleSwapEditPlayers}
+                        className="p-1 rounded-md bg-white/5 hover:bg-white/15 text-white/70 hover:text-amber-300 transition-colors cursor-pointer border border-white/10"
+                        title="Inverti Giocatore 1 e 2"
+                      >
+                        <ArrowLeftRight className="w-3 h-3" />
+                      </button>
+
+                      <PlayerAutocompleteInput
                         value={editPlayer2}
-                        onChange={(e) => setEditPlayer2(e.target.value)}
-                        className="w-full px-2 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400"
+                        onChange={handlePlayer2Change}
+                        placeholder="Giocatore 2"
+                        currentUser={currentUser}
+                        friendsList={friendsList}
+                        availablePlayers={playersList}
+                        alreadySelected={otherAssignedPlayers}
+                        className="w-full px-2.5 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400"
                       />
                     </div>
                   </div>
