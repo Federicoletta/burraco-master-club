@@ -1,3 +1,10 @@
+import {
+  getActiveTournament,
+  saveActiveTournament,
+  getTournamentsHistory,
+  TOURNAMENT_STORAGE_KEYS
+} from './tournament';
+
 // Gestione persistenza dati su LocalStorage
 
 const STORAGE_KEYS = {
@@ -7,8 +14,6 @@ const STORAGE_KEYS = {
   SETTINGS: 'burraco_settings_v1',
 };
 
-// Default preset di giocatori per iniziare: vuoto (nessun nome forzato)
-const DEFAULT_PLAYERS = [];
 const MOCK_NAMES = ['Marco', 'Anna', 'Luca', 'Sofia'];
 const GENERIC_LABELS = ['coppia 1', 'coppia 2', 'giocatore 1', 'giocatore 2', 'squadra 1', 'squadra 2'];
 
@@ -212,38 +217,70 @@ export function deleteGameFromHistory(gameId, userKey) {
 
 export function exportBackupData(userKey) {
   const data = {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     activeGame: getActiveGame(),
     history: getGamesHistory(userKey),
     players: getStoredPlayers(userKey),
+    activeTournament: getActiveTournament(),
+    tournamentsHistory: getTournamentsHistory(),
   };
 
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const dateStr = new Date().toISOString().slice(0, 10);
-  a.href = url;
-  a.download = `burraco_score_backup_${dateStr}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  if (typeof document !== 'undefined' && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `burraco_score_backup_${dateStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  return data;
 }
 
 export function importBackupData(jsonData, userKey) {
   try {
+    if (!jsonData) return false;
     const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-    if (data.history && Array.isArray(data.history)) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return false;
+    }
+
+    let importedCount = 0;
+
+    if (Array.isArray(data.history)) {
       localStorage.setItem(getHistoryKey(userKey), JSON.stringify(data.history));
+      importedCount++;
     }
-    if (data.players && Array.isArray(data.players)) {
-      localStorage.setItem(getPlayersKey(userKey), JSON.stringify(data.players));
+    if (Array.isArray(data.players)) {
+      setStoredPlayers(data.players, userKey);
+      importedCount++;
     }
-    if (data.activeGame) {
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_GAME, JSON.stringify(data.activeGame));
+    if (data.activeGame !== undefined) {
+      if (data.activeGame === null) {
+        localStorage.removeItem(STORAGE_KEYS.ACTIVE_GAME);
+      } else if (typeof data.activeGame === 'object') {
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_GAME, JSON.stringify(data.activeGame));
+      }
+      importedCount++;
     }
-    return true;
+    if (data.activeTournament !== undefined) {
+      if (data.activeTournament === null) {
+        localStorage.removeItem(TOURNAMENT_STORAGE_KEYS.ACTIVE);
+      } else if (typeof data.activeTournament === 'object') {
+        saveActiveTournament(data.activeTournament);
+      }
+      importedCount++;
+    }
+    if (Array.isArray(data.tournamentsHistory)) {
+      localStorage.setItem(TOURNAMENT_STORAGE_KEYS.HISTORY, JSON.stringify(data.tournamentsHistory));
+      importedCount++;
+    }
+
+    return importedCount > 0;
   } catch (err) {
-    console.error('Import error', err);
+    console.warn('Import error', err?.message || err);
     return false;
   }
 }

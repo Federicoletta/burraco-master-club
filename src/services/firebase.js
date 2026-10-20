@@ -46,7 +46,7 @@ try {
         tabManager: persistentMultipleTabManager()
       })
     });
-  } catch (cacheErr) {
+  } catch (_cacheErr) {
     db = getFirestore(app);
   }
   auth = getAuth(app);
@@ -55,6 +55,30 @@ try {
 }
 
 export { db, auth };
+
+/**
+ * Sanitizza ricorsivamente oggetti prima di inviarli a Firestore,
+ * rimuovendo campi `undefined` e prevenendo eccezioni "Unsupported field value: undefined".
+ * Mantiene integri i FieldValue speciali (es. serverTimestamp), Date e tipi primitivi.
+ */
+export function sanitizeForFirestore(val) {
+  if (val === undefined) return null;
+  if (val === null || typeof val !== 'object') return val;
+  if (val instanceof Date) return val.toISOString();
+  if (val?.constructor?.name === 'FieldValue' || val?._methodName || typeof val.isEqual === 'function') {
+    return val;
+  }
+  if (Array.isArray(val)) {
+    return val.filter(item => item !== undefined).map(sanitizeForFirestore);
+  }
+  const cleanObj = {};
+  for (const [key, value] of Object.entries(val)) {
+    if (value !== undefined) {
+      cleanObj[key] = sanitizeForFirestore(value);
+    }
+  }
+  return cleanObj;
+}
 
 /**
  * Accesso con Account Google (Popup)
@@ -172,7 +196,7 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
       }
     }
 
-    const payload = {
+    const payload = sanitizeForFirestore({
       ...game,
       ownerUid: game.ownerUid !== undefined ? game.ownerUid : (currentUser?.uid || null),
       ownerEmail: game.ownerEmail !== undefined ? game.ownerEmail : (currentUser?.email || null),
@@ -180,7 +204,7 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
       playerUids: Array.isArray(game.playerUids) ? game.playerUids : (currentUser?.uid ? [currentUser.uid] : []),
       playerEmails: Array.isArray(game.playerEmails) ? game.playerEmails : (currentUser?.email ? [currentUser.email] : []),
       updatedAt: serverTimestamp(),
-    };
+    });
     await setDoc(gameRef, payload, { merge: true });
     return true;
   } catch (err) {
@@ -394,10 +418,11 @@ export async function syncTournamentToCloud(tournament) {
   if (!db || !tournament?.id) return false;
   try {
     const tournamentRef = doc(db, 'burraco_tournaments', tournament.id);
-    await setDoc(tournamentRef, {
+    const payload = sanitizeForFirestore({
       ...tournament,
       updatedAt: serverTimestamp(),
-    }, { merge: true });
+    });
+    await setDoc(tournamentRef, payload, { merge: true });
     return true;
   } catch (err) {
     console.warn('Errore syncTournamentToCloud:', err.message);
@@ -532,7 +557,7 @@ export async function fetchTablePlayers(uids = [], emails = []) {
               seenEmails.add(clean);
             }
           }
-        } catch (e) {
+        } catch (_e) {
           // ignore lookup error
         }
       }
@@ -552,7 +577,7 @@ export async function updateUserCareerStats(userId, stats) {
   if (!db || !userId || !stats) return false;
   try {
     const userRef = doc(db, 'burraco_users', userId);
-    await setDoc(userRef, {
+    const payload = sanitizeForFirestore({
       careerStats: {
         totalPoints: Number(stats.totalPoints) || 0,
         gamesPlayed: Number(stats.gamesPlayed) || 0,
@@ -566,7 +591,8 @@ export async function updateUserCareerStats(userId, stats) {
         trophiesCount: Number(stats.trophiesCount) || 0,
         updatedAt: new Date().toISOString()
       }
-    }, { merge: true });
+    });
+    await setDoc(userRef, payload, { merge: true });
     return true;
   } catch (err) {
     console.warn('Errore updateUserCareerStats:', err.message);
