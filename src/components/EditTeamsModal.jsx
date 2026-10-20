@@ -243,10 +243,14 @@ export default function EditTeamsModal({
     const p2 = [t2P1.trim(), isPairs ? t2P2.trim() : null].filter(Boolean);
     const p3 = isTrio ? [t3P1.trim()].filter(Boolean) : [];
 
-    if (p1.length === 0 || p2.length === 0 || (isTrio && p3.length === 0)) {
+    const finalT1Name = t1Name.trim() || (p1.length > 0 ? (isPairs ? p1.join(' & ') : p1[0]) : (activeGame.team1?.name || 'Coppia 1'));
+    const finalT2Name = t2Name.trim() || (p2.length > 0 ? (isPairs ? p2.join(' & ') : p2[0]) : (activeGame.team2?.name || 'Coppia 2'));
+    const finalT3Name = isTrio ? (t3Name.trim() || (p3.length > 0 ? p3[0] : (activeGame.team3?.name || 'Giocatore 3'))) : '';
+
+    if (!finalT1Name || !finalT2Name || (isTrio && !finalT3Name)) {
       customAlert({
-        title: 'Postazione Incompleta',
-        message: 'Inserisci almeno un giocatore per ciascuna postazione.',
+        title: 'Nome o Giocatori Mancanti',
+        message: 'Inserisci un nome squadra o almeno un giocatore per ciascuna postazione.',
         variant: 'warning'
       });
       return;
@@ -257,19 +261,19 @@ export default function EditTeamsModal({
     try {
       const updatedTeam1 = {
         ...activeGame.team1,
-        name: t1Name.trim() || (isPairs ? `${p1.join(' & ')}` : p1[0]),
+        name: finalT1Name,
         players: p1,
       };
 
       const updatedTeam2 = {
         ...activeGame.team2,
-        name: t2Name.trim() || (isPairs ? `${p2.join(' & ')}` : p2[0]),
+        name: finalT2Name,
         players: p2,
       };
 
       const updatedTeam3 = isTrio ? {
         ...(activeGame.team3 || {}),
-        name: t3Name.trim() || p3[0],
+        name: finalT3Name,
         players: p3,
       } : undefined;
 
