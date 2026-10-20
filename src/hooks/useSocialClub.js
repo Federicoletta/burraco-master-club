@@ -78,16 +78,22 @@ export function useSocialClub() {
       setFriendsList(friends);
     });
 
-    const unsubClub = subscribeToClubUsers(currentUser, (cUsers) => {
-      setClubUsers(cUsers);
-    });
-
     return () => {
       unsubNotifs();
       unsubFriends();
-      unsubClub();
     };
   }, [currentUser]);
+
+  // 3. Ascolto soci e membri club su richiesta (attivato solo all'apertura del profilo/ricerca amici per risparmio letture DB)
+  useEffect(() => {
+    if (!currentUser || !isProfileOpen) {
+      return;
+    }
+    const unsubClub = subscribeToClubUsers(currentUser, (cUsers) => {
+      setClubUsers(cUsers);
+    });
+    return () => unsubClub();
+  }, [currentUser, isProfileOpen]);
 
   // Login
   const handleLogin = async () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAlert } from '../context/ConfirmContext';
 import {
   getActiveGame,
@@ -7,7 +7,8 @@ import {
   getHistoryKey,
   archiveCurrentGame,
   deleteGameFromHistory,
-  computeUserCareerStats
+  computeUserCareerStats,
+  safeSetItem
 } from '../utils/storage';
 import {
   syncGameToCloud,
@@ -34,6 +35,7 @@ export function useBurracoGame({
   const [tablePlayers, setTablePlayers] = useState([]);
   const [newGameInitialSetup, setNewGameInitialSetup] = useState(null);
   const [syncStatus, setSyncStatus] = useState(() => (typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced'));
+  const lastFetchedRosterKeyRef = useRef('');
 
   useEffect(() => {
     const handleOnline = () => setSyncStatus('synced');
@@ -191,11 +193,15 @@ export function useBurracoGame({
           });
 
           if ((cloudGame.playerUids && cloudGame.playerUids.length > 0) || (cloudGame.playerEmails && cloudGame.playerEmails.length > 0)) {
-            fetchTablePlayers(cloudGame.playerUids, cloudGame.playerEmails).then(players => {
-              if (Array.isArray(players) && players.length > 0) {
-                setTablePlayers(players);
-              }
-            });
+            const rosterKey = `${(cloudGame.playerUids || []).slice().sort().join(',')}|${(cloudGame.playerEmails || []).slice().sort().join(',')}`;
+            if (rosterKey !== lastFetchedRosterKeyRef.current) {
+              lastFetchedRosterKeyRef.current = rosterKey;
+              fetchTablePlayers(cloudGame.playerUids, cloudGame.playerEmails).then(players => {
+                if (Array.isArray(players) && players.length > 0) {
+                  setTablePlayers(players);
+                }
+              });
+            }
           }
         }
       },
@@ -351,7 +357,7 @@ export function useBurracoGame({
     if (hIndex >= 0) {
       const newHistory = [...history];
       newHistory[hIndex] = updatedGame;
-      localStorage.setItem(currentUser ? `burraco_history_${currentUser.uid}` : 'burraco_history_guest', JSON.stringify(newHistory));
+      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
       setGamesHistory(newHistory);
     }
 
@@ -361,7 +367,6 @@ export function useBurracoGame({
         matches: r.matches.map(m => {
           if (m.id === activeGame.tournamentMatchId) {
             return {
-    syncStatus,
               ...m,
               team1Score: t1Total,
               team2Score: t2Total,

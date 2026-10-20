@@ -45,7 +45,7 @@ export function getStorageUsage() {
 }
 
 /**
- * Salva in modo sicuro in LocalStorage prevenendo QuotaExceededError
+ * Salva in modo sicuro in LocalStorage prevenendo QuotaExceededError con compattazione automatica
  */
 export function safeSetItem(key, value) {
   try {
@@ -54,28 +54,44 @@ export function safeSetItem(key, value) {
   } catch (err) {
     console.warn(`[safeSetItem] Spazio LocalStorage in esaurimento per "${key}". Tento auto-compattazione...`, err);
     try {
-      const historyKey = STORAGE_KEYS.HISTORY;
-      const raw = localStorage.getItem(historyKey);
-      if (raw) {
-        const history = JSON.parse(raw);
-        if (Array.isArray(history) && history.length > 40) {
-          const compacted = history.map((game, idx) => {
-            if (idx >= 30 && game.rounds && game.rounds.length > 0) {
-              return {
-                ...game,
-                roundsCount: game.rounds.length,
-                rounds: [],
-              };
-            }
-            return game;
-          });
-          localStorage.setItem(historyKey, JSON.stringify(compacted));
+      // Cerca e compatta tutte le chiavi di storico partite (ospite e utenti)
+      const keysToCompact = [];
+      const totalKeys = localStorage.length || 0;
+      for (let i = 0; i < totalKeys; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('burraco_history') || k.startsWith('burraco_tournaments'))) {
+          keysToCompact.push(k);
         }
       }
+
+      keysToCompact.forEach(historyKey => {
+        try {
+          const raw = localStorage.getItem(historyKey);
+          if (raw) {
+            const history = JSON.parse(raw);
+            if (Array.isArray(history) && history.length > 25) {
+              const compacted = history.map((game, idx) => {
+                if (idx >= 20 && game && game.rounds && game.rounds.length > 0) {
+                  return {
+                    ...game,
+                    roundsCount: game.rounds.length,
+                    rounds: [],
+                  };
+                }
+                return game;
+              });
+              localStorage.setItem(historyKey, JSON.stringify(compacted));
+            }
+          }
+        } catch {
+          // ignore individual key error
+        }
+      });
+
       localStorage.setItem(key, value);
       return true;
     } catch (retryErr) {
-      console.error('[safeSetItem] Fallimento salvataggio:', retryErr);
+      console.error('[safeSetItem] Fallimento salvataggio dopo compattazione:', retryErr);
       return false;
     }
   }
@@ -278,7 +294,7 @@ export function archiveCurrentGame(game, userKey) {
 
 export function deleteGameFromHistory(gameId, userKey) {
   const history = getGamesHistory(userKey).filter(g => g.id !== gameId);
-  localStorage.setItem(getHistoryKey(userKey), JSON.stringify(history));
+  safeSetItem(getHistoryKey(userKey), JSON.stringify(history));
   return history;
 }
 

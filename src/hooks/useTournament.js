@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getActiveTournament,
   saveActiveTournament,
@@ -12,19 +12,27 @@ import {
 export function useTournament() {
   const [activeTournament, setActiveTournament] = useState(() => getActiveTournament());
   const [isTournamentOpen, setIsTournamentOpen] = useState(false);
+  
+  // Flag per impedire il ciclo ping-pong di riscrittura quando l'aggiornamento arriva dal listener remoto
+  const isRemoteSyncRef = useRef(false);
 
-  // 1. Sincronizzazione iniziale torneo locale col cloud
+  // 1. Sincronizzazione torneo locale col cloud (solo su modifiche locali effettive)
   useEffect(() => {
     if (activeTournament) {
+      if (isRemoteSyncRef.current) {
+        isRemoteSyncRef.current = false;
+        return;
+      }
       syncTournamentToCloud(activeTournament);
     }
   }, [activeTournament]);
 
-  // 2. Ascolto real-time del torneo attivo da Firestore
+  // 2. Ascolto real-time del torneo attivo da Firestore (multi-device)
   useEffect(() => {
     if (!activeTournament?.id) return;
     const unsubTournament = subscribeToCloudTournament(activeTournament.id, (cloudTourn) => {
       if (cloudTourn && cloudTourn.id === activeTournament.id) {
+        isRemoteSyncRef.current = true;
         setActiveTournament(cloudTourn);
         saveActiveTournament(cloudTourn);
       }

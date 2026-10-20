@@ -1,4 +1,5 @@
 // Gestione logica, calcoli e archivio per la modalità Torneo di Burraco
+import { safeSetItem } from './storage';
 
 export const TOURNAMENT_STORAGE_KEYS = {
   ACTIVE: 'burraco_active_tournament_v1',
@@ -296,7 +297,7 @@ export function saveActiveTournament(tournament) {
   if (!tournament) {
     localStorage.removeItem(TOURNAMENT_STORAGE_KEYS.ACTIVE);
   } else {
-    localStorage.setItem(TOURNAMENT_STORAGE_KEYS.ACTIVE, JSON.stringify(tournament));
+    safeSetItem(TOURNAMENT_STORAGE_KEYS.ACTIVE, JSON.stringify(tournament));
   }
 }
 
@@ -318,12 +319,12 @@ export function archiveTournament(tournament) {
     completedAt: new Date().toISOString(),
   };
   const updated = [completed, ...history.filter(t => t.id !== tournament.id)];
-  localStorage.setItem(TOURNAMENT_STORAGE_KEYS.HISTORY, JSON.stringify(updated));
+  safeSetItem(TOURNAMENT_STORAGE_KEYS.HISTORY, JSON.stringify(updated));
   return updated;
 }
 
 export function deleteTournamentFromHistory(tournamentId) {
   const history = getTournamentsHistory().filter(t => t.id !== tournamentId);
-  localStorage.setItem(TOURNAMENT_STORAGE_KEYS.HISTORY, JSON.stringify(history));
+  safeSetItem(TOURNAMENT_STORAGE_KEYS.HISTORY, JSON.stringify(history));
   return history;
 }

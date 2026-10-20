@@ -551,8 +551,12 @@ export async function joinCloudGame(gameId, currentUser) {
   }
 }
 
+// Cache in memoria dei profili utente per evitare query ridondanti a Firestore
+const userProfilesCache = new Map();
+const USER_PROFILE_CACHE_TTL = 3 * 60 * 1000; // 3 minuti
+
 /**
- * Recupera i profili pubblici degli utenti collegati al tavolo (per UID ed Email)
+ * Recupera i profili pubblici degli utenti collegati al tavolo (per UID ed Email) in parallelo con cache
  */
 export async function fetchTablePlayers(uids = [], emails = []) {
   if (!db) return [];
@@ -560,42 +564,79 @@ export async function fetchTablePlayers(uids = [], emails = []) {
     const profiles = [];
     const seenUids = new Set();
     const seenEmails = new Set();
+    const now = Date.now();
 
-    if (Array.isArray(uids)) {
-      for (const uid of uids) {
-        if (!uid || seenUids.has(uid)) continue;
+    // 1. Risolvi UID in parallelo
+    const uniqueUids = Array.isArray(uids) 
+      ? [...new Set(uids.filter(Boolean))] 
+      : [];
+
+    const uidPromises = uniqueUids.map(async (uid) => {
+      const cached = userProfilesCache.get(uid);
+      if (cached && (now - cached.timestamp < USER_PROFILE_CACHE_TTL)) {
+        return cached.data;
+      }
+      try {
         const userRef = doc(db, 'burraco_users', uid);
         const snap = await getDoc(userRef);
         if (snap.exists()) {
           const uData = snap.data();
-          profiles.push(uData);
-          seenUids.add(uData.uid);
-          if (uData.email) seenEmails.add(uData.email.toLowerCase());
+          userProfilesCache.set(uid, { data: uData, timestamp: now });
+          if (uData.email) {
+            userProfilesCache.set(`email_${uData.email.toLowerCase()}`, { data: uData, timestamp: now });
+          }
+          return uData;
         }
+      } catch (err) {
+        console.warn('Errore lettura profilo uid:', uid, err.message);
       }
-    }
+      return null;
+    });
 
-    if (Array.isArray(emails)) {
-      for (const email of emails) {
-        if (!email) continue;
-        const clean = email.toLowerCase().trim();
-        if (seenEmails.has(clean)) continue;
+    const uidResults = await Promise.all(uidPromises);
+    uidResults.filter(Boolean).forEach(uData => {
+      if (!seenUids.has(uData.uid)) {
+        profiles.push(uData);
+        seenUids.add(uData.uid);
+        if (uData.email) seenEmails.add(uData.email.toLowerCase());
+      }
+    });
+
+    // 2. Risolvi eventuali Email rimanenti non associate agli UID già trovati
+    const remainingEmails = (Array.isArray(emails) ? emails : [])
+      .map(e => (e || '').toLowerCase().trim())
+      .filter(e => e && !seenEmails.has(e));
+
+    if (remainingEmails.length > 0) {
+      const emailPromises = [...new Set(remainingEmails)].map(async (cleanEmail) => {
+        const cached = userProfilesCache.get(`email_${cleanEmail}`);
+        if (cached && (now - cached.timestamp < USER_PROFILE_CACHE_TTL)) {
+          return cached.data;
+        }
         try {
           const usersRef = collection(db, 'burraco_users');
-          const q = query(usersRef, where('email', '==', clean));
+          const q = query(usersRef, where('email', '==', cleanEmail), limit(1));
           const snap = await getDocs(q);
           if (!snap.empty) {
             const uData = snap.docs[0].data();
-            if (!seenUids.has(uData.uid)) {
-              profiles.push(uData);
-              seenUids.add(uData.uid);
-              seenEmails.add(clean);
-            }
+            userProfilesCache.set(`email_${cleanEmail}`, { data: uData, timestamp: now });
+            if (uData.uid) userProfilesCache.set(uData.uid, { data: uData, timestamp: now });
+            return uData;
           }
         } catch {
           // ignore lookup error
         }
-      }
+        return null;
+      });
+
+      const emailResults = await Promise.all(emailPromises);
+      emailResults.filter(Boolean).forEach(uData => {
+        if (!seenUids.has(uData.uid)) {
+          profiles.push(uData);
+          seenUids.add(uData.uid);
+          if (uData.email) seenEmails.add(uData.email.toLowerCase());
+        }
+      });
     }
 
     return profiles;

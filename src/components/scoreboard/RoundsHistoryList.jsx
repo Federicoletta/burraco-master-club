@@ -18,7 +18,7 @@ export default function RoundsHistoryList({
   });
 
   return (
-    <div className="felt-card rounded-2xl border border-emerald-600/30 overflow-hidden shadow-xl">
+    <div className="felt-card rounded-2xl border border-white/10 overflow-hidden shadow-xl">
       <div className="py-2.5 px-3 sm:px-4 bg-black/30 border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-amber-400 font-serif text-base sm:text-lg">♦ ♠</span>
@@ -28,14 +28,14 @@ export default function RoundsHistoryList({
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Selettore Vista Schede / Tabella */}
           {roundsWithProgressive.length > 0 && (
-            <div className="flex items-center gap-0.5 bg-emerald-900/80 p-0.5 rounded-lg border border-emerald-700/50 shadow-inner">
+            <div className="flex items-center gap-0.5 bg-black/40 p-0.5 rounded-lg border border-white/15 shadow-inner">
               <button
                 type="button"
                 onClick={() => setViewMode('cards')}
                 className={`px-2 py-1 rounded-md text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                   viewMode === 'cards'
                     ? 'bg-amber-400 text-emerald-950 shadow-xs'
-                    : 'text-emerald-300/80 hover:text-white'
+                    : 'text-white/70 hover:text-white'
                 }`}
                 title="Visualizzazione a schede (intuitiva su smartphone)"
               >
@@ -48,7 +48,7 @@ export default function RoundsHistoryList({
                 className={`px-2 py-1 rounded-md text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                   viewMode === 'table'
                     ? 'bg-amber-400 text-emerald-950 shadow-xs'
-                    : 'text-emerald-300/80 hover:text-white'
+                    : 'text-white/70 hover:text-white'
                 }`}
                 title="Visualizzazione a tabella classica"
               >
@@ -58,7 +58,7 @@ export default function RoundsHistoryList({
             </div>
           )}
 
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded-md bg-emerald-900/60 border border-emerald-700/40 text-[10px] sm:text-[11px] text-emerald-300/80">
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded-md bg-black/30 border border-white/15 text-[10px] sm:text-[11px] text-white/80">
             Traguardo: <strong className="text-amber-300">{targetScore} pt</strong>
           </span>
         </div>
@@ -70,7 +70,7 @@ export default function RoundsHistoryList({
             ♣
           </div>
           <h4 className="text-sm font-bold text-white">Nessuna mano registrata</h4>
-          <p className="text-xs text-emerald-300/80 max-w-sm mx-auto">
+          <p className="text-xs text-white/70 max-w-sm mx-auto">
             Mescolate le carte e distribuite i due pozzetti! Quando la prima mano si conclude, clicca su "Aggiungi Mano" per registrare i punti.
           </p>
           {onAddRound && (
@@ -100,14 +100,14 @@ export default function RoundsHistoryList({
                 key={r.roundNumber || index} 
                 className={`p-3 rounded-2xl border transition-all ${
                   isLast 
-                    ? 'bg-emerald-950/90 border-amber-500/50 shadow-lg ring-1 ring-amber-400/20' 
-                    : 'bg-emerald-950/60 border-emerald-800/40 shadow-xs'
+                    ? 'bg-black/40 border-amber-500/50 shadow-lg ring-1 ring-amber-400/20' 
+                    : 'bg-black/25 border-white/10 shadow-xs'
                 }`}
               >
                 {/* Intestazione della singola mano */}
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-emerald-800/40">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-emerald-900/90 text-amber-300 font-black text-xs flex items-center justify-center border border-amber-500/30 shadow-xs">
+                    <span className="w-6 h-6 rounded-lg bg-black/40 text-amber-300 font-black text-xs flex items-center justify-center border border-amber-500/30 shadow-xs">
                       #{r.roundNumber || index + 1}
                     </span>
                     <span className="text-xs font-bold text-white">
@@ -123,7 +123,7 @@ export default function RoundsHistoryList({
                   {onEditRound && (
                     <button
                       onClick={() => onEditRound(r)}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-white border border-emerald-700/50 text-[11px] font-semibold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-xs"
+                      className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white border border-white/15 text-[11px] font-semibold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-xs"
                       title="Modifica punteggio di questa mano"
                     >
                       <Edit2 className="w-3 h-3 text-amber-300" />
@@ -138,8 +138,8 @@ export default function RoundsHistoryList({
                   {/* Squadra 1 */}
                   <div className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
                     t1WonHand
-                      ? 'bg-gradient-to-b from-amber-500/10 to-emerald-950/40 border-amber-500/40 shadow-xs'
-                      : 'bg-emerald-900/20 border-emerald-800/30'
+                      ? 'bg-gradient-to-b from-amber-500/10 to-black/30 border-amber-500/40 shadow-xs'
+                      : 'bg-black/20 border-white/10'
                   }`}>
                     <div>
                       <div className="flex items-center justify-between gap-1 mb-1">
@@ -166,12 +166,12 @@ export default function RoundsHistoryList({
                           }`}>
                             {r.team1Score >= 0 ? `+${r.team1Score}` : r.team1Score}
                           </span>
-                          <span className="text-[10px] text-emerald-300/70 font-medium">nella mano</span>
+                          <span className="text-[10px] text-white/60 font-medium"> nella mano</span>
                         </div>
                       </div>
 
                       {/* Totale cumulativo dopo la mano */}
-                      <div className="text-[11px] text-emerald-200/90 font-medium mt-1 pt-1 border-t border-emerald-800/30">
+                      <div className="text-[11px] text-white/80 font-medium mt-1 pt-1 border-t border-white/10">
                         Totale: <strong className="text-white font-black">{Number(r.runningT1 || 0).toLocaleString('it-IT')} pt</strong>
                       </div>
                     </div>
@@ -183,8 +183,8 @@ export default function RoundsHistoryList({
                   {/* Squadra 2 */}
                   <div className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
                     t2WonHand
-                      ? 'bg-gradient-to-b from-blue-500/10 to-emerald-950/40 border-blue-400/40 shadow-xs'
-                      : 'bg-emerald-900/20 border-emerald-800/30'
+                      ? 'bg-gradient-to-b from-blue-500/10 to-black/30 border-blue-400/40 shadow-xs'
+                      : 'bg-black/20 border-white/10'
                   }`}>
                     <div>
                       <div className="flex items-center justify-between gap-1 mb-1">
@@ -211,12 +211,12 @@ export default function RoundsHistoryList({
                           }`}>
                             {r.team2Score >= 0 ? `+${r.team2Score}` : r.team2Score}
                           </span>
-                          <span className="text-[10px] text-blue-300/70 font-medium">nella mano</span>
+                          <span className="text-[10px] text-blue-300/70 font-medium"> nella mano</span>
                         </div>
                       </div>
 
                       {/* Totale cumulativo dopo la mano */}
-                      <div className="text-[11px] text-emerald-200/90 font-medium mt-1 pt-1 border-t border-emerald-800/30">
+                      <div className="text-[11px] text-white/80 font-medium mt-1 pt-1 border-t border-white/10">
                         Totale: <strong className="text-white font-black">{Number(r.runningT2 || 0).toLocaleString('it-IT')} pt</strong>
                       </div>
                     </div>
@@ -229,8 +229,8 @@ export default function RoundsHistoryList({
                   {isTrio && (
                     <div className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
                       t3WonHand
-                        ? 'bg-gradient-to-b from-rose-500/10 to-emerald-950/40 border-rose-400/40 shadow-xs'
-                        : 'bg-emerald-900/20 border-emerald-800/30'
+                        ? 'bg-gradient-to-b from-rose-500/10 to-black/30 border-rose-400/40 shadow-xs'
+                        : 'bg-black/20 border-white/10'
                     }`}>
                       <div>
                         <div className="flex items-center justify-between gap-1 mb-1">
@@ -252,12 +252,12 @@ export default function RoundsHistoryList({
                             }`}>
                               {(r.team3Score || 0) >= 0 ? `+${r.team3Score || 0}` : r.team3Score}
                             </span>
-                            <span className="text-[10px] text-rose-300/70 font-medium">nella mano</span>
+                            <span className="text-[10px] text-rose-300/70 font-medium"> nella mano</span>
                           </div>
                         </div>
 
                         {/* Totale cumulativo dopo la mano */}
-                        <div className="text-[11px] text-emerald-200/90 font-medium mt-1 pt-1 border-t border-emerald-800/30">
+                        <div className="text-[11px] text-white/80 font-medium mt-1 pt-1 border-t border-white/10">
                           Totale: <strong className="text-white font-black">{Number(r.runningT3 || 0).toLocaleString('it-IT')} pt</strong>
                         </div>
                       </div>
@@ -277,7 +277,7 @@ export default function RoundsHistoryList({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-emerald-700/50 bg-emerald-950/60 text-[11px] font-bold uppercase tracking-wider text-emerald-300">
+              <tr className="border-b border-white/15 bg-black/40 text-[11px] font-bold uppercase tracking-wider text-amber-300">
                 <th className="py-2.5 px-3 sm:px-4 text-center w-12 sm:w-16">Mano</th>
                 <th className="py-2.5 px-3 sm:px-4 text-amber-300">
                   ♦ {activeGame.team1?.name || 'Squadra 1'}
@@ -293,19 +293,19 @@ export default function RoundsHistoryList({
                 <th className="py-2.5 px-3 sm:px-4 text-right w-16">Azioni</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-emerald-800/40 text-xs sm:text-sm">
+            <tbody className="divide-y divide-white/10 text-xs sm:text-sm">
               {roundsWithProgressive.map((r, index) => {
                 const isLast = index === roundsWithProgressive.length - 1;
                 return (
                   <tr 
                     key={r.roundNumber || index} 
-                    className={`transition-colors border-b border-emerald-800/30 ${
-                      isLast ? 'bg-emerald-900/35' : index % 2 === 0 ? 'bg-emerald-950/40' : 'bg-transparent'
-                    } hover:bg-emerald-800/30`}
+                    className={`transition-colors border-b border-white/10 ${
+                      isLast ? 'bg-amber-400/10' : index % 2 === 0 ? 'bg-black/20' : 'bg-transparent'
+                    } hover:bg-white/5`}
                   >
                     {/* Numero Mano */}
                     <td className="py-2.5 px-2.5 sm:px-4 text-center">
-                      <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-emerald-900/80 text-emerald-300 font-black text-xs border border-emerald-700/50 shadow-inner">
+                      <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black/40 text-amber-300 font-black text-xs border border-white/15 shadow-inner">
                         #{r.roundNumber || index + 1}
                       </span>
                     </td>
@@ -315,7 +315,7 @@ export default function RoundsHistoryList({
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-black text-white text-sm sm:text-base tracking-tight">
                           {Number(r.runningT1 || 0).toLocaleString('it-IT')}
-                          <span className="text-[10px] font-normal text-emerald-400/70 ml-1">tot</span>
+                          <span className="text-[10px] font-normal text-white/50 ml-1">tot</span>
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold ${
                           r.team1Score >= 0 
@@ -338,7 +338,7 @@ export default function RoundsHistoryList({
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-black text-white text-sm sm:text-base tracking-tight">
                           {Number(r.runningT2 || 0).toLocaleString('it-IT')}
-                          <span className="text-[10px] font-normal text-emerald-400/70 ml-1">tot</span>
+                          <span className="text-[10px] font-normal text-white/50 ml-1">tot</span>
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold ${
                           r.team2Score >= 0 
@@ -362,7 +362,7 @@ export default function RoundsHistoryList({
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-black text-white text-sm sm:text-base tracking-tight">
                             {Number(r.runningT3 || 0).toLocaleString('it-IT')}
-                            <span className="text-[10px] font-normal text-emerald-400/70 ml-1">tot</span>
+                            <span className="text-[10px] font-normal text-white/50 ml-1">tot</span>
                           </span>
                           <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold ${
                             (r.team3Score || 0) >= 0 
@@ -386,10 +386,10 @@ export default function RoundsHistoryList({
                       {onEditRound && (
                         <button
                           onClick={() => onEditRound(r)}
-                          className="p-1.5 rounded-lg hover:bg-emerald-800 text-emerald-300 hover:text-white transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer"
                           title="Modifica punteggio di questa mano"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <Edit2 className="w-4 h-4 text-amber-300" />
                         </button>
                       )}
                     </td>
