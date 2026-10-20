@@ -351,9 +351,17 @@ export function useBurracoGame({
   };
 
   // Annulla l'ultima mano
-  const handleDeleteLastRound = () => {
+  const handleDeleteLastRound = async (customConfirm) => {
     if (!activeGame || !activeGame.rounds || activeGame.rounds.length === 0) return;
-    if (!window.confirm("Vuoi davvero cancellare l'ultima mano inserita?")) return;
+    const ok = typeof customConfirm === 'function'
+      ? await customConfirm({
+          title: 'Annulla Ultima Mano',
+          message: "Vuoi davvero cancellare l'ultima mano inserita dal tabellone?",
+          confirmText: 'Sì, annulla',
+          variant: 'danger'
+        })
+      : window.confirm("Vuoi davvero cancellare l'ultima mano inserita?");
+    if (!ok) return;
 
     const updatedRounds = activeGame.rounds.slice(0, -1);
     const updatedGame = {
@@ -576,8 +584,16 @@ export function useBurracoGame({
   };
 
   // Scollegati dal tavolo condiviso
-  const handleLeaveCloudTable = () => {
-    if (window.confirm("Vuoi scollegarti da questo tavolo condiviso e tornare a una tua partita locale?")) {
+  const handleLeaveCloudTable = async (customConfirm) => {
+    const ok = typeof customConfirm === 'function'
+      ? await customConfirm({
+          title: 'Scollegati dal Tavolo',
+          message: 'Vuoi scollegarti da questo tavolo condiviso online e tornare alla tua partita locale?',
+          confirmText: 'Sì, scollegati',
+          variant: 'warning'
+        })
+      : window.confirm("Vuoi scollegarti da questo tavolo condiviso e tornare a una tua partita locale?");
+    if (ok) {
       const url = new URL(window.location.href);
       url.searchParams.delete('game');
       window.history.replaceState({}, '', url.pathname);

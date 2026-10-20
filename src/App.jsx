@@ -4,10 +4,10 @@ import ScoreBoard from './components/ScoreBoard';
 import NotificationToast from './components/NotificationToast';
 import { Trophy } from 'lucide-react';
 
-// Custom Hooks architetturali
-import { useSocialClub } from './hooks/useSocialClub';
-import { useTournament } from './hooks/useTournament';
-import { useBurracoGame } from './hooks/useBurracoGame';
+// Context Providers & Hooks architetturali
+import { ConfirmProvider, useConfirm } from './context/ConfirmContext';
+import { SocialProvider } from './context/SocialContext';
+import { GameProvider, useBurraco } from './context/GameContext';
 
 // Modali caricati in modo asincrono (Lazy Loading) per ottimizzazione caricamento iniziale
 const NewGameModal = lazy(() => import('./components/NewGameModal'));
@@ -22,43 +22,31 @@ const UserProfileModal = lazy(() => import('./components/UserProfileModal'));
 const NotificationsModal = lazy(() => import('./components/NotificationsModal'));
 const WelcomeModal = lazy(() => import('./components/WelcomeModal'));
 
-export default function App() {
+function BurracoAppContent() {
   // 1. Modals UI State
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
   const [isRoundCalcOpen, setIsRoundCalcOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isVictoryOpen, setIsVictoryOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isEditTeamsOpen, setIsEditTeamsOpen] = useState(false);
   const [roundToEdit, setRoundToEdit] = useState(null);
 
-  // 2. Social & Autenticazione Club
-  const social = useSocialClub();
+  // 2. Accesso unificato ai domini applicativi tramite Context
+  const { game, tournament, social, isVictoryOpen, setIsVictoryOpen } = useBurraco();
+  const confirm = useConfirm();
 
-  // 3. Modalità Torneo a Gironi
-  const tournament = useTournament();
-
-  // 4. Gestione Partita Burraco, Storico e Sincronizzazione Realtime
-  const game = useBurracoGame({
-    currentUser: social.currentUser,
-    friendsList: social.friendsList,
-    activeTournament: tournament.activeTournament,
-    handleUpdateTournament: tournament.handleUpdateTournament,
-    onCelebrate: () => setIsVictoryOpen(true),
-  });
-
-  // Event handlers memoizzati per evitare re-render a cascata su Header e ScoreBoard
+  // 3. Event handlers memoizzati per evitare re-render a cascata su Header e ScoreBoard
   const handleOpenNewGame = useCallback(() => {
     game.setNewGameInitialSetup(null);
     setIsNewGameOpen(true);
-  }, [game.setNewGameInitialSetup]);
+  }, [game]);
 
   const handleOpenHistory = useCallback(() => setIsHistoryOpen(true), []);
   const handleOpenCloud = useCallback(() => setIsCloudModalOpen(true), []);
-  const handleOpenTournament = useCallback(() => tournament.setIsTournamentOpen(true), [tournament.setIsTournamentOpen]);
+  const handleOpenTournament = useCallback(() => tournament.setIsTournamentOpen(true), [tournament]);
   const handleOpenRules = useCallback(() => setIsRulesOpen(true), []);
-  const handleOpenNotifications = useCallback(() => social.setIsNotificationsOpen(true), [social.setIsNotificationsOpen]);
+  const handleOpenNotifications = useCallback(() => social.setIsNotificationsOpen(true), [social]);
   const handleOpenEditTeams = useCallback(() => setIsEditTeamsOpen(true), []);
 
   const handleAddRound = useCallback(() => {
@@ -70,6 +58,14 @@ export default function App() {
     setRoundToEdit(round);
     setIsRoundCalcOpen(true);
   }, []);
+
+  const handleDeleteLastRound = useCallback(() => {
+    game.handleDeleteLastRound(confirm);
+  }, [game, confirm]);
+
+  const handleLeaveCloudTable = useCallback(() => {
+    game.handleLeaveCloudTable(confirm);
+  }, [game, confirm]);
 
   return (
     <div className="min-h-screen felt-bg flex flex-col selection:bg-amber-400 selection:text-emerald-950">
@@ -160,12 +156,12 @@ export default function App() {
             tablePlayers={game.tablePlayers}
             friendsList={social.friendsList}
             isCloudJoined={game.isCloudJoined}
-            onLeaveCloudTable={game.handleLeaveCloudTable}
+            onLeaveCloudTable={handleLeaveCloudTable}
             onSendFriendRequest={social.handleSendFriendRequest}
             onOpenLogin={social.handleLogin}
             onAddRound={handleAddRound}
             onEditRound={handleEditRound}
-            onDeleteLastRound={game.handleDeleteLastRound}
+            onDeleteLastRound={handleDeleteLastRound}
             onEndGame={game.handleEndGame}
             onShareGame={handleOpenCloud}
             onOpenRules={handleOpenRules}
@@ -334,5 +330,17 @@ export default function App() {
       </Suspense>
 
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ConfirmProvider>
+      <SocialProvider>
+        <GameProvider>
+          <BurracoAppContent />
+        </GameProvider>
+      </SocialProvider>
+    </ConfirmProvider>
   );
 }

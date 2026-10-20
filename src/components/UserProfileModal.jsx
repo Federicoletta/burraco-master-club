@@ -1,3 +1,4 @@
+import { useConfirm } from '../context/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
@@ -48,6 +49,7 @@ export default function UserProfileModal({
   onRemoveFriend,
   initialTab = 'profile'
 }) {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'ranking' | 'friends'
   const [rankingScope, setRankingScope] = useState('friends'); // 'friends' | 'local'
   const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
@@ -1038,8 +1040,14 @@ export default function UserProfileModal({
                                 {onRemoveFriend && (
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      if (confirm(`Vuoi rimuovere ${friend.displayName || friend.email} dai tuoi amici?`)) {
+                                    onClick={async () => {
+                                      const ok = await confirm({
+                                        title: 'Rimuovi Amico',
+                                        message: `Vuoi rimuovere ${friend.displayName || friend.email} dai tuoi amici?`,
+                                        confirmText: 'Rimuovi',
+                                        variant: 'danger'
+                                      });
+                                      if (ok) {
                                         onRemoveFriend(friend);
                                       }
                                     }}

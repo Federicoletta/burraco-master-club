@@ -1,3 +1,4 @@
+import { useConfirm } from '../context/ConfirmContext';
 import React, { useState, useMemo } from 'react';
 import { 
   X, 
@@ -212,8 +213,16 @@ export default function TournamentModal({
   };
 
   // Proclamazione vincitore e conclusione torneo
-  const handleFinishAndCelebrate = () => {
-    if (!window.confirm("Vuoi davvero dichiarare concluso il torneo e proclamare i vincitori?")) return;
+
+  // Proclamazione vincitore e conclusione torneo
+  const handleFinishAndCelebrate = async () => {
+    const ok = await confirm({
+      title: 'Concludi Torneo',
+      message: 'Vuoi davvero dichiarare concluso il torneo e proclamare i vincitori?',
+      confirmText: 'Sì, concludi',
+      variant: 'warning'
+    });
+    if (!ok) return;
 
     sound.playVictoryFanfare();
     try {
