@@ -206,12 +206,14 @@ export default function HistoryModal({
                   {onEndGame && !selectedGame.isFinished && (
                     <button
                       onClick={() => {
-                        if (activeGame && activeGame.id === selectedGame.id) {
-                          onEndGame();
-                          onClose();
-                        } else if (onResumeGame) {
-                          onResumeGame(selectedGame);
-                          setTimeout(() => onEndGame(), 100);
+                        try {
+                          if (activeGame && activeGame.id === selectedGame.id) {
+                            onEndGame();
+                          } else if (onResumeGame) {
+                            onResumeGame(selectedGame);
+                            setTimeout(() => onEndGame(), 100);
+                          }
+                        } finally {
                           onClose();
                         }
                       }}
@@ -225,8 +227,11 @@ export default function HistoryModal({
                   {onResumeGame && (
                     <button
                       onClick={() => {
-                        onResumeGame(selectedGame);
-                        onClose();
+                        try {
+                          onResumeGame(selectedGame);
+                        } finally {
+                          onClose();
+                        }
                       }}
                       className="px-3 py-1.5 rounded-lg gold-gradient text-emerald-950 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer hover:brightness-110"
                     >
@@ -367,9 +372,12 @@ export default function HistoryModal({
                           <td className="p-2 text-center">
                             <button
                               onClick={() => {
-                                onResumeGame(selectedGame);
-                                onEditRound(r);
-                                onClose();
+                                try {
+                                  onResumeGame(selectedGame);
+                                  onEditRound(r);
+                                } finally {
+                                  onClose();
+                                }
                               }}
                               className="p-1 rounded bg-emerald-800/60 hover:bg-emerald-700 text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
                               title={`Modifica mano #${r.roundNumber}`}
@@ -389,9 +397,12 @@ export default function HistoryModal({
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      onResumeGame(selectedGame);
-                      onAddRound();
-                      onClose();
+                      try {
+                        onResumeGame(selectedGame);
+                        onAddRound();
+                      } finally {
+                        onClose();
+                      }
                     }}
                     className="flex-1 py-2.5 rounded-xl gold-gradient text-emerald-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md hover:brightness-110 active:scale-98 cursor-pointer transition-all"
                   >

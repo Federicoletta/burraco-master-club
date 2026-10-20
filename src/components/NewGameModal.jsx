@@ -31,9 +31,11 @@ export default function NewGameModal({
   const [targetScore, setTargetScore] = useState(2505);
   const [customTarget, setCustomTarget] = useState('');
   const [allowSemipulito, setAllowSemipulito] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Inizializza o resetta i campi ogni volta che si apre il modale
   useEffect(() => {
+    setIsSubmitting(false);
     if (isOpen) {
       if (initialSetup) {
         setMode(initialSetup.mode || 'pairs');
@@ -124,8 +126,19 @@ export default function NewGameModal({
       isFinished: false,
     };
 
-    onStartGame(newGame);
-    onClose();
+    setIsSubmitting(true);
+    try {
+      if (typeof onStartGame === 'function') {
+        onStartGame(newGame);
+      }
+    } catch (err) {
+      console.error('Errore avvio nuova partita:', err);
+    } finally {
+      if (typeof onClose === 'function') {
+        onClose();
+      }
+      setIsSubmitting(false);
+    }
   };
 
   return createPortal(
@@ -218,10 +231,13 @@ export default function NewGameModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+              disabled={isSubmitting}
+              className={`px-5 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ${
+                isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
               <Check className="w-4 h-4 text-emerald-950" />
-              <span>Inizia Partita</span>
+              <span>{isSubmitting ? 'Avvio...' : 'Inizia Partita'}</span>
             </button>
           </div>
         </form>

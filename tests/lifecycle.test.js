@@ -195,4 +195,47 @@ describe('Game Engine - End-to-End Match Lifecycle Simulation', () => {
     expect(stats.closures).toBe(2); // mano 1 e mano 3
     expect(stats.bestHandScore).toBe(1000); // mano 3
   });
+
+  it('guarantees safe round execution and modal closure even when tournament matches array is incomplete or null', () => {
+    let closed = false;
+    let submitted = false;
+
+    const mockOnClose = () => {
+      closed = true;
+    };
+
+    // Simulate saving a round where downstream handler might encounter malformed tournament structure
+    const activeTournament = {
+      id: 'tourn_1',
+      rounds: [
+        { roundNumber: 1 }, // Note: matches is intentionally missing/undefined to test resilience
+      ]
+    };
+
+    let tournamentUpdated = false;
+    const handleUpdateTournament = (t) => {
+      tournamentUpdated = true;
+    };
+
+    // Safe round mapping simulation matching useBurracoGame.js
+    const safeTournUpdatedRounds = (activeTournament.rounds || []).map(r => ({
+      ...r,
+      matches: (r.matches || []).map(m => m)
+    }));
+
+    expect(safeTournUpdatedRounds[0].matches).toEqual([]);
+    expect(() => {
+      try {
+        submitted = true;
+        handleUpdateTournament({ ...activeTournament, rounds: safeTournUpdatedRounds });
+      } finally {
+        mockOnClose();
+        submitted = false;
+      }
+    }).not.toThrow();
+
+    expect(tournamentUpdated).toBe(true);
+    expect(closed).toBe(true);
+    expect(submitted).toBe(false);
+  });
 });

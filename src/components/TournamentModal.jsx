@@ -225,9 +225,9 @@ export default function TournamentModal({
     const s2 = Number(manualScore2) || 0;
     const winnerId = s1 > s2 ? editingMatch.team1Id : s2 > s1 ? editingMatch.team2Id : 'tie';
 
-    const updatedRounds = activeTournament.rounds.map(r => ({
+    const updatedRounds = (activeTournament.rounds || []).map(r => ({
       ...r,
-      matches: r.matches.map(m => {
+      matches: (r.matches || []).map(m => {
         if (m.id === editingMatch.id) {
           return {
             ...m,
@@ -247,9 +247,16 @@ export default function TournamentModal({
       rounds: updatedRounds,
     };
 
-    sound.playBurracoChime();
-    onUpdateTournament(updatedTournament);
-    setEditingMatch(null);
+    try {
+      sound.playBurracoChime();
+      if (typeof onUpdateTournament === 'function') {
+        onUpdateTournament(updatedTournament);
+      }
+    } catch (err) {
+      console.error('Errore durante salvataggio punteggio match torneo:', err);
+    } finally {
+      setEditingMatch(null);
+    }
   };
 
   // Modifica squadre al volo a torneo in corso

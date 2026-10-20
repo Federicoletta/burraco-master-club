@@ -35,6 +35,7 @@ export default function RoundCalculatorModal({
   const [entryMode, setEntryMode] = useState('guided'); // 'guided' | 'quick'
   const [activeTab, setActiveTab] = useState(isTrio ? 'lone' : 'team1'); // 'team1' | 'team2' | 'lone' | 'pair'
   const [lonePlayer, setLonePlayer] = useState('team1'); // 'team1' | 'team2' | 'team3'
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Stato per Squadra 1
   const [team1Data, setTeam1Data] = useState({ ...DEFAULT_ENTITY });
@@ -93,6 +94,7 @@ export default function RoundCalculatorModal({
       setLonePlayer(expectedLone);
       setActiveTab(isTrio ? 'lone' : 'team1');
     }
+    setIsSubmitting(false);
   }, [roundToEdit, isOpen, isTrio, roundNumber]);
 
   if (!isOpen || !activeGame) return null;
@@ -188,35 +190,48 @@ export default function RoundCalculatorModal({
   };
 
   const handleSave = () => {
-    sound.playCardDeal();
-    const roundData = {
-      roundNumber: roundToEdit ? roundToEdit.roundNumber : roundNumber,
-      entryMode,
-      team1Score,
-      team2Score,
-      ...(isTrio ? {
-        team3Score,
-        lonePlayer,
-        loneDetails: entryMode === 'guided' ? loneData : null,
-        pairDetails: entryMode === 'guided' ? pairData : null,
-        team1Details: entryMode === 'guided' 
-          ? (lonePlayer === 'team1' ? loneData : pairData)
-          : { manualScore: team1Score },
-        team2Details: entryMode === 'guided' 
-          ? (lonePlayer === 'team2' ? loneData : pairData)
-          : { manualScore: team2Score },
-        team3Details: entryMode === 'guided' 
-          ? (lonePlayer === 'team3' ? loneData : pairData)
-          : { manualScore: team3Score },
-      } : {
-        team1Details: entryMode === 'guided' ? team1Data : { manualScore: team1Score },
-        team2Details: entryMode === 'guided' ? team2Data : { manualScore: team2Score },
-      }),
-      timestamp: new Date().toISOString(),
-    };
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    onSaveRound(roundData);
-    onClose();
+    try {
+      sound.playCardDeal();
+      const roundData = {
+        roundNumber: roundToEdit ? roundToEdit.roundNumber : roundNumber,
+        entryMode,
+        team1Score,
+        team2Score,
+        ...(isTrio ? {
+          team3Score,
+          lonePlayer,
+          loneDetails: entryMode === 'guided' ? loneData : null,
+          pairDetails: entryMode === 'guided' ? pairData : null,
+          team1Details: entryMode === 'guided' 
+            ? (lonePlayer === 'team1' ? loneData : pairData)
+            : { manualScore: team1Score },
+          team2Details: entryMode === 'guided' 
+            ? (lonePlayer === 'team2' ? loneData : pairData)
+            : { manualScore: team2Score },
+          team3Details: entryMode === 'guided' 
+            ? (lonePlayer === 'team3' ? loneData : pairData)
+            : { manualScore: team3Score },
+        } : {
+          team1Details: entryMode === 'guided' ? team1Data : { manualScore: team1Score },
+          team2Details: entryMode === 'guided' ? team2Data : { manualScore: team2Score },
+        }),
+        timestamp: new Date().toISOString(),
+      };
+
+      if (typeof onSaveRound === 'function') {
+        onSaveRound(roundData);
+      }
+    } catch (err) {
+      console.error('Errore durante il salvataggio della mano:', err);
+    } finally {
+      if (typeof onClose === 'function') {
+        onClose();
+      }
+      setIsSubmitting(false);
+    }
   };
 
   const lonePlayerName = activeGame[lonePlayer]?.name || (lonePlayer === 'team1' ? 'Giocatore 1' : lonePlayer === 'team2' ? 'Giocatore 2' : 'Giocatore 3');
@@ -596,10 +611,13 @@ export default function RoundCalculatorModal({
             <button
               type="button"
               onClick={handleSave}
-              className="flex-[2] py-2 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-900/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+              disabled={isSubmitting}
+              className={`flex-[2] py-2 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-900/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 ${
+                isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
               <Check className="w-4 h-4 text-emerald-950 stroke-[3]" />
-              <span>{roundToEdit ? 'Aggiorna Mano' : 'Conferma e Salva Mano'}</span>
+              <span>{isSubmitting ? 'Salvataggio...' : roundToEdit ? 'Aggiorna Mano' : 'Conferma e Salva Mano'}</span>
             </button>
           </div>
         </div>

@@ -351,38 +351,50 @@ export function useBurracoGame({
     saveActiveGame(updatedGame);
     syncWithStatus(updatedGame, true);
 
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    const history = getGamesHistory(userKey);
-    const hIndex = history.findIndex(g => g.id === updatedGame.id);
-    if (hIndex >= 0) {
-      const newHistory = [...history];
-      newHistory[hIndex] = updatedGame;
-      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
-      setGamesHistory(newHistory);
+    try {
+      const userKey = currentUser ? currentUser.uid : 'guest';
+      const history = getGamesHistory(userKey);
+      const hIndex = history.findIndex(g => g.id === updatedGame.id);
+      if (hIndex >= 0) {
+        const newHistory = [...history];
+        newHistory[hIndex] = updatedGame;
+        safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
+        setGamesHistory(newHistory);
+      }
+    } catch (histErr) {
+      console.warn('Errore salvataggio storico locale:', histErr);
     }
 
     if (activeGame.tournamentMatchId && activeTournament?.rounds) {
-      const tournUpdatedRounds = activeTournament.rounds.map(r => ({
-        ...r,
-        matches: r.matches.map(m => {
-          if (m.id === activeGame.tournamentMatchId) {
-            return {
-              ...m,
-              team1Score: t1Total,
-              team2Score: t2Total,
-              status: winner ? 'completed' : 'in_progress',
-              winnerId: winner ? (winner === 'team1' ? m.team1Id : m.team2Id) : null,
-              completedAt: winner ? new Date().toISOString() : m.completedAt,
-            };
-          }
-          return m;
-        })
-      }));
-      handleUpdateTournament({ ...activeTournament, rounds: tournUpdatedRounds });
+      try {
+        const tournUpdatedRounds = (activeTournament.rounds || []).map(r => ({
+          ...r,
+          matches: (r.matches || []).map(m => {
+            if (m.id === activeGame.tournamentMatchId) {
+              return {
+                ...m,
+                team1Score: t1Total,
+                team2Score: t2Total,
+                status: winner ? 'completed' : 'in_progress',
+                winnerId: winner ? (winner === 'team1' ? m.team1Id : m.team2Id) : null,
+                completedAt: winner ? new Date().toISOString() : m.completedAt,
+              };
+            }
+            return m;
+          })
+        }));
+        handleUpdateTournament({ ...activeTournament, rounds: tournUpdatedRounds });
+      } catch (tournErr) {
+        console.warn('Errore sync match torneo:', tournErr);
+      }
     }
 
     if (shouldCelebrate) {
-      onCelebrate();
+      try {
+        onCelebrate();
+      } catch (celErr) {
+        console.warn('Errore celebrazione vittoria:', celErr);
+      }
     }
   };
 

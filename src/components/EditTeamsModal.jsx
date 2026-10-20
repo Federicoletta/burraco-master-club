@@ -29,10 +29,12 @@ export default function EditTeamsModal({
 
   // Campo attualmente selezionato per l'inserimento rapido con un tocco
   const [activeTargetField, setActiveTargetField] = useState('t1P1');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const customAlert = useAlert();
 
   // Sincronizza lo stato ogni volta che il modale si apre o activeGame cambia
   useEffect(() => {
+    setIsSubmitting(false);
     if (activeGame && isOpen) {
       setT1Name(activeGame.team1?.name || (isTrio ? 'Giocatore 1' : 'Coppia 1'));
       setT1P1(activeGame.team1?.players?.[0] || '');
@@ -235,6 +237,7 @@ export default function EditTeamsModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     const p1 = [t1P1.trim(), isPairs ? t1P2.trim() : null].filter(Boolean);
     const p2 = [t2P1.trim(), isPairs ? t2P2.trim() : null].filter(Boolean);
@@ -249,26 +252,38 @@ export default function EditTeamsModal({
       return;
     }
 
-    const updatedTeam1 = {
-      ...activeGame.team1,
-      name: t1Name.trim() || (isPairs ? `${p1.join(' & ')}` : p1[0]),
-      players: p1,
-    };
+    setIsSubmitting(true);
 
-    const updatedTeam2 = {
-      ...activeGame.team2,
-      name: t2Name.trim() || (isPairs ? `${p2.join(' & ')}` : p2[0]),
-      players: p2,
-    };
+    try {
+      const updatedTeam1 = {
+        ...activeGame.team1,
+        name: t1Name.trim() || (isPairs ? `${p1.join(' & ')}` : p1[0]),
+        players: p1,
+      };
 
-    const updatedTeam3 = isTrio ? {
-      ...(activeGame.team3 || {}),
-      name: t3Name.trim() || p3[0],
-      players: p3,
-    } : undefined;
+      const updatedTeam2 = {
+        ...activeGame.team2,
+        name: t2Name.trim() || (isPairs ? `${p2.join(' & ')}` : p2[0]),
+        players: p2,
+      };
 
-    onSave(updatedTeam1, updatedTeam2, updatedTeam3);
-    onClose();
+      const updatedTeam3 = isTrio ? {
+        ...(activeGame.team3 || {}),
+        name: t3Name.trim() || p3[0],
+        players: p3,
+      } : undefined;
+
+      if (typeof onSave === 'function') {
+        onSave(updatedTeam1, updatedTeam2, updatedTeam3);
+      }
+    } catch (err) {
+      console.error('Errore durante il salvataggio delle squadre:', err);
+    } finally {
+      if (typeof onClose === 'function') {
+        onClose();
+      }
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -743,10 +758,13 @@ export default function EditTeamsModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all active:scale-95"
+              disabled={isSubmitting}
+              className={`px-5 py-2 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all active:scale-95 ${
+                isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
               <Check className="w-4 h-4 text-emerald-950 stroke-[3]" />
-              <span>Salva Modifiche</span>
+              <span>{isSubmitting ? 'Salvataggio...' : 'Salva Modifiche'}</span>
             </button>
           </div>
 

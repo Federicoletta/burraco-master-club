@@ -76,12 +76,17 @@ export default function TournamentManageTab({
     const p = [editPlayer1.trim(), editPlayer2.trim()].filter(Boolean);
     const updatedName = editTeamName.trim() || p.join(' & ') || 'Coppia';
 
-    onUpdateTeams(teamId, {
-      name: updatedName,
-      players: p,
-    });
-    setEditingTeamId(null);
-    sound.playTap();
+    try {
+      onUpdateTeams(teamId, {
+        name: updatedName,
+        players: p,
+      });
+      sound.playTap();
+    } catch (err) {
+      console.error('Errore modifica squadra torneo:', err);
+    } finally {
+      setEditingTeamId(null);
+    }
   };
 
   return (
