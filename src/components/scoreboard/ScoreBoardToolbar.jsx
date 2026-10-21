@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PlusCircle, Trophy, Trash2, Sun, LogOut, Cloud, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
-import { wakeLock } from '../../utils/wakeLock';
+import { PlusCircle, Trophy, Trash2, LogOut, Cloud, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 
 export default function ScoreBoardToolbar({
   roundsCount = 0,
@@ -11,20 +10,9 @@ export default function ScoreBoardToolbar({
   onCloseTable,
   onSaveGame,
 }) {
-  const [wakeLockState, setWakeLockState] = useState({
-    enabled: wakeLock.enabled,
-    active: wakeLock.active
-  });
-
   const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'offline' | 'error'
   const [lastSavedTime, setLastSavedTime] = useState('');
   const saveTimeoutRef = useRef(null);
-
-  useEffect(() => {
-    return wakeLock.subscribe((state) => {
-      setWakeLockState({ ...state });
-    });
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -61,7 +49,7 @@ export default function ScoreBoardToolbar({
   return (
     <div className="py-2 px-3 rounded-xl felt-card flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shadow-sm">
       
-      {/* Info mano in corso & Schermo attivo & Cloud Sync */}
+      {/* Info mano in corso & Cloud Sync */}
       <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
         <div className="px-2.5 py-1 rounded-lg bg-black/30 border border-white/10 text-xs font-semibold text-white/90 flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
@@ -69,23 +57,6 @@ export default function ScoreBoardToolbar({
           <span className="text-emerald-600">•</span>
           <span className="text-emerald-400/80 font-normal">{roundsCount} {roundsCount === 1 ? 'registrata' : 'registrate'}</span>
         </div>
-
-        {/* Indicatore & Controllo Rapido Blocco Schermo iPad */}
-        <button
-          type="button"
-          onClick={() => wakeLock.toggle()}
-          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
-            wakeLockState.enabled
-              ? 'bg-amber-400/15 text-amber-300 border-amber-400/35 hover:bg-amber-400/25 shadow-xs'
-              : 'bg-emerald-900/40 text-emerald-400/60 border-emerald-800/40 hover:bg-emerald-900/70'
-          }`}
-          title="Tocca per attivare o disattivare il blocco spegnimento schermo"
-        >
-          <Sun className={`w-3.5 h-3.5 ${wakeLockState.enabled ? 'text-amber-400' : 'text-emerald-500/50'}`} />
-          <span>
-            {wakeLockState.enabled ? 'Schermo Attivo' : 'Standby Auto'}
-          </span>
-        </button>
 
         {/* Indicatore Stato Sincronizzazione Cloud */}
         <div
