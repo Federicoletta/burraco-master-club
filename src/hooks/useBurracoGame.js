@@ -158,60 +158,16 @@ export function useBurracoGame({
       setIsCloudJoined(true);
     } else {
       const current = getActiveGame();
-      if (current) {
-        // Sanificazione vecchi nomi di prova di default se 0 round
-        const mock = ['Marco', 'Anna', 'Luca', 'Sofia'];
-        let needsClean = false;
-        let cleanedGame = { ...current };
-        if (!current.rounds || current.rounds.length === 0) {
-          const t1 = current.team1?.players || [];
-          const t2 = current.team2?.players || [];
-          if (t1.some(p => mock.includes(p)) || t2.some(p => mock.includes(p))) {
-            cleanedGame.team1 = {
-              ...current.team1,
-              players: t1.filter(p => !mock.includes(p))
-            };
-            cleanedGame.team2 = {
-              ...current.team2,
-              players: t2.filter(p => !mock.includes(p))
-            };
-            needsClean = true;
-          }
-        }
-        if (needsClean) {
-          saveActiveGame(cleanedGame);
-          setActiveGame(cleanedGame);
-        } else {
-          setActiveGame(current);
-        }
+      // Una partita è considerata attiva solo se ha mani effettivamente giocate (> 0) e non è conclusa né chiusa
+      const hasRealRounds = current && Array.isArray(current.rounds) && current.rounds.length > 0;
+      const isClosed = current && (Boolean(current.tableClosed) || Boolean(current.isFinished));
+
+      if (hasRealRounds && !isClosed) {
+        setActiveGame(current);
       } else {
-        // Se non c'è una partita attiva in localStorage, controlla se c'è una partita in sospeso nello storico
-        const pendingGame = (storedHistory || []).find(g => g && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0);
-        if (pendingGame) {
-          setActiveGame(pendingGame);
-          saveActiveGame(pendingGame);
-        } else {
-          const initialGame = {
-            id: 'game_' + Date.now(),
-            createdAt: new Date().toISOString(),
-            mode: 'pairs',
-            allowSemipulito: true,
-            targetScore: 2505,
-            team1: {
-              name: 'Coppia 1',
-              players: [],
-            },
-            team2: {
-              name: 'Coppia 2',
-              players: [],
-            },
-            rounds: [],
-            winner: null,
-            isFinished: false,
-          };
-          setActiveGame(initialGame);
-          saveActiveGame(initialGame);
-        }
+        // Nessuna partita in corso attiva: apri direttamente la HomeLobby (Atrio Amici)
+        saveActiveGame(null);
+        setActiveGame(null);
       }
     }
   }, []);
@@ -231,22 +187,6 @@ export function useBurracoGame({
 
         setGamesHistory(merged);
         safeSetItem(getHistoryKey(userKey), JSON.stringify(merged));
-
-        // Se la partita attiva corrente ha 0 mani (es. dopo reset/reload/crash iPad),
-        // ma nel cloud esiste una partita in sospeso recente dell'utente, ripristinala sul tavolo!
-        setActiveGame(current => {
-          if (!current || !current.rounds || current.rounds.length === 0) {
-            if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('burraco_table_closed_explicitly') === 'true') {
-              return current;
-            }
-            const pendingCloudGame = merged.find(g => g && !g.isFinished && !g.tableClosed && ((Array.isArray(g.rounds) && g.rounds.length > 0) || (g.createdAt && (Date.now() - new Date(g.createdAt).getTime() < 4 * 60 * 60 * 1000))));
-            if (pendingCloudGame) {
-              saveActiveGame(pendingCloudGame);
-              return pendingCloudGame;
-            }
-          }
-          return current;
-        });
       }
     });
 
@@ -934,26 +874,8 @@ export function useBurracoGame({
     }
     setIsCloudJoined(false);
 
-    const cleanGame = {
-      id: 'game_' + Date.now(),
-      createdAt: new Date().toISOString(),
-      mode: activeGame?.mode || 'pairs',
-      allowSemipulito: activeGame?.allowSemipulito ?? true,
-      targetScore: activeGame?.targetScore || 2505,
-      team1: {
-        name: 'Coppia 1',
-        players: [],
-      },
-      team2: {
-        name: 'Coppia 2',
-        players: [],
-      },
-      rounds: [],
-      winner: null,
-      isFinished: false,
-    };
-    setActiveGame(cleanGame);
-    saveActiveGame(cleanGame);
+    saveActiveGame(null);
+    setActiveGame(null);
 
     if (typeof onOpenNewGame === 'function') {
       onOpenNewGame();
