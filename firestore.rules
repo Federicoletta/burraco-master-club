@@ -57,6 +57,7 @@ service cloud.firestore {
     //   - status: string (required, 'in_progress' | 'completed')
     //   - completedAt: string | timestamp (optional, max 50 chars if string)
     //   - updatedAt: string | timestamp (optional, max 50 chars if string)
+    //
     // Collection: burraco_users
     // Document ID: {userId} (must match data.uid)
     // Fields:
@@ -92,6 +93,14 @@ service cloud.firestore {
     //   - user1: map (profile info of first user)
     //   - user2: map (profile info of second user)
     //   - status: string ('accepted')
+    //
+    // Collection: burraco_pins
+    // Document ID: {pin} (must match data.pin)
+    // Fields:
+    //   - pin: string (required, 4-10 alphanumeric characters) - Fast O(1) table lookup short PIN
+    //   - gameId: string (required, 3-100 characters) - Target match ID
+    //   - createdAt: string | timestamp (optional, max 50 chars if string)
+    //   - updatedAt: string | timestamp (optional, max 50 chars if string)
     //
     // ===============================================================
 
@@ -258,6 +267,23 @@ service cloud.firestore {
              (!('closeFriends' in data) || (data.closeFriends is list && data.closeFriends.size() <= 200));
     }
 
+    function isValidPinDoc(data, pin) {
+      let allowedFields = ['pin', 'gameId', 'createdAt', 'updatedAt'];
+      let requiredFields = ['pin', 'gameId'];
+
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.pin == pin &&
+             data.pin is string &&
+             data.pin.size() >= 4 &&
+             data.pin.size() <= 10 &&
+             data.gameId is string &&
+             data.gameId.size() >= 3 &&
+             data.gameId.size() <= 100 &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -269,6 +295,13 @@ service cloud.firestore {
       allow update: if isValidGame(request.resource.data, gameId) &&
                        request.resource.data.id == resource.data.id &&
                        (!('createdAt' in resource.data) || !('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if true;
+    }
+
+    // Fast O(1) PIN table lookups
+    match /burraco_pins/{pin} {
+      allow read: if true;
+      allow create, update: if isValidPinDoc(request.resource.data, pin);
       allow delete: if true;
     }
 
@@ -316,4 +349,3 @@ service cloud.firestore {
     }
   }
 }
-

@@ -225,9 +225,38 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
       updatedAt: serverTimestamp(),
     });
     await setDoc(gameRef, payload, { merge: true });
+
+    // Registra in background il PIN rapido per ricerca istantanea O(1)
+    const rawDigits = (game.id || '').replace(/\D/g, '');
+    const shortPin = rawDigits.length >= 6 ? rawDigits.slice(-6) : (game.id || '').slice(-6).toUpperCase();
+    if (shortPin && shortPin.length >= 4) {
+      registerGamePin(shortPin, game.id).catch(() => {});
+    }
+
     return true;
   } catch (err) {
     console.warn('Errore syncGameToCloud:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Registra o aggiorna l'indice rapido del PIN per trovare il tavolo in O(1)
+ */
+export async function registerGamePin(pin, gameId) {
+  if (!db || !pin || !gameId) return false;
+  try {
+    const cleanPin = String(pin).trim();
+    const pinRef = doc(db, 'burraco_pins', cleanPin);
+    await setDoc(pinRef, {
+      pin: cleanPin,
+      gameId: String(gameId).trim(),
+      updatedAt: serverTimestamp(),
+      createdAt: new Date().toISOString()
+    }, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn('[registerGamePin] Avviso:', err.message);
     return false;
   }
 }
@@ -249,7 +278,25 @@ export async function findGameByPinOrId(pinOrId) {
     }
   }
 
-  // 2. Se è un ID diretto (es. game_1771545600123)
+  // 2. Lookup rapido O(1) nella collezione burraco_pins
+  const cleanDigits = input.replace(/\D/g, '');
+  if (cleanDigits.length >= 4 && cleanDigits.length <= 10) {
+    try {
+      const pinRef = doc(db, 'burraco_pins', cleanDigits);
+      const pinSnap = await getDoc(pinRef);
+      if (pinSnap.exists()) {
+        const pinData = pinSnap.data();
+        if (pinData?.gameId) {
+          const gameSnap = await getDoc(doc(db, 'burraco_games', pinData.gameId));
+          if (gameSnap.exists()) return gameSnap.data();
+        }
+      }
+    } catch (pinErr) {
+      console.warn('Avviso lookup rapido burraco_pins:', pinErr);
+    }
+  }
+
+  // 3. Se è un ID diretto (es. game_1771545600123)
   try {
     const snap = await getDoc(doc(db, 'burraco_games', input));
     if (snap.exists()) return snap.data();
@@ -257,7 +304,7 @@ export async function findGameByPinOrId(pinOrId) {
     console.warn('Avviso findGameById:', err);
   }
 
-  // 3. Se l'utente ha inserito l'ID numerico senza prefisso game_
+  // 4. Se l'utente ha inserito l'ID numerico senza prefisso game_
   if (!input.startsWith('game_')) {
     try {
       const snap = await getDoc(doc(db, 'burraco_games', `game_${input}`));
@@ -265,8 +312,7 @@ export async function findGameByPinOrId(pinOrId) {
     } catch {}
   }
 
-  // 4. Se sono cifre (es. PIN a 6 cifre), scansiona le partite recenti
-  const cleanDigits = input.replace(/\D/g, '');
+  // 5. Fallback retrocompatibile: scansione partite recenti
   if (cleanDigits.length >= 4) {
     try {
       const q = query(collection(db, 'burraco_games'), limit(30));
