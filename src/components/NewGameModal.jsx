@@ -14,7 +14,8 @@ export default function NewGameModal({
   friendsList = [],
   hasActiveGame,
   initialSetup = null,
-  currentUser = null
+  currentUser = null,
+  lastGame = null
 }) {
   const [mode, setMode] = useState('pairs'); // 'pairs' (2v2) | 'singles' (1v1) | 'trio' (A 3)
   const [team1Name, setTeam1Name] = useState('');
@@ -62,14 +63,41 @@ export default function NewGameModal({
     }
   }, [isOpen, initialSetup]);
 
-  const handleQuickSelectPlayer = useCallback((name) => {
-    if (!p1A) setP1A(name);
-    else if (mode === 'pairs' && !p1B) setP1B(name);
-    else if (!p2A) setP2A(name);
-    else if (mode === 'pairs' && !p2B) setP2B(name);
-    else if (mode === 'trio' && !p3A) setP3A(name);
-    else setP1A(name);
+  // Gestione tocco amico per assegnare o rimuovere dal tavolo rapido
+  const handleTogglePlayer = useCallback((name) => {
+    if (!name) return;
+    const cleanName = name.trim();
+    const lower = cleanName.toLowerCase();
+
+    // Se è già presente in uno slot, rimuovilo!
+    if (p1A?.trim().toLowerCase() === lower) { setP1A(''); return; }
+    if (p1B?.trim().toLowerCase() === lower) { setP1B(''); return; }
+    if (p2A?.trim().toLowerCase() === lower) { setP2A(''); return; }
+    if (p2B?.trim().toLowerCase() === lower) { setP2B(''); return; }
+    if (p3A?.trim().toLowerCase() === lower) { setP3A(''); return; }
+
+    // Altrimenti assegnalo al primo slot vuoto disponibile
+    if (!p1A) setP1A(cleanName);
+    else if (mode === 'pairs' && !p1B) setP1B(cleanName);
+    else if (!p2A) setP2A(cleanName);
+    else if (mode === 'pairs' && !p2B) setP2B(cleanName);
+    else if (mode === 'trio' && !p3A) setP3A(cleanName);
   }, [mode, p1A, p1B, p2A, p2B, p3A]);
+
+  const handleUseLastGameFormation = useCallback(() => {
+    if (!lastGame) return;
+    setMode(lastGame.mode || 'pairs');
+    setTeam1Name(lastGame.team1?.name || '');
+    setTeam2Name(lastGame.team2?.name || '');
+    const t1 = lastGame.team1?.players || [];
+    const t2 = lastGame.team2?.players || [];
+    const t3 = lastGame.team3?.players || [];
+    setP1A(t1[0] || '');
+    setP1B(t1[1] || '');
+    setP2A(t2[0] || '');
+    setP2B(t2[1] || '');
+    setP3A(t3[0] || '');
+  }, [lastGame]);
 
   if (!isOpen) return null;
   if (typeof document === 'undefined') return null;
@@ -171,6 +199,25 @@ export default function NewGameModal({
           </div>
         )}
 
+        {/* Banner Ripeti Formazione Ultima Partita */}
+        {lastGame && !initialSetup && (
+          <div className="my-2 p-2 rounded-xl bg-emerald-950/80 border border-amber-400/50 flex items-center justify-between gap-2 text-xs">
+            <div className="truncate min-w-0">
+              <span className="text-amber-300 font-bold">⚡ Ultima partita: </span>
+              <span className="text-white truncate">
+                {lastGame.team1?.name} vs {lastGame.team2?.name}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleUseLastGameFormation}
+              className="px-2.5 py-1 rounded-lg gold-gradient text-emerald-950 font-black text-[11px] shadow-sm hover:brightness-110 active:scale-95 cursor-pointer shrink-0 transition-transform"
+            >
+              Usa Formazione
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleStart} className="space-y-4 mt-3.5">
           {/* 1. Selettore Modalità */}
           <GameModeSelector mode={mode} setMode={setMode} />
@@ -196,11 +243,17 @@ export default function NewGameModal({
             friendsList={friendsList}
           />
 
-          {/* 3. Suggerimenti veloci Tu & Amici Burraco Club Google */}
+          {/* 3. Tavolo Rapido & Assegnazione Partecipanti */}
           <QuickPlayerChips
             currentUser={currentUser}
             friendsList={friendsList}
-            onSelectPlayer={handleQuickSelectPlayer}
+            mode={mode}
+            p1A={p1A}
+            p1B={p1B}
+            p2A={p2A}
+            p2B={p2B}
+            p3A={p3A}
+            onTogglePlayer={handleTogglePlayer}
           />
 
           {/* 4. Punteggio Obiettivo */}

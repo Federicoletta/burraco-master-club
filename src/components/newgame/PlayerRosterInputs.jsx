@@ -20,8 +20,115 @@ export default function PlayerRosterInputs({
   currentUser,
   friendsList = []
 }) {
+  const myName = currentUser ? (currentUser.displayName || currentUser.email?.split('@')[0] || 'Tu').trim() : '';
+
+  const hasAnyPlayer = Boolean(p1A || p1B || p2A || p2B || p3A);
+  const playersCount = [p1A, p1B, p2A, p2B, p3A].filter(Boolean).length;
+
+  const handleInsertMe = () => {
+    if (myName) {
+      setP1A(myName);
+    }
+  };
+
+  const handleSwapTeams = () => {
+    const tempA = p1A;
+    const tempB = p1B;
+    const tempName = team1Name;
+    setP1A(p2A);
+    setP1B(p2B);
+    setTeam1Name(team2Name);
+    setP2A(tempA);
+    setP2B(tempB);
+    setTeam2Name(tempName);
+  };
+
+  const handleShuffle = () => {
+    const current = [p1A, p1B, p2A, p2B, p3A].filter(Boolean);
+    if (current.length < 2) return;
+    const shuffled = [...current];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    if (mode === 'pairs') {
+      setP1A(shuffled[0] || '');
+      setP1B(shuffled[1] || '');
+      setP2A(shuffled[2] || '');
+      setP2B(shuffled[3] || '');
+    } else if (mode === 'trio') {
+      setP1A(shuffled[0] || '');
+      setP2A(shuffled[1] || '');
+      setP3A(shuffled[2] || '');
+    } else {
+      setP1A(shuffled[0] || '');
+      setP2A(shuffled[1] || '');
+    }
+  };
+
+  const handleClearAll = () => {
+    setP1A('');
+    setP1B('');
+    setP2A('');
+    setP2B('');
+    setP3A('');
+  };
+
   return (
-    <div className={`grid grid-cols-1 ${mode === 'trio' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
+    <div className="space-y-2">
+      {/* Barra Azioni Veloci Formazioni */}
+      <div className="flex items-center justify-between gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {myName && p1A !== myName && (
+            <button
+              type="button"
+              onClick={handleInsertMe}
+              className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95 shadow-sm"
+              title="Inserisci te stesso in Coppia 1"
+            >
+              <span>👤</span>
+              <span>Mettimi in Coppia 1</span>
+            </button>
+          )}
+
+          {mode === 'pairs' && (p1A || p2A) && (
+            <button
+              type="button"
+              onClick={handleSwapTeams}
+              className="px-2.5 py-1 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/50 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+              title="Inverti Coppia 1 e Coppia 2"
+            >
+              <span>⇄</span>
+              <span>Scambia Squadre</span>
+            </button>
+          )}
+
+          {playersCount >= 2 && (
+            <button
+              type="button"
+              onClick={handleShuffle}
+              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95 shadow-sm"
+              title="Mischia a sorte le coppie e i compagni"
+            >
+              <span>🎲</span>
+              <span>Sorteggia Coppie</span>
+            </button>
+          )}
+        </div>
+
+        {hasAnyPlayer && (
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className="px-2 py-1 rounded-lg text-emerald-400/60 hover:text-rose-300 hover:bg-rose-950/30 text-[11px] transition-colors cursor-pointer"
+            title="Svuota tutti i posti"
+          >
+            Svuota posti
+          </button>
+        )}
+      </div>
+
+      <div className={`grid grid-cols-1 ${mode === 'trio' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
       
       {/* SQUADRA / GIOCATORE 1 */}
       <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/30 space-y-2">
@@ -153,6 +260,7 @@ export default function PlayerRosterInputs({
         </div>
       )}
 
+      </div>
     </div>
   );
 }

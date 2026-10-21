@@ -144,30 +144,33 @@ export default function PlayerAutocompleteInput({
 
       {/* Menù a tendina dei suggerimenti: SOLO Tu & Amici Google */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl bg-gradient-to-b from-emerald-950 via-zinc-950 to-emerald-950 border-2 border-amber-400/80 shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+        <div 
+          onMouseDown={(e) => e.preventDefault()}
+          className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl bg-gradient-to-b from-emerald-950 via-zinc-950 to-emerald-950 border-2 border-amber-400/80 shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+        >
           
           <div className="px-2.5 py-1.5 bg-emerald-950/90 border-b border-emerald-800/60 flex items-center justify-between text-[10px] text-emerald-300/80 font-bold uppercase tracking-wider">
-            <span>⭐ Amici Burraco Club:</span>
+            <span>⭐ Amici Selezionabili:</span>
             <span className="text-amber-400 font-semibold normal-case text-[10px]">
               {suggestions.length} {suggestions.length === 1 ? 'disponibile' : 'disponibili'}
             </span>
           </div>
 
-          <div className="max-h-52 overflow-y-auto divide-y divide-emerald-800/40 p-1">
+          <div 
+            className="max-h-52 overflow-y-auto divide-y divide-emerald-800/40 p-1 touch-pan-y overscroll-contain"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {suggestions.map((item, idx) => {
               const isSelected = value.trim().toLowerCase() === item.name.toLowerCase();
               return (
                 <button
                   key={`${item.type}_${item.name}_${idx}`}
                   type="button"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    handleSelect(item);
-                  }}
-                  className={`w-full p-2 rounded-lg flex items-center justify-between gap-2.5 text-left transition-all cursor-pointer ${
+                  onClick={() => handleSelect(item)}
+                  className={`w-full p-2 rounded-lg flex items-center justify-between gap-2.5 text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
                     isSelected 
                       ? 'bg-amber-400/20 text-white' 
-                      : 'hover:bg-emerald-900/60 text-emerald-100'
+                      : 'hover:bg-emerald-900/60 text-emerald-100 active:bg-amber-400/10'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">

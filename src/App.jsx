@@ -234,6 +234,7 @@ function BurracoAppContent() {
           onStartGame={game.handleStartGame}
           friendsList={social.friendsList}
           currentUser={social.currentUser}
+          lastGame={game.gamesHistory?.[0] || null}
           hasActiveGame={Boolean(game.activeGame && game.activeGame.rounds && game.activeGame.rounds.length > 0)}
           initialSetup={game.newGameInitialSetup}
         />
