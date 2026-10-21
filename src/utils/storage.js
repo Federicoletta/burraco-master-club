@@ -98,6 +98,10 @@ export function safeSetItem(key, value) {
 }
 
 const MOCK_NAMES = ['Marco', 'Anna', 'Luca', 'Sofia'];
+const LEGACY_NAMES = [
+  'aurora', 'baffettu', 'baffu', 'elisa', 'nicoletta', 'stanis', 'sub', 
+  'u pá di pá', 'u pa di pa'
+];
 const GENERIC_LABELS = ['coppia 1', 'coppia 2', 'giocatore 1', 'giocatore 2', 'squadra 1', 'squadra 2'];
 
 export function getPlayersKey(userKey) {
@@ -115,8 +119,14 @@ export function getStoredPlayers(userKey) {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     
-    // Rimuove eventuali residui dei vecchi 4 nomi di prova
-    const cleaned = parsed.filter(p => !MOCK_NAMES.includes(p) && !GENERIC_LABELS.includes(String(p).toLowerCase()));
+    // Rimuove qualsiasi residuo di vecchi nomi di prova e etichette generiche
+    const cleaned = parsed.filter(p => {
+      const s = String(p).trim().toLowerCase();
+      return s && 
+        !MOCK_NAMES.map(m => m.toLowerCase()).includes(s) && 
+        !GENERIC_LABELS.includes(s) && 
+        !LEGACY_NAMES.includes(s);
+    });
     if (cleaned.length !== parsed.length) {
       localStorage.setItem(getPlayersKey(userKey), JSON.stringify(cleaned));
     }
@@ -130,7 +140,12 @@ export function savePlayerName(name, userKey) {
   if (!name || typeof name !== 'string') return;
   const clean = name.trim();
   if (!clean) return;
-  if (MOCK_NAMES.includes(clean) || GENERIC_LABELS.includes(clean.toLowerCase())) return;
+  const lower = clean.toLowerCase();
+  if (
+    MOCK_NAMES.map(m => m.toLowerCase()).includes(lower) || 
+    GENERIC_LABELS.includes(lower) || 
+    LEGACY_NAMES.includes(lower)
+  ) return;
 
   const list = getStoredPlayers(userKey);
   if (!list.includes(clean)) {
@@ -245,7 +260,13 @@ export function setStoredPlayers(list, userKey) {
     list
       .filter(Boolean)
       .map(p => String(p).trim())
-      .filter(p => p && !MOCK_NAMES.includes(p) && !GENERIC_LABELS.includes(p.toLowerCase()))
+      .filter(p => {
+        const s = p.toLowerCase();
+        return s && 
+          !MOCK_NAMES.map(m => m.toLowerCase()).includes(s) && 
+          !GENERIC_LABELS.includes(s) && 
+          !LEGACY_NAMES.includes(s);
+      })
   )).sort((a, b) => a.localeCompare(b));
   localStorage.setItem(getPlayersKey(userKey), JSON.stringify(unique));
   return unique;

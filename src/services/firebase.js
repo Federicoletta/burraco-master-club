@@ -429,18 +429,10 @@ export async function deleteGameFromCloud(gameId) {
 }
 
 /**
- * Salva la lista dei partecipanti sul cloud (globale/fallback)
+ * Salva la lista dei partecipanti sul cloud (disattivata: nessun archivio globale di nomi)
  */
-export async function syncPlayersToCloud(players) {
-  if (!db || !players) return false;
-  try {
-    const docRef = doc(db, 'burraco_meta', 'players');
-    await setDoc(docRef, { list: players, updatedAt: serverTimestamp() }, { merge: true });
-    return true;
-  } catch (err) {
-    console.warn('Errore syncPlayersToCloud:', err.message);
-    return false;
-  }
+export async function syncPlayersToCloud() {
+  return true;
 }
 
 /**
@@ -481,23 +473,10 @@ export function subscribeToUserGuests(userId, onUpdate) {
 }
 
 /**
- * Ascolta in tempo reale le modifiche alla lista partecipanti su Firestore (fallback ospite)
+ * Ascolta in tempo reale le modifiche alla lista partecipanti su Firestore (disattivata: nessun listener globale)
  */
-export function subscribeToCloudPlayers(onUpdate) {
-  if (!db) return () => {};
-  try {
-    const docRef = doc(db, 'burraco_meta', 'players');
-    return onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists() && Array.isArray(docSnap.data().list)) {
-        onUpdate(docSnap.data().list);
-      }
-    }, (err) => {
-      console.warn('Errore listener Firestore players:', err.message);
-    });
-  } catch (err) {
-    console.warn('subscribeToCloudPlayers error:', err);
-    return () => {};
-  }
+export function subscribeToCloudPlayers() {
+  return () => {};
 }
 
 /**
