@@ -191,7 +191,10 @@ export function subscribeToAuth(onUserChange) {
  * Con protezione salvaguardia multi-dispositivo contro sovrascritture di mani perse
  */
 export async function syncGameToCloud(game, currentUser = null, force = false) {
-  if (!db || !game?.id) return false;
+  if (!db || !game?.id) {
+    console.warn('[syncGameToCloud] Impossibile sincronizzare: db o game.id mancante:', { hasDb: Boolean(db), id: game?.id });
+    return false;
+  }
   try {
     const gameRef = doc(db, 'burraco_games', game.id);
 
@@ -235,7 +238,7 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
 
     return true;
   } catch (err) {
-    console.warn('Errore syncGameToCloud:', err.message);
+    console.error('[syncGameToCloud] Errore critico salvataggio Firestore:', err?.code, err?.message, err);
     return false;
   }
 }

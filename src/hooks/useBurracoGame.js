@@ -16,6 +16,7 @@ import {
 import { decodeGameFromUrlToken } from '../utils/statelessGame';
 import {
   syncGameToCloud,
+  findGameByPinOrId,
   subscribeToCloudGame,
   subscribeToCloudGamesHistory,
   deleteGameFromCloud,
@@ -1000,17 +1001,38 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     }
   };
 
-  // Riprendi partita passata
-  const handleResumeGame = (game) => {
+  // Riprendi partita passata o tavolo da PIN
+  const handleResumeGame = async (gameOrId) => {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem('burraco_table_closed_explicitly');
     }
+    let targetGame = gameOrId;
+    if (typeof gameOrId === 'string') {
+      targetGame = await findGameByPinOrId(gameOrId);
+      if (!targetGame) {
+        const userKey = currentUser ? currentUser.uid : 'guest';
+        targetGame = (getGamesHistory(userKey) || []).find(g => g?.id === gameOrId);
+      }
+    }
+    if (!targetGame || typeof targetGame !== 'object' || !targetGame.id) {
+      console.warn('handleResumeGame: partita non valida', gameOrId);
+      return;
+    }
+
     const resumedGame = {
-      ...game,
+      ...targetGame,
       tableClosed: false,
     };
     setActiveGame(resumedGame);
     saveActiveGame(resumedGame);
+    setIsCloudJoined(true);
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('game', resumedGame.id);
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+
     syncWithStatus(resumedGame, true);
   };
 

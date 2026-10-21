@@ -258,8 +258,8 @@ export default function HomeLobby({
         try {
           sound.playTap();
         } catch {}
-        // Connetti direttamente
-        onResumeGame(found.id);
+        // Connetti direttamente al tavolo trovato
+        onResumeGame(found);
       } else {
         if (customAlert) {
           customAlert({

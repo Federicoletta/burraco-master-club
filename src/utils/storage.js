@@ -276,7 +276,13 @@ export function setStoredPlayers(list, userKey) {
 export function getActiveGame() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.ACTIVE_GAME);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || typeof parsed.id !== 'string' || !parsed.id.trim()) {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_GAME);
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
