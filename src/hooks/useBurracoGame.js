@@ -24,6 +24,7 @@ import {
   updateUserCareerStats
 } from '../services/firebase';
 import { sendGameInvite } from '../services/social';
+import { computeGameTelemetry } from '../utils/telemetry';
 import {
   appendBlock,
   mergeChainsCRDT,
@@ -47,6 +48,7 @@ export function useBurracoGame({
   const [newGameInitialSetup, setNewGameInitialSetup] = useState(null);
   const [syncStatus, setSyncStatus] = useState(() => (typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced'));
   const lastFetchedRosterKeyRef = useRef('');
+  const offlineEventsCountRef = useRef(0);
 
   const flushOutboxQueue = useCallback(async () => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
@@ -72,7 +74,10 @@ export function useBurracoGame({
       setSyncStatus('synced');
       flushOutboxQueue();
     };
-    const handleOffline = () => setSyncStatus('offline');
+    const handleOffline = () => {
+      offlineEventsCountRef.current += 1;
+      setSyncStatus('offline');
+    };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -504,14 +509,21 @@ export function useBurracoGame({
       console.warn('Avviso registrazione blocco ledger round:', chainErr);
     }
 
+    const isFinished = Boolean(winner) || activeGame.isFinished || false;
     const updatedGame = {
       ...activeGame,
       rounds: updatedRounds,
       winner: winner || (activeGame.isFinished ? activeGame.winner : null),
-      isFinished: Boolean(winner) || activeGame.isFinished || false,
+      isFinished,
       ledgerChain: chain || activeGame.ledgerChain || null,
       ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
     };
+
+    if (isFinished) {
+      updatedGame.telemetry = computeGameTelemetry(updatedGame, {
+        offlineEventsCount: offlineEventsCountRef.current
+      });
+    }
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
@@ -787,6 +799,9 @@ export function useBurracoGame({
       ledgerChain: chain || activeGame.ledgerChain || null,
       ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
     };
+    updatedGame.telemetry = computeGameTelemetry(updatedGame, {
+      offlineEventsCount: offlineEventsCountRef.current
+    });
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
@@ -968,6 +983,9 @@ export function useBurracoGame({
     const closedGame = {
       ...activeGame,
       tableClosed: true,
+      telemetry: computeGameTelemetry({ ...activeGame, tableClosed: true }, {
+        offlineEventsCount: offlineEventsCountRef.current
+      })
     };
     await syncWithStatus(closedGame, true);
 
