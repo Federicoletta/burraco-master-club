@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, QrCode, Copy, Check, Users, UserPlus, MessageCircle, Share2 } from 'lucide-react';
+import { X, QrCode, Copy, Check, Users, UserPlus, MessageCircle, Share2, Loader2 } from 'lucide-react';
 import DeveloperBadge from './DeveloperBadge';
 import { isDeveloperAccount } from '../utils/developer';
+import { findGameByPinOrId } from '../services/firebase';
 
 export default function CloudSyncModal({
   isOpen,
@@ -21,6 +22,9 @@ export default function CloudSyncModal({
   const [sentFriendUids, setSentFriendUids] = useState({});
   const [invitingFriendUids, setInvitingFriendUids] = useState({});
   const [invitedFriendUids, setInvitedFriendUids] = useState({});
+  const [joinInput, setJoinInput] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinError, setJoinError] = useState('');
 
   if (!isOpen) return null;
 
@@ -357,29 +361,49 @@ export default function CloudSyncModal({
             <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider block">
               Oppure unisciti al tavolo di un amico:
             </span>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Incolla link o codice tavolo..."
-                id="joinTableInput"
-                className="flex-1 px-3 py-2 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white text-xs placeholder:text-emerald-500 focus:outline-none focus:border-amber-400"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const val = document.getElementById('joinTableInput')?.value?.trim();
-                  if (!val) return;
-                  let targetId = val;
-                  if (targetId.includes('game=')) {
-                    targetId = targetId.split('game=')[1].split('&')[0];
-                  }
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const val = joinInput.trim();
+                if (!val) return;
+                setIsJoining(true);
+                setJoinError('');
+                try {
+                  const found = await findGameByPinOrId(val);
+                  const targetId = found?.id || (val.includes('game=') ? val.split('game=')[1].split('&')[0] : val);
                   window.location.href = window.location.origin + '?game=' + targetId;
-                }}
-                className="px-3 py-2 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-amber-300 border border-emerald-600/50 font-bold text-xs cursor-pointer transition-colors shrink-0"
-              >
-                Collegati
-              </button>
-            </div>
+                } catch (err) {
+                  setJoinError('Impossibile trovare la partita. Controlla il PIN o link.');
+                  setIsJoining(false);
+                }
+              }}
+              className="space-y-1.5"
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Inserisci PIN a 6 cifre o link..."
+                  value={joinInput}
+                  onChange={(e) => {
+                    setJoinInput(e.target.value);
+                    if (joinError) setJoinError('');
+                  }}
+                  disabled={isJoining}
+                  className="flex-1 px-3 py-2 rounded-lg bg-emerald-900/60 border border-emerald-700/60 text-white text-xs placeholder:text-emerald-500 focus:outline-none focus:border-amber-400 disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={isJoining || !joinInput.trim()}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-amber-300 border border-emerald-600/50 font-bold text-xs cursor-pointer transition-colors shrink-0 disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isJoining && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isJoining ? 'Cerco...' : 'Collegati'}</span>
+                </button>
+              </div>
+              {joinError && (
+                <div className="text-[11px] text-rose-300 font-semibold">{joinError}</div>
+              )}
+            </form>
           </div>
 
         </div>

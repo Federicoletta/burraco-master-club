@@ -209,12 +209,18 @@ function BurracoAppContent() {
               >
                 {game.gamesHistory?.length > 0 ? 'Nuova Partita' : 'Inizia la Prima Partita'}
               </button>
+              <button
+                onClick={handleOpenCloud}
+                className="flex-1 py-3.5 px-4 rounded-2xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 font-bold text-sm border border-emerald-500/40 shadow-xl active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5"
+              >
+                <span>🔗 Entra a un Tavolo</span>
+              </button>
               {game.gamesHistory?.length > 0 && (
                 <button
                   onClick={handleOpenHistory}
                   className="flex-1 py-3.5 px-4 rounded-2xl bg-emerald-900/80 hover:bg-emerald-800 text-amber-300 font-bold text-sm border border-amber-400/40 shadow-xl active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5"
                 >
-                  <span>📁 Riprendi dall'Archivio</span>
+                  <span>📁 Archivio</span>
                 </button>
               )}
             </div>

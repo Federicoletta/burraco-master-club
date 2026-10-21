@@ -233,6 +233,58 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
 }
 
 /**
+ * Cerca e recupera una partita nel Cloud per PIN a 6 cifre, ID completo o Link incollato
+ */
+export async function findGameByPinOrId(pinOrId) {
+  if (!db || !pinOrId) return null;
+  const input = String(pinOrId).trim();
+  
+  // 1. Se è un URL completo
+  if (input.includes('game=')) {
+    try {
+      const match = input.match(/game=([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) return findGameByPinOrId(match[1]);
+    } catch {
+      // fallback
+    }
+  }
+
+  // 2. Se è un ID diretto (es. game_1771545600123)
+  try {
+    const snap = await getDoc(doc(db, 'burraco_games', input));
+    if (snap.exists()) return snap.data();
+  } catch (err) {
+    console.warn('Avviso findGameById:', err);
+  }
+
+  // 3. Se l'utente ha inserito l'ID numerico senza prefisso game_
+  if (!input.startsWith('game_')) {
+    try {
+      const snap = await getDoc(doc(db, 'burraco_games', `game_${input}`));
+      if (snap.exists()) return snap.data();
+    } catch {}
+  }
+
+  // 4. Se sono cifre (es. PIN a 6 cifre), scansiona le partite recenti
+  const cleanDigits = input.replace(/\D/g, '');
+  if (cleanDigits.length >= 4) {
+    try {
+      const q = query(collection(db, 'burraco_games'), limit(30));
+      const querySnap = await getDocs(q);
+      for (const d of querySnap.docs) {
+        if (d.id.endsWith(cleanDigits)) {
+          return d.data();
+        }
+      }
+    } catch (err) {
+      console.warn('Avviso scansione PIN:', err);
+    }
+  }
+
+  return null;
+}
+
+/**
  * Ascolta in tempo reale le modifiche di una partita (Real-time listener)
  */
 export function subscribeToCloudGame(gameId, onUpdate, onNotFound) {

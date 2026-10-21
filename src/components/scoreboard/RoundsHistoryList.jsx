@@ -119,6 +119,11 @@ export default function RoundsHistoryList({
                         Ultima
                       </span>
                     )}
+                    {r.recordedBy && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-700/40 font-medium truncate max-w-[120px]" title={`Registrata da ${r.recordedBy}`}>
+                        ✍️ {r.recordedBy}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -320,9 +325,16 @@ export default function RoundsHistoryList({
                   >
                     {/* Numero Mano */}
                     <td className="py-2.5 px-2.5 sm:px-4 text-center">
-                      <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black/40 text-amber-300 font-black text-xs border border-white/15 shadow-inner">
-                        #{r.roundNumber || index + 1}
-                      </span>
+                      <div className="flex flex-col items-center">
+                        <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black/40 text-amber-300 font-black text-xs border border-white/15 shadow-inner">
+                          #{r.roundNumber || index + 1}
+                        </span>
+                        {r.recordedBy && (
+                          <span className="text-[9px] text-emerald-300/80 truncate max-w-[65px] font-medium" title={`Registrata da ${r.recordedBy}`}>
+                            {r.recordedBy}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Squadra 1 */}

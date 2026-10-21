@@ -100,6 +100,8 @@ export default function TablePlayersBar({
   }
 
   const isTrio = activeGame.mode === 'trio';
+  const rawDigits = (activeGame?.id || '').replace(/\D/g, '');
+  const shortPin = rawDigits.length >= 6 ? rawDigits.slice(-6) : (activeGame?.id || '').slice(-6).toUpperCase();
 
   return (
     <div className="p-2.5 sm:p-3.5 rounded-2xl felt-card shadow-lg">
@@ -112,12 +114,31 @@ export default function TablePlayersBar({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <h3 className="text-xs sm:text-sm font-black text-white m-0 flex items-center gap-1.5 uppercase tracking-wider">
-                <span>Tavolo Live:</span>
+                <span>Tavolo:</span>
                 <span className="text-amber-300 normal-case font-bold truncate">
                   {activeGame.team1?.name || 'Squadra 1'} vs {activeGame.team2?.name || 'Squadra 2'}
                   {isTrio && activeGame.team3?.name ? ` vs ${activeGame.team3.name}` : ''}
                 </span>
               </h3>
+              {shortPin && onShareGame && (
+                <button
+                  type="button"
+                  onClick={onShareGame}
+                  className="px-2 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 text-[10px] font-mono font-black cursor-pointer transition-all flex items-center gap-1 shadow-xs"
+                  title="PIN rapido per unirsi al tavolo (clicca per QR Code)"
+                >
+                  <span className="text-white/60">PIN:</span>
+                  <strong className="tracking-wider text-amber-200">{shortPin}</strong>
+                </button>
+              )}
+              {activeGame?.ledgerChain && activeGame.ledgerChain.length > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+                  title={`Tavolo Distribuito CRDT: ${activeGame.ledgerChain.length} blocchi certificati`}
+                >
+                  <span>⛓️ #{activeGame.ledgerChain.length}</span>
+                </span>
+              )}
               {isCloudJoined && (
                 <span className="px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                   Collegato
