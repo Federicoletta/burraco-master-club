@@ -8,8 +8,12 @@ import {
   archiveCurrentGame,
   deleteGameFromHistory,
   computeUserCareerStats,
-  safeSetItem
+  safeSetItem,
+  addToOutboxQueue,
+  getOutboxQueue,
+  removeFromOutboxQueue
 } from '../utils/storage';
+import { decodeGameFromUrlToken } from '../utils/statelessGame';
 import {
   syncGameToCloud,
   subscribeToCloudGame,
@@ -44,25 +48,56 @@ export function useBurracoGame({
   const [syncStatus, setSyncStatus] = useState(() => (typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced'));
   const lastFetchedRosterKeyRef = useRef('');
 
+  const flushOutboxQueue = useCallback(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    const queue = getOutboxQueue();
+    if (!queue || queue.length === 0) return;
+    setSyncStatus('syncing');
+    for (const item of queue) {
+      try {
+        const ok = await syncGameToCloud(item, currentUser, true);
+        if (ok) {
+          removeFromOutboxQueue(item.id);
+        }
+      } catch (err) {
+        console.warn('[Outbox] Errore sincronizzazione elemento accodato:', err);
+      }
+    }
+    const remaining = getOutboxQueue();
+    setSyncStatus(remaining.length === 0 ? 'synced' : 'offline');
+  }, [currentUser]);
+
   useEffect(() => {
-    const handleOnline = () => setSyncStatus('synced');
+    const handleOnline = () => {
+      setSyncStatus('synced');
+      flushOutboxQueue();
+    };
     const handleOffline = () => setSyncStatus('offline');
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      flushOutboxQueue();
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [flushOutboxQueue]);
 
   const syncWithStatus = useCallback(async (gameToSync, force = false) => {
     if (!gameToSync) return false;
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setSyncStatus('offline');
+      addToOutboxQueue(gameToSync);
       return false;
     }
     setSyncStatus('syncing');
     const ok = await syncGameToCloud(gameToSync, currentUser, force);
+    if (!ok) {
+      addToOutboxQueue(gameToSync);
+    }
     setSyncStatus(ok ? 'synced' : (typeof navigator !== 'undefined' && navigator.onLine ? 'synced' : 'offline'));
     return ok;
   }, [currentUser]);
@@ -81,8 +116,33 @@ export function useBurracoGame({
     return Array.from(namesSet).filter(Boolean);
   }, [gamesHistory, activeGame]);
 
-  // 1. Caricamento iniziale & Controllo Link Condiviso (?game=...)
+  // 1. Caricamento iniziale & Controllo Link Condiviso (?game=... o #backup=...)
   useEffect(() => {
+    // 0. Controllo Paracadute d'Emergenza Stateless Game (#backup=...)
+    if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('backup=')) {
+      try {
+        const restoredGame = decodeGameFromUrlToken(window.location.hash);
+        if (restoredGame && restoredGame.id) {
+          saveActiveGame(restoredGame);
+          setActiveGame(restoredGame);
+          syncWithStatus(restoredGame, true);
+          try {
+            window.history.replaceState({}, '', window.location.pathname + window.location.search);
+          } catch {}
+          if (typeof customAlert === 'function') {
+            customAlert({
+              title: 'Partita Ripristinata!',
+              message: `Il tavolo "${restoredGame.team1?.name} vs ${restoredGame.team2?.name}" è stato ripristinato con successo dal link di backup!`,
+              variant: 'success'
+            });
+          }
+          return;
+        }
+      } catch (backupErr) {
+        console.warn('Errore ripristino backup URL:', backupErr);
+      }
+    }
+
     const storedHistory = getGamesHistory();
     setGamesHistory(storedHistory);
 

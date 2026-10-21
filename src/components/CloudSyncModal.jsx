@@ -3,6 +3,7 @@ import { X, QrCode, Copy, Check, Users, UserPlus, MessageCircle, Share2, Loader2
 import DeveloperBadge from './DeveloperBadge';
 import { isDeveloperAccount } from '../utils/developer';
 import { findGameByPinOrId } from '../services/firebase';
+import { generateStatelessGameShareUrl } from '../utils/statelessGame';
 
 export default function CloudSyncModal({
   isOpen,
@@ -17,6 +18,7 @@ export default function CloudSyncModal({
 }) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPin, setCopiedPin] = useState(false);
+  const [copiedBackup, setCopiedBackup] = useState(false);
   const [showQr, setShowQr] = useState(false);
   const [sendingFriendUids, setSendingFriendUids] = useState({});
   const [sentFriendUids, setSentFriendUids] = useState({});
