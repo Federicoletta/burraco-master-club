@@ -294,6 +294,7 @@ export function useBurracoGame({
           }
 
           setActiveGame(prev => {
+            let nextGame = cloudGame;
             const prevRounds = Array.isArray(prev?.rounds) ? prev.rounds : [];
             const cloudRounds = Array.isArray(cloudGame.rounds) ? cloudGame.rounds : [];
 
@@ -306,25 +307,18 @@ export function useBurracoGame({
                   ledgerChain: mergedChain,
                 });
                 if (reconstructed) {
-                  if (mergedChain.length > cloudGame.ledgerChain.length) {
-                    syncWithStatus(reconstructed, true);
-                  }
-                  saveActiveGame(reconstructed);
-                  return reconstructed;
+                  nextGame = reconstructed;
                 }
               } catch (crdtErr) {
                 console.warn('[Multiplayer Sync] Avviso merge CRDT:', crdtErr);
               }
-            }
-
-            if (prev?.id === targetId && prevRounds.length > cloudRounds.length) {
+            } else if (prev?.id === targetId && prevRounds.length > cloudRounds.length) {
               console.warn(`[Multiplayer Sync] Stato locale ha ${prevRounds.length} mani, cloud ne ha ${cloudRounds.length}. Mantengo lo stato locale.`);
-              syncWithStatus(prev, true);
-              return prev;
+              nextGame = prev;
             }
 
-            saveActiveGame(cloudGame);
-            return cloudGame;
+            saveActiveGame(nextGame);
+            return nextGame;
           });
 
           if ((cloudGame.playerUids && cloudGame.playerUids.length > 0) || (cloudGame.playerEmails && cloudGame.playerEmails.length > 0)) {
@@ -679,11 +673,24 @@ export function useBurracoGame({
       }
     }
 
+    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
+    let chain = null;
+    try {
+      chain = migrateLegacyGameToLedger(activeGame, author);
+      if (chain) {
+        chain = appendBlock(chain, EVENT_TYPES.ROUND_REVERTED, { roundNumber }, author);
+      }
+    } catch (chainErr) {
+      console.warn('Avviso registrazione blocco revert ledger:', chainErr);
+    }
+
     const updatedGame = {
       ...activeGame,
       rounds: remainingRounds,
       winner,
-      isFinished: isTargetReached
+      isFinished: isTargetReached,
+      ledgerChain: chain || activeGame.ledgerChain || null,
+      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
     };
 
     setActiveGame(updatedGame);
@@ -705,11 +712,28 @@ export function useBurracoGame({
   const handleUpdateTeams = (updatedTeam1, updatedTeam2, updatedTeam3) => {
     if (!activeGame) return;
 
+    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
+    let chain = null;
+    try {
+      chain = migrateLegacyGameToLedger(activeGame, author);
+      if (chain) {
+        chain = appendBlock(chain, EVENT_TYPES.TEAMS_UPDATED, {
+          team1: updatedTeam1,
+          team2: updatedTeam2,
+          team3: activeGame.mode === 'trio' && updatedTeam3 ? updatedTeam3 : null,
+        }, author);
+      }
+    } catch (chainErr) {
+      console.warn('Avviso teams updated ledger:', chainErr);
+    }
+
     const updatedGame = {
       ...activeGame,
       team1: updatedTeam1,
       team2: updatedTeam2,
       ...(activeGame.mode === 'trio' && updatedTeam3 ? { team3: updatedTeam3 } : {}),
+      ledgerChain: chain || activeGame.ledgerChain || null,
+      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
     };
 
     setActiveGame(updatedGame);
@@ -744,11 +768,24 @@ export function useBurracoGame({
       winner = t1Total >= t2Total ? 'team1' : 'team2';
     }
 
+    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
+    let chain = null;
+    try {
+      chain = migrateLegacyGameToLedger(activeGame, author);
+      if (chain) {
+        chain = appendBlock(chain, EVENT_TYPES.GAME_FINISHED, { winner }, author);
+      }
+    } catch (chainErr) {
+      console.warn('Avviso game finished ledger:', chainErr);
+    }
+
     const updatedGame = {
       ...activeGame,
       winner,
       isFinished: true,
       completedAt: new Date().toISOString(),
+      ledgerChain: chain || activeGame.ledgerChain || null,
+      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
     };
 
     setActiveGame(updatedGame);

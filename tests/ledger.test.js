@@ -145,6 +145,39 @@ describe('Burraco Distributed Ledger & CRDT Event-Sourcing', () => {
     expect(mergedState.targetScore).toBe(2505);
   });
 
+  it('aggiorna una mano esistente senza duplicarla se modificata', () => {
+    let chain = [createGenesisBlock({ id: 'game_edit_round' })];
+    chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, {
+      roundNumber: 1,
+      team1Score: 400,
+      team2Score: 200,
+    });
+
+    // Modifica mano 1 (es. correzione punteggio)
+    chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, {
+      roundNumber: 1,
+      team1Score: 550,
+      team2Score: 200,
+    });
+
+    const state = reconstructGameStateFromChain(chain);
+    expect(state.rounds.length).toBe(1);
+    expect(state.rounds[0].team1Score).toBe(550);
+  });
+
+  it('determina il vincitore usando team1Score standard proveniente da RoundCalculatorModal', () => {
+    let chain = [createGenesisBlock({ id: 'game_calc_score', targetScore: 1005 })];
+    chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, {
+      roundNumber: 1,
+      team1Score: 1100, // supera 1005 usando team1Score
+      team2Score: 300,
+    });
+
+    const state = reconstructGameStateFromChain(chain);
+    expect(state.isFinished).toBe(true);
+    expect(state.winner).toBe('team1');
+  });
+
   it('migra in modo trasparente una vecchia partita legacy in un ledger crittografico', () => {
     const legacyGame = {
       id: 'legacy_123',

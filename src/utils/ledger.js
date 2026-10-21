@@ -221,19 +221,34 @@ export function reconstructGameStateFromChain(chain, baseMetadata = {}) {
     switch (block.type) {
       case EVENT_TYPES.ROUND_ADDED:
         if (data && typeof data === 'object') {
-          state.rounds.push({
+          const roundObj = {
             ...data,
+            team1Score: Number(data.team1Score ?? data.team1Points ?? 0),
+            team2Score: Number(data.team2Score ?? data.team2Points ?? 0),
+            team3Score: Number(data.team3Score ?? data.team3Points ?? 0),
             ledgerBlockId: block.id,
             recordedAt: block.timestamp,
             recordedBy: block.author?.name || 'Giocatore',
-          });
+          };
+          const existingIdx = data.roundNumber
+            ? state.rounds.findIndex(r => r.roundNumber === data.roundNumber)
+            : -1;
+          if (existingIdx >= 0) {
+            state.rounds[existingIdx] = roundObj;
+          } else {
+            state.rounds.push(roundObj);
+          }
           checkGameCompletion(state);
         }
         break;
 
       case EVENT_TYPES.ROUND_REVERTED:
         if (state.rounds.length > 0) {
-          state.rounds.pop();
+          if (data?.roundNumber) {
+            state.rounds = state.rounds.filter(r => r.roundNumber !== data.roundNumber);
+          } else {
+            state.rounds.pop();
+          }
           checkGameCompletion(state);
         }
         break;
@@ -277,10 +292,10 @@ function checkGameCompletion(state) {
   let s3 = 0;
 
   for (const r of state.rounds) {
-    s1 += Number(r.team1Points || 0);
-    s2 += Number(r.team2Points || 0);
+    s1 += Number(r.team1Score ?? r.team1Points ?? 0);
+    s2 += Number(r.team2Score ?? r.team2Points ?? 0);
     if (state.mode === 'trio') {
-      s3 += Number(r.team3Points || 0);
+      s3 += Number(r.team3Score ?? r.team3Points ?? 0);
     }
   }
 
