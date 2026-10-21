@@ -93,17 +93,12 @@ export function useBurracoGame({
 
   const syncWithStatus = useCallback(async (gameToSync, force = false) => {
     if (!gameToSync) return false;
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setSyncStatus('offline');
-      addToOutboxQueue(gameToSync);
-      return false;
-    }
     setSyncStatus('syncing');
     const ok = await syncGameToCloud(gameToSync, currentUser, force);
     if (!ok) {
       addToOutboxQueue(gameToSync);
     }
-    setSyncStatus(ok ? 'synced' : (typeof navigator !== 'undefined' && navigator.onLine ? 'synced' : 'offline'));
+    setSyncStatus(ok ? 'synced' : 'offline');
     return ok;
   }, [currentUser]);
 
@@ -1033,13 +1028,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       return updated;
     });
 
-    // 2. Controlla connessione di rete
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setSyncStatus('offline');
-      return { success: false, isOffline: true };
-    }
-
-    // 3. Sincronizza nel Cloud Firestore (force: true)
+    // 2. Sincronizza nel Cloud Firestore (force: true)
     setSyncStatus('syncing');
     try {
       const ok = await syncGameToCloud(activeGame, currentUser, true);
@@ -1048,7 +1037,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     } catch (err) {
       console.warn('Errore salvataggio manuale nel cloud:', err);
       setSyncStatus('offline');
-      return { success: false, isOffline: false, error: err };
+      return { success: false, isOffline: true, error: err };
     }
   }, [activeGame, currentUser]);
 

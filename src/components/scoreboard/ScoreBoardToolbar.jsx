@@ -127,7 +127,7 @@ export default function ScoreBoardToolbar({
               {saveState === 'offline' && (
                 <>
                   <AlertCircle className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Salvata in Locale (Offline)</span>
+                  <span>Salvata sul dispositivo (Offline)</span>
                 </>
               )}
               {saveState === 'error' && (
