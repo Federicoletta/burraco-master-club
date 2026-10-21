@@ -1,6 +1,7 @@
 import React, { useState, useCallback, Suspense, lazy } from 'react';
 import Header from './components/Header';
 import ScoreBoard from './components/ScoreBoard';
+import HomeLobby from './components/HomeLobby';
 import NotificationToast from './components/NotificationToast';
 import { Trophy } from 'lucide-react';
 
@@ -9,6 +10,7 @@ import { ConfirmProvider, useConfirm } from './context/ConfirmContext';
 import { SocialProvider } from './context/SocialContext';
 import { GameProvider, useBurraco } from './context/GameContext';
 import { getStoredTheme, applyTheme } from './utils/theme';
+import { getStoredPlayers } from './utils/storage';
 
 // Modali caricati in modo asincrono (Lazy Loading) per ottimizzazione caricamento iniziale
 const NewGameModal = lazy(() => import('./components/NewGameModal'));
@@ -193,38 +195,20 @@ function BurracoAppContent() {
             onResumeGame={game.handleResumeGame}
           />
         ) : (
-          /* Schermata di Benvenuto se nessuna partita */
-          <div className="text-center py-16 px-4 max-w-md mx-auto">
-            <div className="w-20 h-20 rounded-3xl gold-gradient flex items-center justify-center mx-auto shadow-2xl mb-4">
-              <span className="text-emerald-950 font-black text-4xl">♠</span>
-            </div>
-            <h2 className="text-2xl font-black text-white">Burraco Segnapunti</h2>
-            <p className="text-sm text-emerald-300/80 my-3">
-              Tieni traccia dei punteggi per coppia o singolo, calcola automaticamente carte, burrachi e pozzetti, e consulta le statistiche di ogni partecipante.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2.5 mt-4">
-              <button
-                onClick={handleOpenNewGame}
-                className="flex-1 py-3.5 px-4 rounded-2xl gold-gradient text-emerald-950 font-black text-sm shadow-xl hover:brightness-110 active:scale-95 cursor-pointer transition-all"
-              >
-                {game.gamesHistory?.length > 0 ? 'Nuova Partita' : 'Inizia la Prima Partita'}
-              </button>
-              <button
-                onClick={handleOpenCloud}
-                className="flex-1 py-3.5 px-4 rounded-2xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 font-bold text-sm border border-emerald-500/40 shadow-xl active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5"
-              >
-                <span>🔗 Entra a un Tavolo</span>
-              </button>
-              {game.gamesHistory?.length > 0 && (
-                <button
-                  onClick={handleOpenHistory}
-                  className="flex-1 py-3.5 px-4 rounded-2xl bg-emerald-900/80 hover:bg-emerald-800 text-amber-300 font-bold text-sm border border-amber-400/40 shadow-xl active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5"
-                >
-                  <span>📁 Archivio</span>
-                </button>
-              )}
-            </div>
-          </div>
+          /* Atrio / Lobby Principale con Invito Rapido Giocatori */
+          <HomeLobby
+            currentUser={social.currentUser}
+            friendsList={social.friendsList}
+            storedPlayers={getStoredPlayers(social.currentUser?.uid)}
+            gamesHistory={game.gamesHistory}
+            onStartGame={game.handleStartGame}
+            onResumeGame={game.handleResumeGame}
+            onOpenNewGameModal={handleOpenNewGame}
+            onOpenCloudModal={handleOpenCloud}
+            onOpenHistory={handleOpenHistory}
+            onOpenRules={handleOpenRules}
+            onLogin={social.handleLogin}
+          />
         )}
       </main>
 
