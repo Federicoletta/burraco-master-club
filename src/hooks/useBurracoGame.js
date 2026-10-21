@@ -20,6 +20,13 @@ import {
   updateUserCareerStats
 } from '../services/firebase';
 import { sendGameInvite } from '../services/social';
+import {
+  appendBlock,
+  mergeChainsCRDT,
+  migrateLegacyGameToLedger,
+  reconstructGameStateFromChain,
+  EVENT_TYPES
+} from '../utils/ledger';
 
 export function useBurracoGame({
   currentUser,
@@ -230,6 +237,26 @@ export function useBurracoGame({
             const prevRounds = Array.isArray(prev?.rounds) ? prev.rounds : [];
             const cloudRounds = Array.isArray(cloudGame.rounds) ? cloudGame.rounds : [];
 
+            // Se entrambi i dispositivi hanno ledgerChain, esegui fusione deterministica CRDT
+            if (prev?.id === targetId && Array.isArray(prev?.ledgerChain) && Array.isArray(cloudGame?.ledgerChain)) {
+              try {
+                const mergedChain = mergeChainsCRDT(prev.ledgerChain, cloudGame.ledgerChain);
+                const reconstructed = reconstructGameStateFromChain(mergedChain, {
+                  ...cloudGame,
+                  ledgerChain: mergedChain,
+                });
+                if (reconstructed) {
+                  if (mergedChain.length > cloudGame.ledgerChain.length) {
+                    syncWithStatus(reconstructed, true);
+                  }
+                  saveActiveGame(reconstructed);
+                  return reconstructed;
+                }
+              } catch (crdtErr) {
+                console.warn('[Multiplayer Sync] Avviso merge CRDT:', crdtErr);
+              }
+            }
+
             if (prev?.id === targetId && prevRounds.length > cloudRounds.length) {
               console.warn(`[Multiplayer Sync] Stato locale ha ${prevRounds.length} mani, cloud ne ha ${cloudRounds.length}. Mantengo lo stato locale.`);
               syncWithStatus(prev, true);
@@ -319,13 +346,23 @@ export function useBurracoGame({
       });
     }
 
+    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
+    let initialChain = null;
+    try {
+      initialChain = migrateLegacyGameToLedger(newGame, author);
+    } catch (chainErr) {
+      console.warn('Avviso inizializzazione ledger:', chainErr);
+    }
+
     const gameWithOwnership = {
       ...newGame,
       ownerUid: currentUser ? currentUser.uid : null,
       ownerEmail: currentUser?.email || null,
       ownerName: currentUser?.displayName || null,
       playerUids: registeredPlayerUids,
-      playerEmails: registeredPlayerEmails
+      playerEmails: registeredPlayerEmails,
+      ledgerChain: initialChain,
+      ledgerLastHash: initialChain && initialChain.length > 0 ? initialChain[initialChain.length - 1].hash : null,
     };
 
     setActiveGame(gameWithOwnership);
@@ -402,11 +439,24 @@ export function useBurracoGame({
       }
     }
 
+    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
+    let chain = null;
+    try {
+      chain = migrateLegacyGameToLedger(activeGame, author);
+      if (chain) {
+        chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, roundData, author);
+      }
+    } catch (chainErr) {
+      console.warn('Avviso registrazione blocco ledger round:', chainErr);
+    }
+
     const updatedGame = {
       ...activeGame,
       rounds: updatedRounds,
       winner: winner || (activeGame.isFinished ? activeGame.winner : null),
       isFinished: Boolean(winner) || activeGame.isFinished || false,
+      ledgerChain: chain || activeGame.ledgerChain || null,
+      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
     };
 
     setActiveGame(updatedGame);
@@ -474,11 +524,24 @@ export function useBurracoGame({
     if (!ok) return;
 
     const updatedRounds = activeGame.rounds.slice(0, -1);
+    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
+    let chain = null;
+    try {
+      chain = migrateLegacyGameToLedger(activeGame, author);
+      if (chain) {
+        chain = appendBlock(chain, EVENT_TYPES.ROUND_REVERTED, { roundNumber: activeGame.rounds?.length }, author);
+      }
+    } catch (chainErr) {
+      console.warn('Avviso registrazione blocco revert ledger:', chainErr);
+    }
+
     const updatedGame = {
       ...activeGame,
       rounds: updatedRounds,
       winner: null,
       isFinished: false,
+      ledgerChain: chain || activeGame.ledgerChain || null,
+      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
     };
 
     setActiveGame(updatedGame);

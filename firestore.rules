@@ -35,6 +35,8 @@ service cloud.firestore {
     //   - playerUids: list of strings (optional, max 10 items)
     //   - playerEmails: list of strings (optional, max 10 items)
     //   - tableClosed: bool (optional)
+    //   - ledgerChain: list (optional, max 200 items)
+    //   - ledgerLastHash: string | null (optional, max 64 chars)
     //
     // Collection: burraco_meta
     // Document ID: {docId} (e.g., 'players')
@@ -135,7 +137,8 @@ service cloud.firestore {
       let allowedFields = [
         'id', 'createdAt', 'mode', 'allowSemipulito', 'targetScore',
         'team1', 'team2', 'team3', 'rounds', 'winner', 'isFinished', 'completedAt', 'updatedAt',
-        'ownerUid', 'ownerEmail', 'ownerName', 'playerUids', 'playerEmails', 'tableClosed'
+        'ownerUid', 'ownerEmail', 'ownerName', 'playerUids', 'playerEmails', 'tableClosed',
+        'ledgerChain', 'ledgerLastHash'
       ];
       let requiredFields = [
         'id', 'mode', 'allowSemipulito', 'targetScore', 'team1', 'team2', 'rounds', 'isFinished'
@@ -168,7 +171,9 @@ service cloud.firestore {
              (!('ownerName' in data) || data.ownerName == null || (data.ownerName is string && data.ownerName.size() <= 100)) &&
              (!('playerUids' in data) || (data.playerUids is list && data.playerUids.size() <= 10)) &&
              (!('playerEmails' in data) || (data.playerEmails is list && data.playerEmails.size() <= 10)) &&
-             (!('tableClosed' in data) || data.tableClosed is bool);
+             (!('tableClosed' in data) || data.tableClosed is bool) &&
+             (!('ledgerChain' in data) || (data.ledgerChain is list && data.ledgerChain.size() <= 200)) &&
+             (!('ledgerLastHash' in data) || data.ledgerLastHash == null || (data.ledgerLastHash is string && data.ledgerLastHash.size() <= 64));
     }
 
     function isValidTournament(data, tournamentId) {
