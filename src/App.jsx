@@ -208,6 +208,8 @@ function BurracoAppContent() {
             onOpenHistory={handleOpenHistory}
             onOpenRules={handleOpenRules}
             onLogin={social.handleLogin}
+            onOpenTournament={handleOpenTournament}
+            activeTournament={tournament.activeTournament}
           />
         )}
       </main>

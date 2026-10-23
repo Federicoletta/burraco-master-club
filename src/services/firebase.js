@@ -220,12 +220,14 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
 
     const cleanTeam = (team, fallbackName) => {
       if (!team || typeof team !== 'object') return { name: fallbackName, players: [] };
-      return {
+      const cleaned = {
         name: String(team.name || fallbackName).trim().slice(0, 100) || fallbackName,
         players: Array.isArray(team.players)
           ? team.players.map(p => String(p || '').trim().slice(0, 100)).filter(Boolean)
           : []
       };
+      if (team.id) cleaned.id = String(team.id).slice(0, 100);
+      return cleaned;
     };
 
     const playerUids = Array.isArray(game.playerUids) ? [...game.playerUids] : [];
@@ -265,6 +267,12 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
     if (game.winner) allowedGameData.winner = game.winner;
     if (game.createdAt) allowedGameData.createdAt = game.createdAt;
     if (game.completedAt) allowedGameData.completedAt = game.completedAt;
+
+    if (game.tournamentId) allowedGameData.tournamentId = String(game.tournamentId).slice(0, 100);
+    if (game.tournamentName) allowedGameData.tournamentName = String(game.tournamentName).slice(0, 100);
+    if (game.tournamentMatchId) allowedGameData.tournamentMatchId = String(game.tournamentMatchId).slice(0, 100);
+    if (typeof game.tournamentRoundNumber === 'number') allowedGameData.tournamentRoundNumber = game.tournamentRoundNumber;
+    if (typeof game.tournamentTableNumber === 'number') allowedGameData.tournamentTableNumber = game.tournamentTableNumber;
 
     if (Array.isArray(game.ledgerChain)) {
       allowedGameData.ledgerChain = game.ledgerChain.slice(-200);
@@ -600,14 +608,26 @@ export async function cleanupLegacyCloudDatabase() {
 /**
  * Salva o aggiorna un torneo nel cloud database Firestore
  */
-export async function syncTournamentToCloud(tournament) {
+export async function syncTournamentToCloud(tournament, currentUser = null) {
   if (!db || !tournament?.id) return false;
   try {
     const tournamentRef = doc(db, 'burraco_tournaments', tournament.id);
-    const payload = sanitizeForFirestore({
-      ...tournament,
+    const allowedTournamentData = {
+      id: String(tournament.id),
+      name: String(tournament.name || 'Torneo Burraco').trim().slice(0, 100),
+      status: ['in_progress', 'completed'].includes(tournament.status) ? tournament.status : 'in_progress',
+      teams: Array.isArray(tournament.teams) ? tournament.teams : [],
+      rounds: Array.isArray(tournament.rounds) ? tournament.rounds : [],
+      targetScore: Number(tournament.targetScore) || 2505,
+      scoringSystem: ['fibur', 'classic'].includes(tournament.scoringSystem) ? tournament.scoringSystem : 'fibur',
+      createdAt: tournament.createdAt || null,
+      completedAt: tournament.completedAt || null,
+      ownerUid: tournament.ownerUid !== undefined ? tournament.ownerUid : (currentUser?.uid || null),
+      ownerEmail: tournament.ownerEmail !== undefined ? tournament.ownerEmail : (currentUser?.email || null),
+      ownerName: tournament.ownerName !== undefined ? tournament.ownerName : (currentUser?.displayName || null),
       updatedAt: serverTimestamp(),
-    });
+    };
+    const payload = sanitizeForFirestore(allowedTournamentData);
     await setDoc(tournamentRef, payload, { merge: true });
     return true;
   } catch (err) {

@@ -31,7 +31,9 @@ export default function HomeLobby({
   onOpenCloudModal,
   onOpenHistory,
   onOpenRules,
-  onLogin
+  onLogin,
+  onOpenTournament,
+  activeTournament
 }) {
   const customAlert = useAlert();
 
@@ -678,6 +680,49 @@ export default function HomeLobby({
           </button>
         </form>
       </div>
+
+      {/* 4. MODALITÀ TORNEO A GIRONI */}
+      {onOpenTournament && (
+        <div className={`felt-card p-4 sm:p-5 rounded-3xl border shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 ${
+          activeTournament 
+            ? 'border-amber-400/60 bg-gradient-to-r from-amber-950/40 via-emerald-950/60 to-amber-950/40 ring-1 ring-amber-400/30' 
+            : 'border-emerald-500/20'
+        }`}>
+          <div className="flex items-center gap-3 min-w-0 text-center sm:text-left w-full sm:w-auto">
+            <span className={`p-2.5 rounded-2xl shrink-0 mx-auto sm:mx-0 shadow-md ${
+              activeTournament ? 'gold-gradient text-emerald-950' : 'bg-emerald-900/60 text-amber-400 border border-emerald-700/60'
+            }`}>
+              <Trophy className={`w-5 h-5 ${activeTournament ? 'text-emerald-950 animate-pulse' : 'text-amber-400'}`} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <h3 className="text-sm font-black text-white truncate">
+                  {activeTournament ? `Torneo in Corso: ${activeTournament.name}` : 'Modalità Torneo a Gironi'}
+                </h3>
+                {activeTournament && (
+                  <span className="text-[9px] px-2 py-0.5 rounded-full font-black bg-amber-400 text-emerald-950 uppercase shrink-0">
+                    In Corso
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-emerald-300/70 truncate">
+                {activeTournament
+                  ? `Formula: ${activeTournament.scoringSystem === 'classic' ? 'Classico (3-1-0)' : 'FIBUR Victory Points'} • ${activeTournament.teams?.length || 0} coppie partecipanti`
+                  : 'Crea tabelloni all\'italiana, calendario incontri e classifica automatica FIBUR'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenTournament}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md hover:brightness-110 active:scale-95 cursor-pointer transition-all flex items-center justify-center gap-1.5 shrink-0"
+          >
+            <Trophy className="w-3.5 h-3.5 fill-current" />
+            <span>{activeTournament ? 'Apri Tabellone Torneo 🏆' : 'Organizza Torneo 🏆'}</span>
+          </button>
+        </div>
+      )}
 
       {/* 4. FOOTER DI ACCESSO RAPIDO ALLE REGOLE */}
       <div className="flex items-center justify-between text-xs text-emerald-300/60 px-2 pt-2">

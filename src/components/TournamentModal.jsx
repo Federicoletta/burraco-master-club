@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, Trophy, Plus, Calendar, Users, ArrowLeft } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useConfirm } from '../context/ConfirmContext';
@@ -33,6 +33,18 @@ export default function TournamentModal({
   const [selectedRoundFilter, setSelectedRoundFilter] = useState('all');
   const [tournamentsHistory, setTournamentsHistory] = useState(() => getTournamentsHistory());
   const [viewingHistoricalTournament, setViewingHistoricalTournament] = useState(null);
+
+  // Sincronizza stato di creazione all'apertura del modale
+  useEffect(() => {
+    if (isOpen) {
+      if (!activeTournament) {
+        setIsCreating(true);
+      } else {
+        setIsCreating(false);
+      }
+      setTournamentsHistory(getTournamentsHistory());
+    }
+  }, [isOpen, activeTournament]);
 
   // Stato form creazione
   const [tournamentName, setTournamentName] = useState('Torneo Burraco');

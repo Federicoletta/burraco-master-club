@@ -39,6 +39,11 @@ service cloud.firestore {
     //   - ledgerLastHash: string | null (optional, max 64 chars)
     //   - ledgerChainLength: number | null (optional)
     //   - telemetry: map | null (optional, max 30 keys)
+    //   - tournamentId: string | null (optional, max 100 chars)
+    //   - tournamentName: string | null (optional, max 100 chars)
+    //   - tournamentMatchId: string | null (optional, max 100 chars)
+    //   - tournamentRoundNumber: number | null (optional)
+    //   - tournamentTableNumber: number | null (optional)
     //
     // Collection: burraco_meta
     // Document ID: {docId} (e.g., 'players')
@@ -59,6 +64,9 @@ service cloud.firestore {
     //   - status: string (required, 'in_progress' | 'completed')
     //   - completedAt: string | timestamp (optional, max 50 chars if string)
     //   - updatedAt: string | timestamp (optional, max 50 chars if string)
+    //   - ownerUid: string | null (optional, max 128 chars)
+    //   - ownerEmail: string | null (optional, max 150 chars)
+    //   - ownerName: string | null (optional, max 100 chars)
     //
     // Collection: burraco_users
     // Document ID: {userId} (must match data.uid)
@@ -137,7 +145,8 @@ service cloud.firestore {
 
     function isValidTeam(team) {
       return team is map &&
-             team.keys().hasOnly(['name', 'players']) &&
+             team.keys().hasOnly(['name', 'players', 'id']) &&
+             (!('id' in team) || team.id == null || (team.id is string && team.id.size() <= 100)) &&
              team.name is string &&
              team.name.size() > 0 &&
              team.name.size() <= 100 &&
@@ -149,7 +158,8 @@ service cloud.firestore {
         'id', 'createdAt', 'mode', 'allowSemipulito', 'targetScore',
         'team1', 'team2', 'team3', 'rounds', 'winner', 'isFinished', 'completedAt', 'updatedAt',
         'ownerUid', 'ownerEmail', 'ownerName', 'playerUids', 'playerEmails', 'tableClosed',
-        'ledgerChain', 'ledgerLastHash', 'ledgerChainLength', 'telemetry'
+        'ledgerChain', 'ledgerLastHash', 'ledgerChainLength', 'telemetry',
+        'tournamentId', 'tournamentName', 'tournamentMatchId', 'tournamentRoundNumber', 'tournamentTableNumber'
       ];
       let requiredFields = [
         'id', 'mode', 'allowSemipulito', 'targetScore', 'team1', 'team2', 'rounds', 'isFinished'
@@ -186,12 +196,17 @@ service cloud.firestore {
              (!('ledgerChain' in data) || data.ledgerChain == null || (data.ledgerChain is list && data.ledgerChain.size() <= 200)) &&
              (!('ledgerLastHash' in data) || data.ledgerLastHash == null || (data.ledgerLastHash is string && data.ledgerLastHash.size() <= 64)) &&
              (!('ledgerChainLength' in data) || data.ledgerChainLength == null || data.ledgerChainLength is int || data.ledgerChainLength is float) &&
-             (!('telemetry' in data) || data.telemetry == null || (data.telemetry is map && data.telemetry.keys().size() <= 30));
+             (!('telemetry' in data) || data.telemetry == null || (data.telemetry is map && data.telemetry.keys().size() <= 30)) &&
+             (!('tournamentId' in data) || data.tournamentId == null || (data.tournamentId is string && data.tournamentId.size() <= 100)) &&
+             (!('tournamentName' in data) || data.tournamentName == null || (data.tournamentName is string && data.tournamentName.size() <= 100)) &&
+             (!('tournamentMatchId' in data) || data.tournamentMatchId == null || (data.tournamentMatchId is string && data.tournamentMatchId.size() <= 100)) &&
+             (!('tournamentRoundNumber' in data) || data.tournamentRoundNumber == null || data.tournamentRoundNumber is int || data.tournamentRoundNumber is float) &&
+             (!('tournamentTableNumber' in data) || data.tournamentTableNumber == null || data.tournamentTableNumber is int || data.tournamentTableNumber is float);
     }
 
     function isValidTournament(data, tournamentId) {
       let allowedFields = [
-        'id', 'name', 'createdAt', 'targetScore', 'scoringSystem', 'teams', 'rounds', 'status', 'completedAt', 'updatedAt'
+        'id', 'name', 'createdAt', 'targetScore', 'scoringSystem', 'teams', 'rounds', 'status', 'completedAt', 'updatedAt', 'ownerUid', 'ownerEmail', 'ownerName'
       ];
       let requiredFields = [
         'id', 'name', 'teams', 'rounds', 'status'
@@ -211,9 +226,12 @@ service cloud.firestore {
              data.rounds.size() <= 100 &&
              (!('targetScore' in data) || ((data.targetScore is int || data.targetScore is float) && data.targetScore >= 100)) &&
              (!('scoringSystem' in data) || data.scoringSystem in ['fibur', 'classic']) &&
-             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
-             (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50) || data.completedAt is timestamp) &&
-             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+             (!('createdAt' in data) || data.createdAt == null || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
+             (!('completedAt' in data) || data.completedAt == null || (data.completedAt is string && data.completedAt.size() <= 50) || data.completedAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt == null || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp) &&
+             (!('ownerUid' in data) || data.ownerUid == null || (data.ownerUid is string && data.ownerUid.size() <= 128)) &&
+             (!('ownerEmail' in data) || data.ownerEmail == null || (data.ownerEmail is string && data.ownerEmail.size() <= 150)) &&
+             (!('ownerName' in data) || data.ownerName == null || (data.ownerName is string && data.ownerName.size() <= 100));
     }
 
     function isValidPlayersMeta(data) {
@@ -315,7 +333,7 @@ service cloud.firestore {
       allow create: if isValidTournament(request.resource.data, tournamentId);
       allow update: if isValidTournament(request.resource.data, tournamentId) &&
                        request.resource.data.id == resource.data.id &&
-                       (!('createdAt' in resource.data) || !('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt);
+                       (!('createdAt' in resource.data) || resource.data.createdAt == null || !('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt);
       allow delete: if true;
     }
 

@@ -140,12 +140,12 @@ function Header({
         {/* Azioni barra superiore - Pulite, ordinate e intuitive */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           
-          {/* 1. Modalità Torneo (Desktop e schermi comodi; su mobile è accessibile nel menu) */}
+          {/* 1. Modalità Torneo (Visibile sia su mobile che su desktop con icona trofeo) */}
           {onOpenTournament && (
             <button
               type="button"
               onClick={onOpenTournament}
-              className={`hidden sm:flex h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
+              className={`flex h-9 sm:h-10 px-2 sm:px-3 rounded-xl border transition-all items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 shrink-0 touch-manipulation select-none ${
                 hasActiveTournament
                   ? 'bg-amber-500/25 text-amber-200 border-amber-400 ring-2 ring-amber-400/40 shadow-md shadow-amber-950/40 font-black'
                   : 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-600/40'
