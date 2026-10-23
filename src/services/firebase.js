@@ -218,15 +218,70 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
       }
     }
 
-    const payload = sanitizeForFirestore({
-      ...game,
-      ownerUid: game.ownerUid !== undefined ? game.ownerUid : (currentUser?.uid || null),
-      ownerEmail: game.ownerEmail !== undefined ? game.ownerEmail : (currentUser?.email || null),
-      ownerName: game.ownerName !== undefined ? game.ownerName : (currentUser?.displayName || null),
-      playerUids: Array.isArray(game.playerUids) ? game.playerUids : (currentUser?.uid ? [currentUser.uid] : []),
-      playerEmails: Array.isArray(game.playerEmails) ? game.playerEmails : (currentUser?.email ? [currentUser.email] : []),
+    const cleanTeam = (team, fallbackName) => {
+      if (!team || typeof team !== 'object') return { name: fallbackName, players: [] };
+      return {
+        name: String(team.name || fallbackName).trim().slice(0, 100) || fallbackName,
+        players: Array.isArray(team.players)
+          ? team.players.map(p => String(p || '').trim().slice(0, 100)).filter(Boolean)
+          : []
+      };
+    };
+
+    const playerUids = Array.isArray(game.playerUids) ? [...game.playerUids] : [];
+    if (currentUser?.uid && !playerUids.includes(currentUser.uid)) {
+      playerUids.push(currentUser.uid);
+    }
+    const playerEmails = Array.isArray(game.playerEmails) ? [...game.playerEmails] : [];
+    if (currentUser?.email && !playerEmails.includes(currentUser.email)) {
+      playerEmails.push(currentUser.email);
+    }
+
+    const cleanRounds = (Array.isArray(game.rounds) ? game.rounds : []).map(r => ({ ...r }));
+
+    // Whitelist rigorosa per rispettare firestore.rules (hasOnly allowedFields)
+    const allowedGameData = {
+      id: String(game.id),
+      mode: ['pairs', 'singles', 'trio'].includes(game.mode) ? game.mode : 'pairs',
+      allowSemipulito: Boolean(game.allowSemipulito ?? true),
+      targetScore: Number(game.targetScore) || 2005,
+      team1: cleanTeam(game.team1, 'Coppia 1'),
+      team2: cleanTeam(game.team2, 'Coppia 2'),
+      rounds: cleanRounds,
+      isFinished: Boolean(game.isFinished),
+      tableClosed: Boolean(game.tableClosed),
+      ownerUid: game.ownerUid !== undefined ? (game.ownerUid || null) : (currentUser?.uid || null),
+      ownerEmail: game.ownerEmail !== undefined ? (game.ownerEmail || null) : (currentUser?.email || null),
+      ownerName: game.ownerName !== undefined ? (game.ownerName || null) : (currentUser?.displayName || null),
+      playerUids: playerUids.slice(0, 10),
+      playerEmails: playerEmails.slice(0, 10),
       updatedAt: serverTimestamp(),
-    });
+    };
+
+    if (game.mode === 'trio' || game.team3) {
+      allowedGameData.team3 = cleanTeam(game.team3, 'Giocatore 3');
+    }
+
+    if (game.winner) allowedGameData.winner = game.winner;
+    if (game.createdAt) allowedGameData.createdAt = game.createdAt;
+    if (game.completedAt) allowedGameData.completedAt = game.completedAt;
+
+    if (Array.isArray(game.ledgerChain)) {
+      allowedGameData.ledgerChain = game.ledgerChain.slice(-200);
+      allowedGameData.ledgerChainLength = game.ledgerChain.length;
+    } else if (typeof game.ledgerChainLength === 'number') {
+      allowedGameData.ledgerChainLength = game.ledgerChainLength;
+    }
+
+    if (game.ledgerLastHash) {
+      allowedGameData.ledgerLastHash = String(game.ledgerLastHash).slice(0, 64);
+    }
+
+    if (game.telemetry && typeof game.telemetry === 'object') {
+      allowedGameData.telemetry = game.telemetry;
+    }
+
+    const payload = sanitizeForFirestore(allowedGameData);
     await setDoc(gameRef, payload, { merge: true });
 
     // Registra in background il PIN rapido per ricerca istantanea O(1)

@@ -37,6 +37,7 @@ service cloud.firestore {
     //   - tableClosed: bool (optional)
     //   - ledgerChain: list (optional, max 200 items)
     //   - ledgerLastHash: string | null (optional, max 64 chars)
+    //   - ledgerChainLength: number | null (optional)
     //   - telemetry: map | null (optional, max 30 keys)
     //
     // Collection: burraco_meta
@@ -148,7 +149,7 @@ service cloud.firestore {
         'id', 'createdAt', 'mode', 'allowSemipulito', 'targetScore',
         'team1', 'team2', 'team3', 'rounds', 'winner', 'isFinished', 'completedAt', 'updatedAt',
         'ownerUid', 'ownerEmail', 'ownerName', 'playerUids', 'playerEmails', 'tableClosed',
-        'ledgerChain', 'ledgerLastHash', 'telemetry'
+        'ledgerChain', 'ledgerLastHash', 'ledgerChainLength', 'telemetry'
       ];
       let requiredFields = [
         'id', 'mode', 'allowSemipulito', 'targetScore', 'team1', 'team2', 'rounds', 'isFinished'
@@ -184,6 +185,7 @@ service cloud.firestore {
              (!('tableClosed' in data) || data.tableClosed == null || data.tableClosed is bool) &&
              (!('ledgerChain' in data) || data.ledgerChain == null || (data.ledgerChain is list && data.ledgerChain.size() <= 200)) &&
              (!('ledgerLastHash' in data) || data.ledgerLastHash == null || (data.ledgerLastHash is string && data.ledgerLastHash.size() <= 64)) &&
+             (!('ledgerChainLength' in data) || data.ledgerChainLength == null || data.ledgerChainLength is int || data.ledgerChainLength is float) &&
              (!('telemetry' in data) || data.telemetry == null || (data.telemetry is map && data.telemetry.keys().size() <= 30));
     }
 

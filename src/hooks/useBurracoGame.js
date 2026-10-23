@@ -98,6 +98,8 @@ export function useBurracoGame({
     const ok = await syncGameToCloud(gameToSync, currentUser, force);
     if (!ok) {
       addToOutboxQueue(gameToSync);
+    } else {
+      removeFromOutboxQueue(gameToSync.id);
     }
     setSyncStatus(ok ? 'synced' : 'offline');
     return ok;
@@ -258,9 +260,29 @@ export function useBurracoGame({
               nextGame = prev;
             }
 
+            // Salvaguardia rounds: non perdere MAI le mani registrate nel cloud o in locale
+            if (cloudRounds.length > (nextGame.rounds?.length || 0)) {
+              nextGame = {
+                ...nextGame,
+                rounds: cloudRounds,
+                winner: cloudGame.winner !== undefined ? cloudGame.winner : nextGame.winner,
+                isFinished: cloudGame.isFinished ?? nextGame.isFinished,
+              };
+            }
+            if (prev?.id === targetId && prevRounds.length > (nextGame.rounds?.length || 0)) {
+              nextGame = {
+                ...nextGame,
+                rounds: prevRounds,
+                winner: prev.winner !== undefined ? prev.winner : nextGame.winner,
+                isFinished: prev.isFinished ?? nextGame.isFinished,
+              };
+            }
+
             saveActiveGame(nextGame);
             return nextGame;
           });
+
+          setSyncStatus('synced');
 
           if ((cloudGame.playerUids && cloudGame.playerUids.length > 0) || (cloudGame.playerEmails && cloudGame.playerEmails.length > 0)) {
             const rosterKey = `${(cloudGame.playerUids || []).slice().sort().join(',')}|${(cloudGame.playerEmails || []).slice().sort().join(',')}`;
