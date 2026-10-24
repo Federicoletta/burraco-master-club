@@ -193,4 +193,45 @@ describe('HomeLobby & Quick Matchmaking Logic', () => {
     expect(createQuickGameFromLobby([])).toBeNull();
     expect(createQuickGameFromLobby([{ name: 'Solo Io' }])).toBeNull();
   });
+
+  it('filtra correttamente il roster dei giocatori per ricerca testuale', () => {
+    const roster = [
+      { id: '1', name: 'Federico' },
+      { id: '2', name: 'Francesca' },
+      { id: '3', name: 'Marco' },
+      { id: '4', name: 'Anna' }
+    ];
+
+    const filterRoster = (query) => {
+      if (!query.trim()) return roster;
+      const q = query.toLowerCase().trim();
+      return roster.filter(p => p.name.toLowerCase().includes(q));
+    };
+
+    expect(filterRoster('f')).toHaveLength(2);
+    expect(filterRoster('fra')).toHaveLength(1);
+    expect(filterRoster('MARCO')).toHaveLength(1);
+    expect(filterRoster('MARCO')[0].name).toBe('Marco');
+    expect(filterRoster('inesistente')).toHaveLength(0);
+    expect(filterRoster('')).toHaveLength(4);
+  });
+
+  it('consente la rimozione diretta di un giocatore per indice dello slot', () => {
+    const selected = [
+      { name: 'G1' },
+      { name: 'G2' },
+      { name: 'G3' },
+      { name: 'G4' }
+    ];
+
+    const removeByIndex = (arr, index) => arr.filter((_, idx) => idx !== index);
+
+    // Rimozione compagno (indice 1)
+    const after1 = removeByIndex(selected, 1);
+    expect(after1.map(p => p.name)).toEqual(['G1', 'G3', 'G4']);
+
+    // Rimozione primo giocatore (indice 0)
+    const after0 = removeByIndex(after1, 0);
+    expect(after0.map(p => p.name)).toEqual(['G3', 'G4']);
+  });
 });

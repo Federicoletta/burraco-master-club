@@ -13,7 +13,12 @@ import {
   Check, 
   SlidersHorizontal,
   FolderArchive,
-  BookOpen
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Search,
+  Trash2
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { savePlayerName } from '../utils/storage';
@@ -36,6 +41,28 @@ export default function HomeLobby({
   activeTournament
 }) {
   const customAlert = useAlert();
+
+  // Stato collasso sezione "Componi il Tavolo" (persistito in localStorage)
+  const [isTableCollapsed, setIsTableCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('burraco_lobby_table_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleTableCollapse = () => {
+    setIsTableCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('burraco_lobby_table_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Filtro ricerca giocatori nella lista roster
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Stato giocatori selezionati per il tavolo (massimo 4)
   const [selectedPlayers, setSelectedPlayers] = useState(() => {
@@ -121,6 +148,13 @@ export default function HomeLobby({
     return list;
   }, [currentUser, friendsList, storedPlayers]);
 
+  // Roster filtrato dalla barra di ricerca
+  const filteredRoster = useMemo(() => {
+    if (!searchQuery.trim()) return availableRoster;
+    const q = searchQuery.toLowerCase().trim();
+    return availableRoster.filter(p => p.name.toLowerCase().includes(q));
+  }, [availableRoster, searchQuery]);
+
   // Gestione selezione / deselezione giocatore
   const handleTogglePlayer = (player) => {
     try {
@@ -151,6 +185,22 @@ export default function HomeLobby({
         return [...prev, player];
       }
     });
+  };
+
+  // Rimozione diretta di un giocatore per indice dello slot
+  const handleRemovePlayerByIndex = (index) => {
+    try {
+      sound.playTap();
+    } catch {}
+    setSelectedPlayers(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  // Svuota completamente il tavolo
+  const handleClearTable = () => {
+    try {
+      sound.playTap();
+    } catch {}
+    setSelectedPlayers([]);
   };
 
   // Scambia gli accoppiamenti delle coppie (es. scambia slot 2 e 3)
@@ -332,280 +382,515 @@ export default function HomeLobby({
         {/* Glow decorativo */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-400/5 blur-3xl pointer-events-none rounded-full" />
         
-        {/* Intestazione */}
-        <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5 pb-3 border-b border-emerald-800/40">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="p-2 sm:p-2.5 rounded-2xl gold-gradient text-emerald-950 font-black shadow-md flex items-center justify-center shrink-0">
+        {/* Intestazione con Toggle Comprimi/Espandi */}
+        <div className={`flex items-center justify-between gap-3 ${isTableCollapsed ? '' : 'mb-4 sm:mb-5 pb-3 border-b border-emerald-800/40'}`}>
+          <button
+            type="button"
+            onClick={toggleTableCollapse}
+            className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer group flex-1 select-none"
+            title={isTableCollapsed ? "Espandi sezione Componi Tavolo" : "Comprimi sezione Componi Tavolo"}
+          >
+            <span className="p-2 sm:p-2.5 rounded-2xl gold-gradient text-emerald-950 font-black shadow-md flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Users className="w-5 h-5" />
             </span>
             <div className="min-w-0">
               <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-1.5 truncate">
                 <span>Componi il Tavolo</span>
                 <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-emerald-400/80 group-hover:text-amber-300 transition-colors ml-1">
+                  {isTableCollapsed ? (
+                    <ChevronDown className="w-5 h-5" />
+                  ) : (
+                    <ChevronUp className="w-5 h-5" />
+                  )}
+                </span>
               </h2>
               <p className="text-xs text-emerald-300/80 truncate">
-                Tocca i giocatori presenti al tavolo per creare le squadre al volo
+                {isTableCollapsed 
+                  ? selectedCount > 0 
+                    ? `Tavolo configurato: ${selectedPlayers.map(p => p.name).join(', ')}`
+                    : 'Sezione compressa • Tocca per scegliere i giocatori'
+                  : 'Tocca i giocatori presenti al tavolo per creare le squadre al volo'}
               </p>
             </div>
-          </div>
+          </button>
 
-          {/* Badge conteggio selezione */}
-          <div className={`px-2.5 py-1 rounded-xl text-xs font-black border transition-all shrink-0 ${
-            selectedCount === 4
-              ? 'bg-amber-400/20 text-amber-300 border-amber-400/50'
-              : selectedCount >= 2
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-              : 'bg-emerald-950/80 text-emerald-400/60 border-emerald-800/60'
-          }`}>
-            {selectedCount}/4 {selectedCount === 4 ? 'Tavolo Pieno' : 'Giocatori'}
-          </div>
-        </div>
-
-        {/* ANTEPRIMA DELLE SQUADRE IN TEMPO REALE */}
-        <div className="mb-5 p-3.5 sm:p-4 rounded-2xl bg-emerald-950/70 border border-emerald-700/50 backdrop-blur-sm shadow-inner">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400">
-              {selectedCount === 4 ? 'Modalità: Coppie (2 vs 2)' : selectedCount === 3 ? 'Modalità: A Tre (Trio a rotazione)' : selectedCount === 2 ? 'Modalità: Singolo (1 vs 1)' : 'Seleziona almeno 2 giocatori'}
-            </span>
-            {selectedCount === 4 && (
+          {/* Badge conteggio selezione + Azione Toggle rapida */}
+          <div className="flex items-center gap-2 shrink-0">
+            {selectedCount > 0 && !isTableCollapsed && (
               <button
                 type="button"
-                onClick={handleSwapPartners}
-                className="flex items-center gap-1 text-[11px] font-bold text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 px-2.5 py-1 rounded-lg border border-amber-400/30 transition-all cursor-pointer active:scale-95"
-                title="Inverti i compagni delle due coppie"
+                onClick={handleClearTable}
+                className="p-1.5 rounded-xl text-emerald-400/70 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer text-xs flex items-center gap-1"
+                title="Svuota selezione giocatori"
               >
-                <Shuffle className="w-3 h-3 text-amber-400" />
-                <span>Inverti Coppie</span>
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-[11px] font-bold">Svuota</span>
               </button>
             )}
-          </div>
 
-          {/* Griglia slot giocatori */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            {/* SQUADRA 1 */}
-            <div className="p-2.5 rounded-xl bg-emerald-900/60 border border-emerald-500/40 flex flex-col justify-between min-h-[64px]">
-              <span className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">
-                {selectedCount >= 4 ? 'Coppia 1' : 'Giocatore 1'}
-              </span>
-              <div className="flex flex-wrap gap-1.5 items-center mt-1">
-                {selectedPlayers[0] ? (
-                  <span className="px-2 py-0.5 rounded-lg bg-emerald-800 text-white font-bold text-xs border border-emerald-400/40 truncate max-w-full">
-                    {selectedPlayers[0].name}
-                  </span>
-                ) : (
-                  <span className="text-xs italic text-emerald-400/50">Tocca un giocatore...</span>
-                )}
-                {selectedCount >= 4 && selectedPlayers[1] && (
-                  <span className="px-2 py-0.5 rounded-lg bg-emerald-800 text-white font-bold text-xs border border-emerald-400/40 truncate max-w-full">
-                    {selectedPlayers[1].name}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* SQUADRA 2 */}
-            <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-500/40 flex flex-col justify-between min-h-[64px]">
-              <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
-                {selectedCount >= 4 ? 'Coppia 2' : selectedCount === 3 ? 'Giocatore 2' : 'Giocatore 2'}
-              </span>
-              <div className="flex flex-wrap gap-1.5 items-center mt-1">
-                {selectedCount >= 4 ? (
-                  <>
-                    {selectedPlayers[2] ? (
-                      <span className="px-2 py-0.5 rounded-lg bg-amber-900 text-amber-100 font-bold text-xs border border-amber-400/40 truncate max-w-full">
-                        {selectedPlayers[2].name}
-                      </span>
-                    ) : (
-                      <span className="text-xs italic text-amber-400/50">In attesa...</span>
-                    )}
-                    {selectedPlayers[3] && (
-                      <span className="px-2 py-0.5 rounded-lg bg-amber-900 text-amber-100 font-bold text-xs border border-amber-400/40 truncate max-w-full">
-                        {selectedPlayers[3].name}
-                      </span>
-                    )}
-                  </>
-                ) : selectedPlayers[1] ? (
-                  <span className="px-2 py-0.5 rounded-lg bg-amber-900 text-amber-100 font-bold text-xs border border-amber-400/40 truncate max-w-full">
-                    {selectedPlayers[1].name}
-                  </span>
-                ) : (
-                  <span className="text-xs italic text-amber-400/50">Tocca un avversario...</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Terzo giocatore se Trio */}
-          {selectedCount === 3 && selectedPlayers[2] && (
-            <div className="mt-2 p-2 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase text-purple-300">Giocatore 3 (Trio)</span>
-              <span className="px-2 py-0.5 rounded-lg bg-purple-900 text-purple-100 font-bold text-xs border border-purple-400/40">
-                {selectedPlayers[2].name}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* LISTA GIOCATORI DISPONIBILI (ROSTER) */}
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider flex items-center gap-1.5">
-              <span>Giocatori Abituali & Amici</span>
-            </span>
             <button
               type="button"
-              onClick={() => setIsAddingPlayer(prev => !prev)}
-              className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors cursor-pointer"
+              onClick={toggleTableCollapse}
+              className={`px-2.5 py-1 rounded-xl text-xs font-black border transition-all cursor-pointer active:scale-95 ${
+                selectedCount === 4
+                  ? 'bg-amber-400/20 text-amber-300 border-amber-400/50'
+                  : selectedCount >= 2
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : 'bg-emerald-950/80 text-emerald-400/60 border-emerald-800/60'
+              }`}
+              title={isTableCollapsed ? "Espandi per modificare il tavolo" : "Comprimi"}
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Nuovo Nome</span>
+              {selectedCount}/4 {selectedCount === 4 ? 'Tavolo Pieno' : 'Giocatori'}
             </button>
           </div>
+        </div>
 
-          {/* Form aggiunta nuovo giocatore al volo */}
-          {isAddingPlayer && (
-            <form onSubmit={handleAddNewPlayer} className="flex gap-2 animate-in fade-in zoom-in-95 duration-150">
-              <input
-                type="text"
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
-                placeholder="Nome giocatore (es. nonna Maria)..."
-                maxLength={30}
-                autoFocus
-                className="flex-1 px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/50 text-white placeholder-emerald-400/50 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400/60"
-              />
-              <button
-                type="submit"
-                className="px-3.5 py-2 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md active:scale-95 cursor-pointer"
-              >
-                Aggiungi
-              </button>
-            </form>
-          )}
+        {/* VISTA COMPRESSA (quando l'utente preferisce avere la lobby sgombra) */}
+        {isTableCollapsed ? (
+          <div className="mt-3 pt-3 border-t border-emerald-800/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 animate-in fade-in duration-150">
+            {/* Lista chip compatti dei giocatori selezionati con tasto X */}
+            <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1">
+              {selectedCount === 0 ? (
+                <span className="text-xs italic text-emerald-400/60">
+                  Nessun giocatore al tavolo. Tocca "Modifica Tavolo" per scegliere.
+                </span>
+              ) : (
+                selectedPlayers.map((p, idx) => (
+                  <div
+                    key={p.id || idx}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/90 border border-emerald-600/50 text-white text-xs font-bold shadow-sm"
+                  >
+                    <span className={`w-2 h-2 rounded-full ${idx < 2 ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                    <span className="truncate max-w-[110px]">{p.name}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemovePlayerByIndex(idx);
+                      }}
+                      className="text-emerald-400/60 hover:text-rose-400 hover:bg-rose-500/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                      title={`Rimuovi ${p.name}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
 
-          {/* Griglia tessere giocatori */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {availableRoster.map(player => {
-              const isSelected = selectedPlayers.some(p => 
-                (p.id && player.id && p.id === player.id) || 
-                p.name.toLowerCase() === player.name.toLowerCase()
-              );
-              const selectedIdx = selectedPlayers.findIndex(p => 
-                (p.id && player.id && p.id === player.id) || 
-                p.name.toLowerCase() === player.name.toLowerCase()
-              );
-
-              return (
+            {/* Azioni compatte: Gioca Subito o Espandi */}
+            <div className="flex items-center gap-2 justify-end shrink-0">
+              {selectedCount >= 2 && (
                 <button
-                  key={player.id}
                   type="button"
-                  onClick={() => handleTogglePlayer(player)}
-                  className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer relative flex items-center gap-2.5 active:scale-95 ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-emerald-800 to-emerald-900 border-amber-400 shadow-lg ring-1 ring-amber-400/60'
-                      : 'bg-emerald-950/60 hover:bg-emerald-900/40 border-emerald-800/60 hover:border-emerald-600/60 text-white'
-                  }`}
+                  onClick={handleQuickStartGame}
+                  className="px-3.5 py-2 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md hover:brightness-110 active:scale-95 cursor-pointer flex items-center gap-1.5"
                 >
-                  {/* Avatar o Iniziale */}
-                  <div className="relative shrink-0">
-                    {player.photoURL ? (
-                      <img 
-                        src={player.photoURL} 
-                        alt={player.name} 
-                        className="w-8 h-8 rounded-full object-cover border border-amber-400/60"
-                      />
-                    ) : (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border ${
-                        isSelected 
-                          ? 'gold-gradient text-emerald-950 border-amber-400' 
-                          : 'bg-emerald-900 text-emerald-200 border-emerald-700/60'
-                      }`}>
-                        {player.name.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
-                    {player.isCloseFriend && (
-                      <span className="absolute -top-1 -right-1 text-amber-400 drop-shadow">
-                        <Star className="w-3 h-3 fill-amber-400" />
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Nome e dettagli */}
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold text-xs text-white truncate flex items-center gap-1">
-                      <span className="truncate">{player.name}</span>
-                      {player.isCurrentUser && (
-                        <span className="text-[10px] text-amber-300 shrink-0 font-normal">(Tu)</span>
-                      )}
-                    </div>
-                    {isSelected ? (
-                      <div className="text-[10px] font-black text-amber-300 flex items-center gap-1">
-                        <Check className="w-2.5 h-2.5" />
-                        <span>
-                          {selectedIdx < 2 ? 'Coppia 1' : 'Coppia 2'}
-                        </span>
-                      </div>
-                    ) : player.isFriend ? (
-                      <span className="text-[10px] text-emerald-400/70 truncate block">Amico Club</span>
-                    ) : (
-                      <span className="text-[10px] text-emerald-400/50 truncate block">Giocatore</span>
-                    )}
-                  </div>
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Gioca ({selectedCount}P)</span>
                 </button>
-              );
-            })}
-          </div>
-
-          {availableRoster.length === 0 && (
-            <div className="text-center py-6 px-3 rounded-2xl bg-emerald-950/40 border border-dashed border-emerald-800/60">
-              <p className="text-xs text-emerald-300/70">
-                Non ci sono ancora giocatori salvati in memoria.
-              </p>
+              )}
               <button
                 type="button"
-                onClick={() => setIsAddingPlayer(true)}
-                className="mt-2 text-xs font-bold text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                onClick={toggleTableCollapse}
+                className="px-3 py-2 rounded-xl bg-emerald-900/60 hover:bg-emerald-900 text-emerald-200 font-bold text-xs border border-emerald-700/60 cursor-pointer flex items-center gap-1"
               >
-                + Aggiungi il primo compagno di gioco
+                <span>Modifica Tavolo</span>
+                <ChevronDown className="w-3.5 h-3.5" />
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* VISTA ESPANSA COMPLETA */
+          <div className="animate-in fade-in duration-150">
+            {/* ANTEPRIMA DELLE SQUADRE IN TEMPO REALE */}
+            <div className="mb-5 p-3.5 sm:p-4 rounded-2xl bg-emerald-950/70 border border-emerald-700/50 backdrop-blur-sm shadow-inner">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400">
+                  {selectedCount === 4 ? 'Modalità: Coppie (2 vs 2)' : selectedCount === 3 ? 'Modalità: A Tre (Trio a rotazione)' : selectedCount === 2 ? 'Modalità: Singolo (1 vs 1)' : 'Seleziona almeno 2 giocatori'}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {selectedCount === 4 && (
+                    <button
+                      type="button"
+                      onClick={handleSwapPartners}
+                      className="flex items-center gap-1 text-[11px] font-bold text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 px-2.5 py-1 rounded-lg border border-amber-400/30 transition-all cursor-pointer active:scale-95"
+                      title="Inverti i compagni delle due coppie"
+                    >
+                      <Shuffle className="w-3 h-3 text-amber-400" />
+                      <span>Inverti Coppie</span>
+                    </button>
+                  )}
+                  {selectedCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearTable}
+                      className="flex items-center gap-1 text-[11px] font-bold text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 px-2 py-1 rounded-lg border border-rose-500/30 transition-all cursor-pointer active:scale-95"
+                      title="Azzera e svuota il tavolo"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span className="hidden sm:inline">Azzera</span>
+                    </button>
+                  )}
+                </div>
+              </div>
 
-        {/* PULSANTE PRINCIPALE DI AVVIO DINAMICO */}
-        <div className="mt-5 pt-4 border-t border-emerald-800/40 flex flex-col sm:flex-row gap-2.5">
-          <button
-            type="button"
-            disabled={selectedCount < 2}
-            onClick={handleQuickStartGame}
-            className={`flex-1 py-3.5 px-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 ${
-              selectedCount >= 2
-                ? 'gold-gradient text-emerald-950 hover:brightness-110 shadow-amber-400/20'
-                : 'bg-emerald-950/80 text-emerald-500/50 border border-emerald-800/40 cursor-not-allowed'
-            }`}
-          >
-            <Play className="w-4 h-4 fill-current" />
-            <span>
-              {selectedCount === 4
-                ? '🃏 Siediti al Tavolo (2 vs 2)'
-                : selectedCount === 3
-                ? '🃏 Inizia Burraco a 3 (Trio)'
-                : selectedCount === 2
-                ? '🃏 Inizia Sfida Singola (1 vs 1)'
-                : 'Seleziona almeno 2 giocatori'}
-            </span>
-          </button>
+              {/* Griglia slot giocatori con tasti di rimozione X rapida */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                {/* SQUADRA 1 / COPPIA 1 */}
+                <div className="p-2.5 rounded-xl bg-emerald-900/60 border border-emerald-500/40 flex flex-col justify-between min-h-[72px]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">
+                      {selectedCount >= 4 ? 'Coppia 1' : 'Giocatore 1'}
+                    </span>
+                    <span className="text-[9px] text-emerald-300/60 font-semibold">
+                      {selectedCount >= 4 ? 'Slot 1 & Slot 2' : 'Slot 1'}
+                    </span>
+                  </div>
 
-          <button
-            type="button"
-            onClick={onOpenNewGameModal}
-            className="py-3 px-4 rounded-2xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 font-bold text-xs border border-emerald-500/40 shadow-md flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer transition-all shrink-0"
-            title="Configura traguardo punti personalizzato (1005, 1505, 2505), semipulito o squadre manuali"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
-            <span>Configurazione Libera</span>
-          </button>
-        </div>
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    {/* Slot 1 */}
+                    {selectedPlayers[0] ? (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-800 text-white font-bold text-xs border border-emerald-400/50 shadow-sm max-w-full">
+                        <span className="truncate">{selectedPlayers[0].name}</span>
+                        {selectedPlayers[0].isCurrentUser && (
+                          <span className="text-[10px] text-amber-300 font-normal shrink-0">(Tu)</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePlayerByIndex(0)}
+                          className="text-emerald-300 hover:text-rose-400 hover:bg-rose-500/20 rounded p-0.5 transition-colors cursor-pointer ml-0.5"
+                          title={`Rimuovi ${selectedPlayers[0].name}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs italic text-emerald-400/50 py-1">
+                        + Scegli Giocatore 1 dal roster
+                      </span>
+                    )}
+
+                    {/* Slot 2 (Compagno se 4 giocatori o slot libero pronto) */}
+                    {selectedCount >= 4 && selectedPlayers[1] && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-800 text-white font-bold text-xs border border-emerald-400/50 shadow-sm max-w-full">
+                        <span className="truncate">{selectedPlayers[1].name}</span>
+                        {selectedPlayers[1].isCurrentUser && (
+                          <span className="text-[10px] text-amber-300 font-normal shrink-0">(Tu)</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePlayerByIndex(1)}
+                          className="text-emerald-300 hover:text-rose-400 hover:bg-rose-500/20 rounded p-0.5 transition-colors cursor-pointer ml-0.5"
+                          title={`Rimuovi ${selectedPlayers[1].name}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* SQUADRA 2 / COPPIA 2 */}
+                <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-500/40 flex flex-col justify-between min-h-[72px]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
+                      {selectedCount >= 4 ? 'Coppia 2' : selectedCount === 3 ? 'Giocatore 2' : 'Giocatore 2 (Avversario)'}
+                    </span>
+                    <span className="text-[9px] text-amber-300/60 font-semibold">
+                      {selectedCount >= 4 ? 'Slot 3 & Slot 4' : 'Slot 2'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    {selectedCount >= 4 ? (
+                      <>
+                        {/* Slot 3 */}
+                        {selectedPlayers[2] ? (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-900 text-amber-100 font-bold text-xs border border-amber-400/50 shadow-sm max-w-full">
+                            <span className="truncate">{selectedPlayers[2].name}</span>
+                            {selectedPlayers[2].isCurrentUser && (
+                              <span className="text-[10px] text-amber-300 font-normal shrink-0">(Tu)</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePlayerByIndex(2)}
+                              className="text-amber-200 hover:text-rose-400 hover:bg-rose-500/20 rounded p-0.5 transition-colors cursor-pointer ml-0.5"
+                              title={`Rimuovi ${selectedPlayers[2].name}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs italic text-amber-400/50 py-1">In attesa...</span>
+                        )}
+
+                        {/* Slot 4 */}
+                        {selectedPlayers[3] && (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-900 text-amber-100 font-bold text-xs border border-amber-400/50 shadow-sm max-w-full">
+                            <span className="truncate">{selectedPlayers[3].name}</span>
+                            {selectedPlayers[3].isCurrentUser && (
+                              <span className="text-[10px] text-amber-300 font-normal shrink-0">(Tu)</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePlayerByIndex(3)}
+                              className="text-amber-200 hover:text-rose-400 hover:bg-rose-500/20 rounded p-0.5 transition-colors cursor-pointer ml-0.5"
+                              title={`Rimuovi ${selectedPlayers[3].name}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : selectedPlayers[1] ? (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-900 text-amber-100 font-bold text-xs border border-amber-400/50 shadow-sm max-w-full">
+                        <span className="truncate">{selectedPlayers[1].name}</span>
+                        {selectedPlayers[1].isCurrentUser && (
+                          <span className="text-[10px] text-amber-300 font-normal shrink-0">(Tu)</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePlayerByIndex(1)}
+                          className="text-amber-200 hover:text-rose-400 hover:bg-rose-500/20 rounded p-0.5 transition-colors cursor-pointer ml-0.5"
+                          title={`Rimuovi ${selectedPlayers[1].name}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs italic text-amber-400/50 py-1">+ Scegli avversario dal roster</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Terzo giocatore se Trio */}
+              {selectedCount === 3 && selectedPlayers[2] && (
+                <div className="mt-2 p-2 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-purple-300">Giocatore 3 (Trio a rotazione)</span>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-900 text-purple-100 font-bold text-xs border border-purple-400/40">
+                    <span>{selectedPlayers[2].name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePlayerByIndex(2)}
+                      className="text-purple-200 hover:text-rose-400 hover:bg-rose-500/20 rounded p-0.5 transition-colors cursor-pointer"
+                      title={`Rimuovi ${selectedPlayers[2].name}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* LISTA GIOCATORI DISPONIBILI (ROSTER) CON RICERCA RAPIDA */}
+            <div className="space-y-2.5">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Giocatori Abituali & Amici ({availableRoster.length})</span>
+                </span>
+
+                <div className="flex items-center gap-2">
+                  {/* Barra di ricerca rapida giocatori */}
+                  <div className="relative flex-1 sm:w-56">
+                    <Search className="w-3.5 h-3.5 text-emerald-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Cerca nome..."
+                      className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-emerald-950 border border-emerald-700/60 text-white placeholder-emerald-400/50 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400/60"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400/60 hover:text-white p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Pulsante aggiunta nuovo nome */}
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingPlayer(prev => !prev)}
+                    className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 transition-all cursor-pointer active:scale-95 shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Nuovo</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Form aggiunta nuovo giocatore al volo */}
+              {isAddingPlayer && (
+                <form onSubmit={handleAddNewPlayer} className="flex gap-2 animate-in fade-in zoom-in-95 duration-150">
+                  <input
+                    type="text"
+                    value={newPlayerName}
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    placeholder="Nome giocatore (es. nonna Maria)..."
+                    maxLength={30}
+                    autoFocus
+                    className="flex-1 px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/50 text-white placeholder-emerald-400/50 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3.5 py-2 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md active:scale-95 cursor-pointer"
+                  >
+                    Aggiungi
+                  </button>
+                </form>
+              )}
+
+              {/* Griglia tessere giocatori filtrati */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {filteredRoster.map(player => {
+                  const isSelected = selectedPlayers.some(p => 
+                    (p.id && player.id && p.id === player.id) || 
+                    p.name.toLowerCase() === player.name.toLowerCase()
+                  );
+                  const selectedIdx = selectedPlayers.findIndex(p => 
+                    (p.id && player.id && p.id === player.id) || 
+                    p.name.toLowerCase() === player.name.toLowerCase()
+                  );
+
+                  return (
+                    <button
+                      key={player.id}
+                      type="button"
+                      onClick={() => handleTogglePlayer(player)}
+                      className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer relative flex items-center gap-2.5 active:scale-95 ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-emerald-800 to-emerald-900 border-amber-400 shadow-lg ring-1 ring-amber-400/60'
+                          : 'bg-emerald-950/60 hover:bg-emerald-900/40 border-emerald-800/60 hover:border-emerald-600/60 text-white'
+                      }`}
+                    >
+                      {/* Avatar o Iniziale */}
+                      <div className="relative shrink-0">
+                        {player.photoURL ? (
+                          <img 
+                            src={player.photoURL} 
+                            alt={player.name} 
+                            className="w-8 h-8 rounded-full object-cover border border-amber-400/60"
+                          />
+                        ) : (
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border ${
+                            isSelected 
+                              ? 'gold-gradient text-emerald-950 border-amber-400' 
+                              : 'bg-emerald-900 text-emerald-200 border-emerald-700/60'
+                          }`}>
+                            {player.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        {player.isCloseFriend && (
+                          <span className="absolute -top-1 -right-1 text-amber-400 drop-shadow">
+                            <Star className="w-3 h-3 fill-amber-400" />
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Nome e dettagli */}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-xs text-white truncate flex items-center gap-1">
+                          <span className="truncate">{player.name}</span>
+                          {player.isCurrentUser && (
+                            <span className="text-[10px] text-amber-300 shrink-0 font-normal">(Tu)</span>
+                          )}
+                        </div>
+                        {isSelected ? (
+                          <div className="text-[10px] font-black text-amber-300 flex items-center gap-1">
+                            <Check className="w-2.5 h-2.5" />
+                            <span>
+                              {selectedIdx === 0 ? 'Coppia 1 (P1)' : selectedIdx === 1 && selectedCount >= 4 ? 'Coppia 1 (P2)' : selectedIdx < 2 ? 'Avversario' : 'Coppia 2'}
+                            </span>
+                          </div>
+                        ) : player.isFriend ? (
+                          <span className="text-[10px] text-emerald-400/70 truncate block">Amico Club</span>
+                        ) : (
+                          <span className="text-[10px] text-emerald-400/50 truncate block">Giocatore</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Messaggio se la ricerca non trova risultati */}
+              {searchQuery && filteredRoster.length === 0 && (
+                <div className="text-center py-4 px-3 rounded-2xl bg-emerald-950/40 border border-dashed border-emerald-800/60">
+                  <p className="text-xs text-emerald-300/70">
+                    Nessun giocatore trovato per "{searchQuery}".
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewPlayerName(searchQuery);
+                      setIsAddingPlayer(true);
+                    }}
+                    className="mt-2 text-xs font-bold text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                  >
+                    + Aggiungi "{searchQuery}" come nuovo giocatore
+                  </button>
+                </div>
+              )}
+
+              {availableRoster.length === 0 && (
+                <div className="text-center py-6 px-3 rounded-2xl bg-emerald-950/40 border border-dashed border-emerald-800/60">
+                  <p className="text-xs text-emerald-300/70">
+                    Non ci sono ancora giocatori salvati in memoria.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingPlayer(true)}
+                    className="mt-2 text-xs font-bold text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                  >
+                    + Aggiungi il primo compagno di gioco
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* PULSANTE PRINCIPALE DI AVVIO DINAMICO */}
+            <div className="mt-5 pt-4 border-t border-emerald-800/40 flex flex-col sm:flex-row gap-2.5">
+              <button
+                type="button"
+                disabled={selectedCount < 2}
+                onClick={handleQuickStartGame}
+                className={`flex-1 py-3.5 px-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 ${
+                  selectedCount >= 2
+                    ? 'gold-gradient text-emerald-950 hover:brightness-110 shadow-amber-400/20'
+                    : 'bg-emerald-950/80 text-emerald-500/50 border border-emerald-800/40 cursor-not-allowed'
+                }`}
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>
+                  {selectedCount === 4
+                    ? '🃏 Siediti al Tavolo (2 vs 2)'
+                    : selectedCount === 3
+                    ? '🃏 Inizia Burraco a 3 (Trio)'
+                    : selectedCount === 2
+                    ? '🃏 Inizia Sfida Singola (1 vs 1)'
+                    : 'Seleziona almeno 2 giocatori'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onOpenNewGameModal}
+                className="py-3 px-4 rounded-2xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 font-bold text-xs border border-emerald-500/40 shadow-md flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer transition-all shrink-0"
+                title="Configura traguardo punti personalizzato (1005, 1505, 2505), semipulito o squadre manuali"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                <span>Configurazione Libera</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2. RIVINCITA RAPIDA DALL'ULTIMA PARTITA (se presente) */}
