@@ -37,6 +37,8 @@ function BurracoAppContent() {
   const [roundToEdit, setRoundToEdit] = useState(null);
   const [currentTheme, setCurrentTheme] = useState(() => getStoredTheme());
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [tournamentInitialTab, setTournamentInitialTab] = useState('standings');
+  const [tournamentInitialRound, setTournamentInitialRound] = useState('all');
 
   React.useEffect(() => {
     applyTheme(currentTheme);
@@ -54,7 +56,11 @@ function BurracoAppContent() {
 
   const handleOpenHistory = useCallback(() => setIsHistoryOpen(true), []);
   const handleOpenCloud = useCallback(() => setIsCloudModalOpen(true), []);
-  const handleOpenTournament = useCallback(() => tournament.setIsTournamentOpen(true), [tournament]);
+  const handleOpenTournament = useCallback((targetTab = 'standings', roundNumber = 'all') => {
+    setTournamentInitialTab(targetTab || 'standings');
+    setTournamentInitialRound(roundNumber || 'all');
+    tournament.setIsTournamentOpen(true);
+  }, [tournament]);
   const handleOpenRules = useCallback(() => setIsRulesOpen(true), []);
   const handleOpenNotifications = useCallback(() => social.setIsNotificationsOpen(true), [social]);
   const handleOpenEditTeams = useCallback(() => setIsEditTeamsOpen(true), []);
@@ -264,8 +270,13 @@ function BurracoAppContent() {
           isOpen={isVictoryOpen}
           onClose={() => setIsVictoryOpen(false)}
           activeGame={game.activeGame}
+          activeTournament={tournament.activeTournament}
           onRematch={game.handleRematch}
           onArchiveAndNew={() => game.handleArchiveAndNew(handleOpenNewGame)}
+          onOpenTournament={(targetTab, roundNumber) => {
+            setIsVictoryOpen(false);
+            handleOpenTournament(targetTab, roundNumber);
+          }}
         />
 
         {/* 5. Modal Database Cloud & Condivisione Tavolo */}
@@ -309,6 +320,8 @@ function BurracoAppContent() {
           playersList={game.recentPlayers}
           currentUser={social.currentUser}
           friendsList={social.friendsList}
+          initialTab={tournamentInitialTab}
+          initialRoundFilter={tournamentInitialRound}
         />
 
         {/* 9. Modal Profilo Personale, Trofei, Classifica & Amici */}

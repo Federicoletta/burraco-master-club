@@ -26,15 +26,17 @@ export default function TournamentModal({
   playersList = [],
   currentUser = null,
   friendsList = [],
+  initialTab = 'standings',
+  initialRoundFilter = 'all',
 }) {
   const confirm = useConfirm();
-  const [activeTab, setActiveTab] = useState('standings'); // 'standings' | 'schedule' | 'manage'
+  const [activeTab, setActiveTab] = useState(initialTab || 'standings'); // 'standings' | 'schedule' | 'manage'
   const [isCreating, setIsCreating] = useState(!activeTournament);
-  const [selectedRoundFilter, setSelectedRoundFilter] = useState('all');
+  const [selectedRoundFilter, setSelectedRoundFilter] = useState(initialRoundFilter || 'all');
   const [tournamentsHistory, setTournamentsHistory] = useState(() => getTournamentsHistory());
   const [viewingHistoricalTournament, setViewingHistoricalTournament] = useState(null);
 
-  // Sincronizza stato di creazione all'apertura del modale
+  // Sincronizza stato di creazione e tab all'apertura del modale
   useEffect(() => {
     if (isOpen) {
       if (!activeTournament) {
@@ -42,9 +44,15 @@ export default function TournamentModal({
       } else {
         setIsCreating(false);
       }
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
+      if (initialRoundFilter) {
+        setSelectedRoundFilter(initialRoundFilter);
+      }
       setTournamentsHistory(getTournamentsHistory());
     }
-  }, [isOpen, activeTournament]);
+  }, [isOpen, activeTournament, initialTab, initialRoundFilter]);
 
   // Stato form creazione
   const [tournamentName, setTournamentName] = useState('Torneo Burraco');

@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Sparkles, RotateCcw, Home, Share2, X } from 'lucide-react';
+import { Trophy, Sparkles, RotateCcw, Home, Share2, X, Calendar } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
+import { calculateFiburVictoryPoints } from '../utils/tournament';
 
 export default function VictoryModal({
   isOpen,
   onClose,
   activeGame,
+  activeTournament = null,
   onRematch,
-  onArchiveAndNew
+  onArchiveAndNew,
+  onOpenTournament = () => {},
 }) {
   const [copiedToast, setCopiedToast] = useState(false);
   useEffect(() => {
@@ -88,9 +91,24 @@ export default function VictoryModal({
     ];
   }
 
+  const isTournamentMatch = Boolean(activeGame.tournamentMatchId);
+  const isFibur = activeTournament?.scoringSystem !== 'classic';
+  const fiburVp = (isTournamentMatch && !isTrio && isFibur)
+    ? calculateFiburVictoryPoints(t1Total, t2Total)
+    : null;
+
   const handleShare = () => {
     let text;
-    if (isTrio) {
+    if (isTournamentMatch) {
+      const isFiburScoring = activeTournament?.scoringSystem !== 'classic';
+      const vpInfo = (isFiburScoring && fiburVp)
+        ? ` (${winnerTeam === activeGame.team1 ? fiburVp.team1Vp : fiburVp.team2Vp} a ${winnerTeam === activeGame.team1 ? fiburVp.team2Vp : fiburVp.team1Vp} VP FIBUR)`
+        : '';
+      text = `🏆 Torneo ${activeGame.tournamentName || 'Burraco'} - Giornata ${activeGame.tournamentRoundNumber || 1} (Tavolo ${activeGame.tournamentTableNumber || 1}):\n` +
+             `Vittoria di ${winnerTeam.name} (${(winnerTeam.players || []).join(' & ')}) con ${winnerScore} pt!\n` +
+             `Risultato finale: ${activeGame.team1?.name} ${t1Total} vs ${t2Total} ${activeGame.team2?.name}${vpInfo} in ${activeGame.rounds.length} mani! ♠️♥️♣️♦️\n` +
+             `https://burraco-score-fedec.web.app`;
+    } else if (isTrio) {
       text = `🏆 Burraco a 3: Vittoria di ${winnerTeam.name} (${(winnerTeam.players || []).join(' & ')}) con ${winnerScore} pt! Classifica: 1° ${rankedTeams[0].team.name} (${rankedTeams[0].score} pt), 2° ${rankedTeams[1].team.name} (${rankedTeams[1].score} pt), 3° ${rankedTeams[2].team.name} (${rankedTeams[2].score} pt) in ${activeGame.rounds.length} mani! ♠️♥️♣️♦️`;
     } else {
       const loserTeam = rankedTeams[1].team;
@@ -98,7 +116,7 @@ export default function VictoryModal({
       text = `🏆 Burraco: Vittoria di ${winnerTeam.name} (${(winnerTeam.players || []).join(' & ')}) con ${winnerScore} pt contro ${loserTeam.name} (${loserScore} pt) in ${activeGame.rounds.length} mani! ♠️♥️♣️♦️`;
     }
     if (navigator.share) {
-      navigator.share({ title: 'Vittoria a Burraco!', text });
+      navigator.share({ title: isTournamentMatch ? 'Risultato Incontro Torneo!' : 'Vittoria a Burraco!', text });
     } else {
       navigator.clipboard.writeText(text);
       setCopiedToast(true);
@@ -129,7 +147,20 @@ export default function VictoryModal({
           <Sparkles className="w-6 h-6 text-amber-300 absolute -top-2 -right-2 animate-pulse" />
         </div>
 
-        <span className="text-xs font-black uppercase tracking-widest text-amber-400 block mt-2">
+        {/* Badge Specifico per Incontro di Torneo */}
+        {isTournamentMatch && (
+          <div className="mb-2 px-3 py-1.5 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+            <Trophy className="w-3.5 h-3.5 text-amber-400 animate-pulse shrink-0" />
+            <div className="truncate">
+              <span className="font-black text-amber-300">{activeGame.tournamentName || 'Torneo'}:</span>{' '}
+              <span className="text-white font-medium">
+                Giornata {activeGame.tournamentRoundNumber || 1} • Tavolo {activeGame.tournamentTableNumber || 1}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <span className="text-xs font-black uppercase tracking-widest text-amber-400 block mt-1">
           Partita Conclusa!
         </span>
         <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 mb-0">
@@ -163,12 +194,22 @@ export default function VictoryModal({
               <div>
                 <span className="text-xs font-bold text-amber-300 block">{winnerTeam.name}</span>
                 <span className="text-3xl font-black text-white">{winnerScore.toLocaleString('it-IT')}</span>
+                {fiburVp ? (
+                  <span className="text-[11px] font-black text-amber-300 bg-amber-400/25 px-2 py-0.5 rounded-md border border-amber-400/40 inline-block my-1 shadow-xs">
+                    {winnerTeam === activeGame.team1 ? fiburVp.team1Vp : fiburVp.team2Vp} VP
+                  </span>
+                ) : null}
                 <span className="text-[10px] text-amber-400 font-bold block">VINCITORE</span>
               </div>
               <div className="text-emerald-500 font-bold text-xl">-</div>
               <div>
                 <span className="text-xs font-bold text-slate-300 block">{rankedTeams[1].team.name}</span>
                 <span className="text-3xl font-black text-slate-300">{rankedTeams[1].score.toLocaleString('it-IT')}</span>
+                {fiburVp ? (
+                  <span className="text-[11px] font-black text-slate-300 bg-black/40 px-2 py-0.5 rounded-md border border-white/10 inline-block my-1 shadow-xs">
+                    {rankedTeams[1].team === activeGame.team1 ? fiburVp.team1Vp : fiburVp.team2Vp} VP
+                  </span>
+                ) : null}
                 <span className="text-[10px] text-slate-400 block">Distacco: -{winnerScore - rankedTeams[1].score} pt</span>
               </div>
             </div>
@@ -180,29 +221,66 @@ export default function VictoryModal({
 
         {/* Azioni */}
         <div className="space-y-2.5">
-          <button
-            onClick={onRematch}
-            className="w-full py-3 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-sm shadow-lg shadow-amber-900/40 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
-          >
-            <RotateCcw className="w-4 h-4 text-emerald-950" />
-            <span>Rivincita (Stessi Giocatori)</span>
-          </button>
+          {isTournamentMatch ? (
+            <>
+              {/* Azione Torneo Principale: Rimanda al Calendario & Classifica */}
+              <button
+                type="button"
+                onClick={() => onOpenTournament('schedule', activeGame.tournamentRoundNumber)}
+                className="w-full py-3.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-sm shadow-lg shadow-amber-900/40 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+              >
+                <Calendar className="w-4 h-4 text-emerald-950" />
+                <span>Calendario & Classifica Torneo 🏆</span>
+              </button>
 
-          <button
-            onClick={handleShare}
-            className="w-full py-2.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700/80 text-emerald-100 font-bold text-xs sm:text-sm border border-emerald-600/40 flex items-center justify-center gap-2 cursor-pointer transition-colors"
-          >
-            <Share2 className="w-4 h-4 text-emerald-300" />
-            <span>{copiedToast ? 'Resoconto Copiato!' : 'Condividi Vittoria'}</span>
-          </button>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="w-full py-2.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700/80 text-emerald-100 font-bold text-xs sm:text-sm border border-emerald-600/40 flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <Share2 className="w-4 h-4 text-emerald-300" />
+                <span>{copiedToast ? 'Resoconto Copiato!' : 'Condividi Risultato Torneo'}</span>
+              </button>
 
-          <button
-            onClick={onArchiveAndNew}
-            className="w-full py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold text-xs border border-emerald-700/50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <Home className="w-4 h-4" />
-            <span>Archivia & Nuova Partita</span>
-          </button>
+              <button
+                type="button"
+                onClick={onArchiveAndNew}
+                className="w-full py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold text-xs border border-emerald-700/50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Home className="w-4 h-4" />
+                <span>Esci dal Tavolo e Torna all'Atrio</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onRematch}
+                className="w-full py-3 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-sm shadow-lg shadow-amber-900/40 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+              >
+                <RotateCcw className="w-4 h-4 text-emerald-950" />
+                <span>Rivincita (Stessi Giocatori)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleShare}
+                className="w-full py-2.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700/80 text-emerald-100 font-bold text-xs sm:text-sm border border-emerald-600/40 flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <Share2 className="w-4 h-4 text-emerald-300" />
+                <span>{copiedToast ? 'Resoconto Copiato!' : 'Condividi Vittoria'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onArchiveAndNew}
+                className="w-full py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold text-xs border border-emerald-700/50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Home className="w-4 h-4" />
+                <span>Archivia & Nuova Partita</span>
+              </button>
+            </>
+          )}
         </div>
 
       </div>
