@@ -205,7 +205,7 @@ export default function NewGameModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-5xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[94vh] overflow-y-auto">
+      <div className="relative w-full max-w-6xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[94vh] overflow-y-auto">
         
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-3.5 border-b border-emerald-700/50">
