@@ -3,6 +3,7 @@ import Header from './components/Header';
 import ScoreBoard from './components/ScoreBoard';
 import HomeLobby from './components/HomeLobby';
 import NotificationToast from './components/NotificationToast';
+import BottomNavBar from './components/navigation/BottomNavBar';
 import { Trophy } from 'lucide-react';
 
 // Context Providers & Hooks architetturali
@@ -93,6 +94,40 @@ function BurracoAppContent() {
     game.handleCloseTable(confirm);
   }, [game, confirm]);
 
+  // Tab attivo per la Bottom Navigation Dock
+  const activeNavTab = social.isProfileOpen 
+    ? 'profile'
+    : tournament.isTournamentOpen 
+    ? 'tournament' 
+    : isHistoryOpen 
+    ? 'history' 
+    : 'table';
+
+  const handleSelectNavTab = useCallback((tabId) => {
+    if (tabId === 'table') {
+      // Chiudi le modali di navigazione per tornare al tavolo/home
+      social.setIsProfileOpen(false);
+      tournament.setIsTournamentOpen(false);
+      setIsHistoryOpen(false);
+    } else if (tabId === 'tournament') {
+      social.setIsProfileOpen(false);
+      setIsHistoryOpen(false);
+      handleOpenTournament('standings', 'all');
+    } else if (tabId === 'history') {
+      social.setIsProfileOpen(false);
+      tournament.setIsTournamentOpen(false);
+      handleOpenHistory();
+    } else if (tabId === 'profile') {
+      tournament.setIsTournamentOpen(false);
+      setIsHistoryOpen(false);
+      if (social.currentUser) {
+        social.handleOpenProfile('profile');
+      } else {
+        social.handleLogin();
+      }
+    }
+  }, [social, tournament, handleOpenTournament, handleOpenHistory]);
+
   return (
     <div className="min-h-screen felt-bg flex flex-col selection:bg-amber-400 selection:text-emerald-950">
       
@@ -145,7 +180,7 @@ function BurracoAppContent() {
       <main 
         className="flex-1 max-w-5xl w-full mx-auto p-2.5 sm:p-4 md:p-5"
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)',
           paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 0.625rem)',
           paddingRight: 'calc(env(safe-area-inset-right, 0px) + 0.625rem)',
         }}
@@ -219,6 +254,17 @@ function BurracoAppContent() {
           />
         )}
       </main>
+
+      {/* Dock di Navigazione Inferiore Glassmorphism (Mobile & Tablet) */}
+      <BottomNavBar
+        activeTab={activeNavTab}
+        onSelectTab={handleSelectNavTab}
+        hasActiveGame={Boolean(game.activeGame)}
+        hasActiveTournament={Boolean(tournament.activeTournament)}
+        currentUser={social.currentUser}
+        notificationCount={social.notifications.length}
+        onlineFriendsCount={(social.friendsList || []).filter(f => f?.isOnline).length}
+      />
 
       {/* MODALI */}
       <Suspense fallback={null}>

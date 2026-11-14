@@ -394,6 +394,8 @@ export default function UserProfileModal({
                   dirtyBurrachi={dirtyBurrachi}
                   closures={closures}
                   bestHandScore={bestHandScore}
+                  avgPointsPerHand={avgPointsPerHand}
+                  scoresHistory={career?.scoresHistory || []}
                 />
               )}
 

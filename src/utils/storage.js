@@ -658,6 +658,8 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
   let dirtyBurrachi = 0;
   let closures = 0;
   let bestHandScore = 0;
+  const scoresHistory = [];
+  const matchScores = [];
 
   const checkMatch = (players) => {
     return (players || []).some(p => {
@@ -698,9 +700,12 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
     const roundsCount = (game.rounds || []).length;
     totalHands += roundsCount;
 
+    let gamePlayerScore = 0;
     (game.rounds || []).filter(Boolean).forEach(r => {
       const s = Number(r[scoreKey]) || 0;
       totalPoints += s;
+      gamePlayerScore += s;
+      scoresHistory.push(s);
       if (s > bestHandScore) bestHandScore = s;
 
       const d = r[detailsKey];
@@ -711,6 +716,10 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
         if (d.chiusura) closures += 1;
       }
     });
+
+    if (roundsCount > 0) {
+      matchScores.push(gamePlayerScore);
+    }
 
     if (isFinished) {
       gamesPlayed += 1;
@@ -724,6 +733,8 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
 
   const winRate = gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0;
   const totalBurrachi = cleanBurrachi + semiCleanBurrachi + dirtyBurrachi;
+  const avgPointsPerHand = totalHands > 0 ? Math.round(totalPoints / totalHands) : 0;
+  const avgPointsPerGame = gamesPlayed > 0 ? Math.round(totalPoints / gamesPlayed) : totalPoints;
 
   return {
     totalPoints,
@@ -737,6 +748,10 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
     totalBurrachi,
     closures,
     bestHandScore,
+    avgPointsPerHand,
+    avgPointsPerGame,
+    scoresHistory,
+    matchScores,
     trophiesCount: 0
   };
 }

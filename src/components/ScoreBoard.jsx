@@ -1,5 +1,5 @@
 import React, { useMemo, memo } from 'react';
-import { Trophy } from 'lucide-react';
+import { Trophy, Plus, Sparkles, KeyRound, QrCode } from 'lucide-react';
 import { getGamesHistory, calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 
@@ -80,7 +80,7 @@ function ScoreBoard({
 
   if (!activeGame) return null;
 
-  const targetScore = activeGame.targetScore || 2505;
+  const targetScore = activeGame.targetScore || 2005;
 
   let leader = 'tie';
   let diff = 0;
@@ -110,7 +110,6 @@ function ScoreBoard({
 
   const isTargetReached = totalTeam1 >= targetScore || totalTeam2 >= targetScore || (isTrio && totalTeam3 >= targetScore);
 
-  // Se il tavolo corrente ha 0 mani (es. nuova partita o reset accidentale), trova se esiste una partita in sospeso nello storico
   const pendingGame = useMemo(() => {
     if (activeGame?.rounds && activeGame.rounds.length > 0) return null;
     return (gamesHistory || []).find(g => g && g.id !== activeGame?.id && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0) || null;
@@ -124,7 +123,7 @@ function ScoreBoard({
     : Math.max(totalTeam1, totalTeam2);
 
   return (
-    <div className="space-y-2.5 sm:space-y-3 pb-12">
+    <div className="space-y-3 pb-8 animate-in fade-in duration-150">
       
       {/* AVVISO VITTORIA O TRAGUARDO RAGGIUNTO */}
       {isTargetReached && !activeGame.isFinished && (
@@ -175,57 +174,111 @@ function ScoreBoard({
         </div>
       )}
 
-      {/* 1. Barra Giocatori Live & Amicizia */}
-      <TablePlayersBar
-        activeGame={activeGame}
-        tablePlayers={tablePlayers}
-        currentUser={currentUser}
-        friendsList={friendsList}
-        isCloudJoined={isCloudJoined}
-        onShareGame={onShareGame}
-        onLeaveCloudTable={onLeaveCloudTable}
-        onSendFriendRequest={onSendFriendRequest}
-        onOpenLogin={onOpenLogin}
-      />
+      {/* HEADER TAVOLO IN TEMPO REALE (PIN, STATO, TRAGUARDO) */}
+      <div className="p-2.5 sm:p-3 rounded-2xl felt-card border border-emerald-500/30 flex flex-wrap items-center justify-between gap-2 shadow-md">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+            <span>Tavolo Live</span>
+            {activeGame.pin && (
+              <span className="px-2 py-0.5 rounded-lg bg-emerald-900 border border-emerald-600/50 font-mono text-amber-300 text-[11px]">
+                PIN: {activeGame.pin}
+              </span>
+            )}
+          </span>
+        </div>
 
-      {/* 2. Schede Punteggio Squadre */}
-      <TeamScoreCards
-        activeGame={activeGame}
-        isTrio={isTrio}
-        totalTeam1={totalTeam1}
-        totalTeam2={totalTeam2}
-        totalTeam3={totalTeam3}
-        targetScore={targetScore}
-        leader={leader}
-        diff={diff}
-        t1Percent={t1Percent}
-        t2Percent={t2Percent}
-        t3Percent={t3Percent}
-        titlesMap={titlesMap}
-        onOpenEditTeams={onOpenEditTeams}
-      />
+        <div className="flex items-center gap-2 text-xs">
+          <span className="px-2.5 py-1 rounded-xl bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-semibold text-[11px]">
+            Traguardo: <strong className="text-amber-300">{targetScore} pt</strong>
+          </span>
+          <span className={`px-2 py-0.5 rounded-xl text-[10px] font-bold border ${
+            syncStatus === 'syncing'
+              ? 'bg-amber-500/20 text-amber-300 border-amber-400/40'
+              : syncStatus === 'offline'
+              ? 'bg-rose-500/20 text-rose-300 border-rose-400/40'
+              : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+          }`}>
+            {syncStatus === 'syncing' ? 'Sync Cloud...' : syncStatus === 'offline' ? 'Offline' : 'In Tempo Reale'}
+          </span>
+        </div>
+      </div>
 
-      {/* 3. Toolbar Azioni Rapide Partita */}
-      <ScoreBoardToolbar
-        roundsCount={activeGame.rounds?.length || 0}
-        syncStatus={syncStatus}
-        onEndGame={onEndGame}
-        onDeleteLastRound={onDeleteLastRound}
-        onCloseTable={onCloseTable}
-        onSaveGame={onSaveGame}
-        onAddRound={onAddRound}
-      />
+      {/* LAYOUT RESPONSIVE: TABLET LANDSCAPE (SPLIT-VIEW) VS MOBILE VERTICALE */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+        
+        {/* COLONNA SINISTRA: TABELLONE SQUADRE & PULSANTONE REGISTRA MANO */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-3">
+          
+          {/* 1. Schede Punteggio Squadre */}
+          <TeamScoreCards
+            activeGame={activeGame}
+            isTrio={isTrio}
+            totalTeam1={totalTeam1}
+            totalTeam2={totalTeam2}
+            totalTeam3={totalTeam3}
+            targetScore={targetScore}
+            leader={leader}
+            diff={diff}
+            t1Percent={t1Percent}
+            t2Percent={t2Percent}
+            t3Percent={t3Percent}
+            titlesMap={titlesMap}
+            onOpenEditTeams={onOpenEditTeams}
+          />
 
-      {/* 4. Tabellone Storico Mani (Foglio Segnapunti) */}
-      <RoundsHistoryList
-        activeGame={activeGame}
-        isTrio={isTrio}
-        roundsWithProgressive={roundsWithProgressive}
-        targetScore={targetScore}
-        onAddRound={onAddRound}
-        onEditRound={onEditRound}
-        onDeleteRound={onDeleteRound}
-      />
+          {/* 2. PULSANTONE PRINCIPALE GIGANTE "REGISTRA SMAZZATA" (ERGO CTA) */}
+          {onAddRound && (
+            <button
+              type="button"
+              onClick={onAddRound}
+              className="w-full py-3.5 sm:py-4 px-5 rounded-2xl gold-gradient text-emerald-950 font-black text-sm sm:text-base shadow-xl shadow-amber-400/20 hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all flex items-center justify-center gap-2 border border-amber-300/40"
+            >
+              <Plus className="w-5 h-5 stroke-[2.5px]" />
+              <span>🃏 Registra Nuova Smazzata</span>
+              <Sparkles className="w-4 h-4 text-emerald-900" />
+            </button>
+          )}
+
+          {/* 3. Barra Giocatori Live & Amicizia */}
+          <TablePlayersBar
+            activeGame={activeGame}
+            tablePlayers={tablePlayers}
+            currentUser={currentUser}
+            friendsList={friendsList}
+            isCloudJoined={isCloudJoined}
+            onShareGame={onShareGame}
+            onLeaveCloudTable={onLeaveCloudTable}
+            onSendFriendRequest={onSendFriendRequest}
+            onOpenLogin={onOpenLogin}
+          />
+
+          {/* 4. Toolbar Azioni Rapide Partita (Salva, Chiudi, Termina, Annulla) */}
+          <ScoreBoardToolbar
+            roundsCount={activeGame.rounds?.length || 0}
+            syncStatus={syncStatus}
+            onEndGame={onEndGame}
+            onDeleteLastRound={onDeleteLastRound}
+            onCloseTable={onCloseTable}
+            onSaveGame={onSaveGame}
+            onAddRound={null} // Già presente come pulsantone sopra
+          />
+        </div>
+
+        {/* COLONNA DESTRA: REGISTRO MANI (Sempre visibile a lato su iPad/Desktop) */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-3">
+          <RoundsHistoryList
+            activeGame={activeGame}
+            isTrio={isTrio}
+            roundsWithProgressive={roundsWithProgressive}
+            targetScore={targetScore}
+            onAddRound={onAddRound}
+            onEditRound={onEditRound}
+            onDeleteRound={onDeleteRound}
+          />
+        </div>
+
+      </div>
 
     </div>
   );
