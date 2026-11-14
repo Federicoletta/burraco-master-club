@@ -33,6 +33,7 @@ const formatDate = (dateVal) => {
 export default function HistoryModal({
   isOpen,
   onClose,
+  isPage = false,
   gamesHistory = [],
   activeGame,
   currentUser = null,
@@ -158,11 +159,10 @@ export default function HistoryModal({
   // Tutte le hook sono state eseguite: ora possiamo fare il return anticipato se modale chiusa
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl felt-card rounded-2xl border border-amber-500/40 p-4 sm:p-6 my-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+  const cardContent = (
+    <div className={`relative w-full ${isPage ? 'max-w-3xl mx-auto my-0' : 'max-w-2xl my-4'} felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200`}>
         
-        {/* Header Modal */}
+        {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-emerald-700/50">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md">
@@ -185,12 +185,14 @@ export default function HistoryModal({
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!isPage && onClose && (
+            <button 
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Barra di Ricerca per Giocatore (solo nella vista lista) */}
@@ -628,6 +630,15 @@ export default function HistoryModal({
         </div>
 
       </div>
+  );
+
+  if (isPage) {
+    return cardContent;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+      {cardContent}
     </div>
   );
 }

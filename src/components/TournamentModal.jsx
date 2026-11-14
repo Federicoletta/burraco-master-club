@@ -18,6 +18,7 @@ import MatchScoreEditModal from './tournament/MatchScoreEditModal';
 export default function TournamentModal({
   isOpen,
   onClose,
+  isPage = false,
   activeTournament,
   onStartTournament,
   onUpdateTournament,
@@ -360,11 +361,12 @@ export default function TournamentModal({
     setManualScore2(match.team2Score !== null ? String(match.team2Score) : '');
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-4xl felt-card rounded-2xl sm:rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
+  if (!isOpen) return null;
+
+  const cardContent = (
+    <div className={`relative w-full ${isPage ? 'max-w-4xl mx-auto my-0' : 'max-w-4xl my-4 max-h-[92vh]'} felt-card rounded-2xl sm:rounded-3xl border border-amber-500/40 p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col`}>
         
-        {/* HEADER MODALE */}
+        {/* HEADER */}
         <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md shrink-0">
@@ -421,13 +423,15 @@ export default function TournamentModal({
                 </button>
               )
             )}
-            <button 
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {!isPage && onClose && (
+              <button 
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -565,6 +569,15 @@ export default function TournamentModal({
         />
 
       </div>
+  );
+
+  if (isPage) {
+    return cardContent;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+      {cardContent}
     </div>
   );
 }

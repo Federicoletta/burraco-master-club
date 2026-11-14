@@ -19,6 +19,7 @@ import GuestProfileView from './profile/GuestProfileView';
 export default function UserProfileModal({
   isOpen,
   onClose,
+  isPage = false,
   currentUser,
   onLogin,
   onLogout,
@@ -268,9 +269,8 @@ export default function UserProfileModal({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl sm:max-w-2xl felt-card rounded-2xl border border-amber-500/40 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] my-auto overflow-hidden">
+  const cardContent = (
+    <div className={`relative w-full ${isPage ? 'max-w-3xl mx-auto my-0' : 'max-w-xl sm:max-w-2xl my-auto max-h-[92vh] sm:max-h-[88vh]'} felt-card rounded-3xl border border-amber-500/40 shadow-2xl flex flex-col overflow-hidden animate-in fade-in duration-200`}>
         
         {/* HEADER FISSO */}
         <div className="p-3 sm:p-4 pb-2.5 border-b border-emerald-700/50 flex items-center justify-between shrink-0 bg-emerald-950/90">
@@ -302,14 +302,16 @@ export default function UserProfileModal({
             </div>
           </div>
 
-          <button 
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer shrink-0 ml-2"
-            title="Chiudi"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!isPage && onClose && (
+            <button 
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer shrink-0 ml-2"
+              title="Chiudi"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Contenuto Utente Autenticato vs Non Autenticato */}
@@ -372,8 +374,8 @@ export default function UserProfileModal({
               </div>
             </div>
 
-            {/* BODY SCORREVOLE */}
-            <div className="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-3.5">
+            {/* BODY */}
+            <div className={`p-3 sm:p-4 ${isPage ? '' : 'overflow-y-auto'} flex-1 min-h-0 space-y-3.5`}>
               
               {/* SCHEDA 1: PROFILO & BACHECA TROFEI PERSONALI */}
               {activeTab === 'profile' && (
@@ -438,37 +440,50 @@ export default function UserProfileModal({
 
             </div>
 
-            {/* FOOTER FISSO */}
-            <div className="p-2.5 sm:p-3 border-t border-emerald-700/50 flex justify-between items-center shrink-0 bg-emerald-950/90">
-              {activeTab === 'profile' ? (
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="px-3.5 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Esci dall'Account</span>
-                </button>
-              ) : (
-                <div />
-              )}
+            {/* FOOTER FISSO (Solo logout se su pagina, tasto chiudi solo se modale) */}
+            {(activeTab === 'profile' || (!isPage && onClose)) && (
+              <div className="p-2.5 sm:p-3 border-t border-emerald-700/50 flex justify-between items-center shrink-0 bg-emerald-950/90">
+                {activeTab === 'profile' ? (
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className="px-3.5 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Esci dall'Account</span>
+                  </button>
+                ) : (
+                  <div />
+                )}
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 text-xs font-bold cursor-pointer transition-all active:scale-95"
-              >
-                Chiudi
-              </button>
-            </div>
+                {!isPage && onClose && (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 text-xs font-bold cursor-pointer transition-all active:scale-95"
+                  >
+                    Chiudi
+                  </button>
+                )}
+              </div>
+            )}
 
           </div>
         ) : (
           /* Stato Utente Non Autenticato */
-          <GuestProfileView onLogin={onLogin} onClose={onClose} />
+          <GuestProfileView onLogin={onLogin} onClose={isPage ? null : onClose} />
         )}
 
       </div>
+  );
+
+  if (isPage) {
+    return cardContent;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200">
+      {cardContent}
     </div>
   );
 }

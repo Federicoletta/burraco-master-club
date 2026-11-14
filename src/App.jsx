@@ -55,13 +55,7 @@ function BurracoAppContent() {
     setIsNewGameOpen(true);
   }, [game]);
 
-  const handleOpenHistory = useCallback(() => setIsHistoryOpen(true), []);
   const handleOpenCloud = useCallback(() => setIsCloudModalOpen(true), []);
-  const handleOpenTournament = useCallback((targetTab = 'standings', roundNumber = 'all') => {
-    setTournamentInitialTab(targetTab || 'standings');
-    setTournamentInitialRound(roundNumber || 'all');
-    tournament.setIsTournamentOpen(true);
-  }, [tournament]);
   const handleOpenRules = useCallback(() => setIsRulesOpen(true), []);
   const handleOpenNotifications = useCallback(() => social.setIsNotificationsOpen(true), [social]);
   const handleOpenEditTeams = useCallback(() => setIsEditTeamsOpen(true), []);
@@ -94,39 +88,28 @@ function BurracoAppContent() {
     game.handleCloseTable(confirm);
   }, [game, confirm]);
 
-  // Tab attivo per la Bottom Navigation Dock
-  const activeNavTab = social.isProfileOpen 
-    ? 'profile'
-    : tournament.isTournamentOpen 
-    ? 'tournament' 
-    : isHistoryOpen 
-    ? 'history' 
-    : 'table';
+  const [activeNavTab, setActiveNavTab] = useState('table'); // 'table' | 'tournament' | 'history' | 'profile'
+
+  const handleOpenTournament = useCallback((targetTab = 'standings', roundNumber = 'all') => {
+    setTournamentInitialTab(targetTab || 'standings');
+    setTournamentInitialRound(roundNumber || 'all');
+    setActiveNavTab('tournament');
+  }, []);
+
+  const handleOpenHistory = useCallback(() => {
+    setActiveNavTab('history');
+  }, []);
+
+  const handleOpenProfile = useCallback((tab = 'profile') => {
+    if (social.setProfileInitialTab) {
+      social.setProfileInitialTab(tab || 'profile');
+    }
+    setActiveNavTab('profile');
+  }, [social]);
 
   const handleSelectNavTab = useCallback((tabId) => {
-    if (tabId === 'table') {
-      // Chiudi le modali di navigazione per tornare al tavolo/home
-      social.setIsProfileOpen(false);
-      tournament.setIsTournamentOpen(false);
-      setIsHistoryOpen(false);
-    } else if (tabId === 'tournament') {
-      social.setIsProfileOpen(false);
-      setIsHistoryOpen(false);
-      handleOpenTournament('standings', 'all');
-    } else if (tabId === 'history') {
-      social.setIsProfileOpen(false);
-      tournament.setIsTournamentOpen(false);
-      handleOpenHistory();
-    } else if (tabId === 'profile') {
-      tournament.setIsTournamentOpen(false);
-      setIsHistoryOpen(false);
-      if (social.currentUser) {
-        social.handleOpenProfile('profile');
-      } else {
-        social.handleLogin();
-      }
-    }
-  }, [social, tournament, handleOpenTournament, handleOpenHistory]);
+    setActiveNavTab(tabId);
+  }, []);
 
   return (
     <div className="min-h-screen felt-bg flex flex-col selection:bg-amber-400 selection:text-emerald-950">
@@ -211,47 +194,123 @@ function BurracoAppContent() {
           </div>
         )}
 
-        {game.activeGame ? (
-          <ScoreBoard
-            activeGame={game.activeGame}
-            syncStatus={game.syncStatus}
-            gamesHistory={game.gamesHistory}
-            currentUser={social.currentUser}
-            tablePlayers={game.tablePlayers}
-            friendsList={social.friendsList}
-            isCloudJoined={game.isCloudJoined}
-            onLeaveCloudTable={handleLeaveCloudTable}
-            onSendFriendRequest={social.handleSendFriendRequest}
-            onOpenLogin={social.handleLogin}
-            onAddRound={handleAddRound}
-            onEditRound={handleEditRound}
-            onDeleteRound={handleDeleteRound}
-            onDeleteLastRound={handleDeleteLastRound}
-            onCloseTable={handleCloseTable}
-            onSaveGame={game.handleManualSave}
-            onEndGame={game.handleEndGame}
-            onShareGame={handleOpenCloud}
-            onOpenRules={handleOpenRules}
-            onOpenEditTeams={handleOpenEditTeams}
-            onResumeGame={game.handleResumeGame}
-          />
-        ) : (
-          /* Atrio / Lobby Principale con Invito Rapido Giocatori */
-          <HomeLobby
-            currentUser={social.currentUser}
-            friendsList={social.friendsList}
-            storedPlayers={getStoredPlayers(social.currentUser?.uid)}
-            gamesHistory={game.gamesHistory}
-            onStartGame={game.handleStartGame}
-            onResumeGame={game.handleResumeGame}
-            onOpenNewGameModal={handleOpenNewGame}
-            onOpenCloudModal={handleOpenCloud}
-            onOpenHistory={handleOpenHistory}
-            onOpenRules={handleOpenRules}
-            onLogin={social.handleLogin}
-            onOpenTournament={handleOpenTournament}
-            activeTournament={tournament.activeTournament}
-          />
+        {activeNavTab === 'table' && (
+          game.activeGame ? (
+            <ScoreBoard
+              activeGame={game.activeGame}
+              syncStatus={game.syncStatus}
+              gamesHistory={game.gamesHistory}
+              currentUser={social.currentUser}
+              tablePlayers={game.tablePlayers}
+              friendsList={social.friendsList}
+              isCloudJoined={game.isCloudJoined}
+              onLeaveCloudTable={handleLeaveCloudTable}
+              onSendFriendRequest={social.handleSendFriendRequest}
+              onOpenLogin={social.handleLogin}
+              onAddRound={handleAddRound}
+              onEditRound={handleEditRound}
+              onDeleteRound={handleDeleteRound}
+              onDeleteLastRound={handleDeleteLastRound}
+              onCloseTable={handleCloseTable}
+              onSaveGame={game.handleManualSave}
+              onEndGame={game.handleEndGame}
+              onShareGame={handleOpenCloud}
+              onOpenRules={handleOpenRules}
+              onOpenEditTeams={handleOpenEditTeams}
+              onResumeGame={game.handleResumeGame}
+            />
+          ) : (
+            <HomeLobby
+              currentUser={social.currentUser}
+              friendsList={social.friendsList}
+              storedPlayers={getStoredPlayers(social.currentUser?.uid)}
+              gamesHistory={game.gamesHistory}
+              onStartGame={game.handleStartGame}
+              onResumeGame={game.handleResumeGame}
+              onOpenNewGameModal={handleOpenNewGame}
+              onOpenCloudModal={handleOpenCloud}
+              onOpenHistory={handleOpenHistory}
+              onOpenRules={handleOpenRules}
+              onLogin={social.handleLogin}
+              onOpenTournament={handleOpenTournament}
+              activeTournament={tournament.activeTournament}
+            />
+          )
+        )}
+
+        {/* VISTA TORNEO A SCHERMO INTERO (NESSUN POPUP) */}
+        {activeNavTab === 'tournament' && (
+          <Suspense fallback={<div className="p-8 text-center text-amber-300 font-bold">Caricamento Torneo...</div>}>
+            <TournamentModal
+              isPage={true}
+              isOpen={true}
+              onClose={() => setActiveNavTab('table')}
+              activeTournament={tournament.activeTournament}
+              onStartTournament={tournament.handleStartTournament}
+              onUpdateTournament={tournament.handleUpdateTournament}
+              onFinishTournament={tournament.handleFinishTournament}
+              onPlayMatch={(match) => game.handlePlayTournamentMatch(match, tournament.activeTournament, () => setActiveNavTab('table'))}
+              playersList={game.recentPlayers}
+              currentUser={social.currentUser}
+              friendsList={social.friendsList}
+              initialTab={tournamentInitialTab}
+              initialRoundFilter={tournamentInitialRound}
+            />
+          </Suspense>
+        )}
+
+        {/* VISTA STORICO PARTITE A SCHERMO INTERO (NESSUN POPUP) */}
+        {activeNavTab === 'history' && (
+          <Suspense fallback={<div className="p-8 text-center text-amber-300 font-bold">Caricamento Archivio...</div>}>
+            <HistoryModal
+              isPage={true}
+              isOpen={true}
+              onClose={() => setActiveNavTab('table')}
+              gamesHistory={game.gamesHistory}
+              activeGame={game.activeGame}
+              currentUser={social.currentUser}
+              onEndGame={game.handleEndGame}
+              onResumeGame={(g) => {
+                game.handleResumeGame(g);
+                setActiveNavTab('table');
+              }}
+              onDeleteGame={game.handleDeleteGameHistory}
+              onDataImported={game.handleDataImported}
+              onAddRound={handleAddRound}
+              onEditRound={handleEditRound}
+            />
+          </Suspense>
+        )}
+
+        {/* VISTA PROFILO & ANALYTICS A SCHERMO INTERO (NESSUN POPUP) */}
+        {activeNavTab === 'profile' && (
+          <Suspense fallback={<div className="p-8 text-center text-amber-300 font-bold">Caricamento Profilo...</div>}>
+            <UserProfileModal
+              isPage={true}
+              isOpen={true}
+              onClose={() => setActiveNavTab('table')}
+              currentUser={social.currentUser}
+              onLogin={social.handleLogin}
+              onLogout={social.handleLogout}
+              gamesHistory={game.gamesHistory}
+              activeGame={game.activeGame}
+              tablePlayers={game.tablePlayers}
+              friendsList={social.friendsList}
+              clubUsers={social.clubUsers}
+              notifications={social.notifications}
+              onAcceptFriendRequest={social.handleAcceptFriendRequest}
+              onDeclineFriendRequest={social.handleDeclineFriendRequest}
+              onSendFriendRequest={social.handleSendFriendRequest}
+              onChallengeFriend={(friend) => game.handleChallengeFriend(friend, () => {
+                setIsNewGameOpen(true);
+                setActiveNavTab('table');
+              })}
+              onInviteFriendToActiveGame={(friend) => social.handleInviteFriendToActiveGame(friend, game.activeGame)}
+              onRemoveFriend={social.handleRemoveFriend}
+              onToggleCloseFriend={social.handleToggleCloseFriend}
+              initialTab={social.profileInitialTab}
+            />
+          </Suspense>
         )}
       </main>
 
@@ -296,20 +355,7 @@ function BurracoAppContent() {
           roundNumber={(game.activeGame?.rounds?.length || 0) + 1}
         />
 
-        {/* 3. Modal Storico Partite */}
-        <HistoryModal
-          isOpen={isHistoryOpen}
-          onClose={() => setIsHistoryOpen(false)}
-          gamesHistory={game.gamesHistory}
-          activeGame={game.activeGame}
-          currentUser={social.currentUser}
-          onEndGame={game.handleEndGame}
-          onResumeGame={game.handleResumeGame}
-          onDeleteGame={game.handleDeleteGameHistory}
-          onDataImported={game.handleDataImported}
-          onAddRound={handleAddRound}
-          onEditRound={handleEditRound}
-        />
+
 
         {/* 4. Modal Vittoria & Coriandoli */}
         <VictoryModal
@@ -354,44 +400,7 @@ function BurracoAppContent() {
           onSave={game.handleUpdateTeams}
         />
 
-        {/* 8. Modal Modalità Torneo Burraco */}
-        <TournamentModal
-          isOpen={tournament.isTournamentOpen}
-          onClose={() => tournament.setIsTournamentOpen(false)}
-          activeTournament={tournament.activeTournament}
-          onStartTournament={tournament.handleStartTournament}
-          onUpdateTournament={tournament.handleUpdateTournament}
-          onFinishTournament={tournament.handleFinishTournament}
-          onPlayMatch={(match) => game.handlePlayTournamentMatch(match, tournament.activeTournament, () => tournament.setIsTournamentOpen(false))}
-          playersList={game.recentPlayers}
-          currentUser={social.currentUser}
-          friendsList={social.friendsList}
-          initialTab={tournamentInitialTab}
-          initialRoundFilter={tournamentInitialRound}
-        />
 
-        {/* 9. Modal Profilo Personale, Trofei, Classifica & Amici */}
-        <UserProfileModal
-          isOpen={social.isProfileOpen}
-          onClose={() => social.setIsProfileOpen(false)}
-          currentUser={social.currentUser}
-          onLogin={social.handleLogin}
-          onLogout={social.handleLogout}
-          gamesHistory={game.gamesHistory}
-          activeGame={game.activeGame}
-          tablePlayers={game.tablePlayers}
-          friendsList={social.friendsList}
-          clubUsers={social.clubUsers}
-          notifications={social.notifications}
-          onAcceptFriendRequest={social.handleAcceptFriendRequest}
-          onDeclineFriendRequest={social.handleDeclineFriendRequest}
-          onSendFriendRequest={social.handleSendFriendRequest}
-          onChallengeFriend={(friend) => game.handleChallengeFriend(friend, () => setIsNewGameOpen(true))}
-          onInviteFriendToActiveGame={(friend) => social.handleInviteFriendToActiveGame(friend, game.activeGame)}
-          onRemoveFriend={social.handleRemoveFriend}
-          onToggleCloseFriend={social.handleToggleCloseFriend}
-          initialTab={social.profileInitialTab}
-        />
 
         {/* 10. Modal Notifiche & Inviti Amici */}
         <NotificationsModal
