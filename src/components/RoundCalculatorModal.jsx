@@ -321,7 +321,7 @@ export default function RoundCalculatorModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
       {/* Scheda allargata orizzontalmente: max-w-3xl */}
-      <div className="relative w-full max-w-3xl felt-card rounded-2xl border border-amber-500/40 p-3.5 sm:p-5 my-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-3xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-5 my-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-2.5 border-b border-emerald-700/50">
