@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calculator, Zap, Check } from 'lucide-react';
+import { X, Calculator, Zap, Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import { HONOR_POINTS, calculateTeamRoundScore, calculateCardsPoints } from '../constants/burraco';
 import { sound } from '../utils/soundEffects';
 import TrioLoneSelector from './round/TrioLoneSelector';
@@ -37,20 +37,19 @@ export default function RoundCalculatorModal({
   const [lonePlayer, setLonePlayer] = useState('team1'); // 'team1' | 'team2' | 'team3'
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Stato per Squadra 1
+  // Stato Squadra 1
   const [team1Data, setTeam1Data] = useState({ ...DEFAULT_ENTITY });
 
-  // Stato per Squadra 2
+  // Stato Squadra 2
   const [team2Data, setTeam2Data] = useState({ ...DEFAULT_ENTITY });
 
-  // Stato per Giocatore 3 (Quick mode a 3)
+  // Stato Giocatore 3 (Quick mode a 3)
   const [team3Data, setTeam3Data] = useState({ ...DEFAULT_ENTITY });
 
-  // Stato per Burraco a 3 (Modalità Guidata FIBUR: Solitario vs Coppia)
+  // Stato Burraco a 3 (FIBUR Guidato)
   const [loneData, setLoneData] = useState({ ...DEFAULT_ENTITY });
   const [pairData, setPairData] = useState({ ...DEFAULT_ENTITY });
 
-  // Caricamento in caso di modifica di una mano
   useEffect(() => {
     if (roundToEdit) {
       if (roundToEdit.lonePlayer) {
@@ -80,7 +79,6 @@ export default function RoundCalculatorModal({
         }
       }
     } else {
-      // Reset defaults per nuova mano con rotazione automatica ufficiale FIBUR
       setTeam1Data({ ...DEFAULT_ENTITY });
       setTeam2Data({ ...DEFAULT_ENTITY });
       setTeam3Data({ ...DEFAULT_ENTITY });
@@ -99,7 +97,7 @@ export default function RoundCalculatorModal({
 
   if (!isOpen || !activeGame) return null;
 
-  // Calcolo punti in tempo reale
+  // Calcolo punteggi netti in tempo reale
   const team1ScoreNormal = entryMode === 'quick' 
     ? Number(team1Data.manualScore) || 0 
     : calculateTeamRoundScore(team1Data);
@@ -108,7 +106,6 @@ export default function RoundCalculatorModal({
     ? Number(team2Data.manualScore) || 0 
     : calculateTeamRoundScore(team2Data);
 
-  // Calcolo punti per modalità a 3
   const loneScore = calculateTeamRoundScore(loneData);
   const pairRawScore = calculateTeamRoundScore(pairData);
   const pairSplitScore = Math.round(pairRawScore / 2);
@@ -143,7 +140,7 @@ export default function RoundCalculatorModal({
     }
   }
 
-  // Helper gestione chiusura esclusiva (solo una squadra o entità può chiudere la smazzata)
+  // Chiusura esclusiva
   const handleChiusura = (tabKey) => {
     if (isTrio) {
       if (tabKey === 'lone') {
@@ -238,103 +235,136 @@ export default function RoundCalculatorModal({
   const pairKeys = ['team1', 'team2', 'team3'].filter(k => k !== lonePlayer);
   const pairNames = pairKeys.map(k => activeGame[k]?.name).filter(Boolean).join(' & ');
 
-  let currentData;
-  let setCurrentData;
-  let currentTeamName;
-  let currentTeamScore;
+  // Funzione per renderizzare i controlli di compilazione di una singola squadra
+  const renderTeamSection = (teamKey, data, setData, teamName, teamScore) => {
+    const currentHonorsBurrachi = 
+      (data.burracoPulito || 0) * HONOR_POINTS.BURRACO_PULITO +
+      (data.burracoSemipulito || 0) * HONOR_POINTS.BURRACO_SEMIPULITO +
+      (data.burracoSporco || 0) * HONOR_POINTS.BURRACO_SPORCO;
 
-  if (isTrio) {
-    if (activeTab === 'lone') {
-      currentData = loneData;
-      setCurrentData = setLoneData;
-      currentTeamName = `👤 ${lonePlayerName} (Solitario)`;
-      currentTeamScore = loneScore;
-    } else {
-      currentData = pairData;
-      setCurrentData = setPairData;
-      currentTeamName = `👥 Coppia (${pairNames})`;
-      currentTeamScore = pairRawScore;
-    }
-  } else {
-    if (activeTab === 'team1') {
-      currentData = team1Data;
-      setCurrentData = setTeam1Data;
-      currentTeamName = activeGame.team1.name;
-      currentTeamScore = team1Score;
-    } else {
-      currentData = team2Data;
-      setCurrentData = setTeam2Data;
-      currentTeamName = activeGame.team2.name;
-      currentTeamScore = team2Score;
-    }
-  }
+    const currentChiusuraPoints = data.chiusura ? HONOR_POINTS.CHIUSURA : 0;
+    
+    const currentPozzettoPoints = 
+      data.pozzetto === 'non_preso' ? HONOR_POINTS.POZZETTO_NON_PRESO :
+      data.pozzetto === 'preso_non_giocato' ? HONOR_POINTS.POZZETTO_PRESO_NON_GIOCATO : 0;
 
-  // Calcoli parziali per il mini-scontrino trasparente
-  const currentHonorsBurrachi = 
-    (currentData.burracoPulito || 0) * HONOR_POINTS.BURRACO_PULITO +
-    (currentData.burracoSemipulito || 0) * HONOR_POINTS.BURRACO_SEMIPULITO +
-    (currentData.burracoSporco || 0) * HONOR_POINTS.BURRACO_SPORCO;
+    const currentTablePoints = data.cardsOnTableDirect !== ''
+      ? Math.max(0, Number(data.cardsOnTableDirect) || 0)
+      : calculateCardsPoints(data.cardsOnTableCount);
 
-  const currentChiusuraPoints = currentData.chiusura ? HONOR_POINTS.CHIUSURA : 0;
-  
-  const currentPozzettoPoints = 
-    currentData.pozzetto === 'non_preso' ? HONOR_POINTS.POZZETTO_NON_PRESO :
-    currentData.pozzetto === 'preso_non_giocato' ? HONOR_POINTS.POZZETTO_PRESO_NON_GIOCATO : 0;
+    const currentHandPoints = data.cardsInHandDirect !== ''
+      ? Math.max(0, Number(data.cardsInHandDirect) || 0)
+      : calculateCardsPoints(data.cardsInHandCount);
 
-  const currentTablePoints = currentData.cardsOnTableDirect !== ''
-    ? Math.max(0, Number(currentData.cardsOnTableDirect) || 0)
-    : calculateCardsPoints(currentData.cardsOnTableCount);
+    const handleTableCountChange = (key, delta) => {
+      setData(p => ({
+        ...p,
+        cardsOnTableDirect: '',
+        cardsOnTableCount: {
+          ...p.cardsOnTableCount,
+          [key]: Math.max(0, (p.cardsOnTableCount[key] || 0) + delta)
+        }
+      }));
+    };
 
-  const currentHandPoints = currentData.cardsInHandDirect !== ''
-    ? Math.max(0, Number(currentData.cardsInHandDirect) || 0)
-    : calculateCardsPoints(currentData.cardsInHandCount);
+    const handleHandCountChange = (key, delta) => {
+      setData(p => ({
+        ...p,
+        cardsInHandDirect: '',
+        cardsInHandCount: {
+          ...p.cardsInHandCount,
+          [key]: Math.max(0, (p.cardsInHandCount[key] || 0) + delta)
+        }
+      }));
+    };
 
-  const handleSwitchTab = (targetTab) => {
-    if (document.activeElement && typeof document.activeElement.blur === 'function') {
-      document.activeElement.blur();
-    }
-    setActiveTab(targetTab);
-  };
+    return (
+      <div className="space-y-3">
+        {/* Intestazione Squadra se Side-by-Side su tablet */}
+        <div className="hidden lg:flex items-center justify-between pb-2 border-b border-emerald-700/50">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+            <h3 className="font-black text-white text-sm sm:text-base">{teamName}</h3>
+          </div>
+          <span className="font-black text-amber-300 text-sm px-2.5 py-0.5 rounded-lg bg-emerald-900 border border-amber-400/40">
+            {teamScore >= 0 ? `+${teamScore}` : teamScore} pt
+          </span>
+        </div>
 
-  const handleTableCountChange = (key, delta) => {
-    setCurrentData(p => ({
-      ...p,
-      cardsOnTableDirect: '',
-      cardsOnTableCount: {
-        ...p.cardsOnTableCount,
-        [key]: Math.max(0, (p.cardsOnTableCount[key] || 0) + delta)
-      }
-    }));
-  };
+        {/* Toggles Chiusura, Pozzetto e Burrachi */}
+        <BurracoToggles
+          currentData={data}
+          setCurrentData={setData}
+          onToggleChiusura={() => handleChiusura(teamKey)}
+          allowSemipulito={activeGame.allowSemipulito}
+          currentHonorsBurrachi={currentHonorsBurrachi}
+        />
 
-  const handleHandCountChange = (key, delta) => {
-    setCurrentData(p => ({
-      ...p,
-      cardsInHandDirect: '',
-      cardsInHandCount: {
-        ...p.cardsInHandCount,
-        [key]: Math.max(0, (p.cardsInHandCount[key] || 0) + delta)
-      }
-    }));
+        {/* Inserimento Carte a Terra (+) e Carte in Mano (-) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <CardsPointsInput
+            isHand={false}
+            directValue={data.cardsOnTableDirect}
+            onChangeDirect={(val) => setData(p => ({ ...p, cardsOnTableDirect: val }))}
+            onAddAmount={(val) => setData(p => {
+              const current = Number(p.cardsOnTableDirect) || 0;
+              return { ...p, cardsOnTableDirect: String(current + val) };
+            })}
+            onClear={() => setData(p => ({ ...p, cardsOnTableDirect: '' }))}
+            showPad={data.showTableCardPad}
+            onTogglePad={() => setData(p => ({ ...p, showTableCardPad: !p.showTableCardPad }))}
+            cardCounts={data.cardsOnTableCount}
+            onChangeCount={handleTableCountChange}
+            totalPoints={currentTablePoints}
+          />
+
+          <CardsPointsInput
+            isHand={true}
+            directValue={data.cardsInHandDirect}
+            onChangeDirect={(val) => setData(p => ({ ...p, cardsInHandDirect: val }))}
+            onAddAmount={(val) => setData(p => {
+              const current = Number(p.cardsInHandDirect) || 0;
+              return { ...p, cardsInHandDirect: String(current + val) };
+            })}
+            onClear={() => setData(p => ({ ...p, cardsInHandDirect: '' }))}
+            showPad={data.showHandCardPad}
+            onTogglePad={() => setData(p => ({ ...p, showHandCardPad: !p.showHandCardPad }))}
+            cardCounts={data.cardsInHandCount}
+            onChangeCount={handleHandCountChange}
+            totalPoints={currentHandPoints}
+          />
+        </div>
+
+        {/* Scontrino Riassuntivo Trasparente */}
+        <RoundReceiptSummary
+          currentTeamName={teamName}
+          currentChiusuraPoints={currentChiusuraPoints}
+          currentHonorsBurrachi={currentHonorsBurrachi}
+          currentPozzettoPoints={currentPozzettoPoints}
+          currentTablePoints={currentTablePoints}
+          currentHandPoints={currentHandPoints}
+          currentTeamScore={teamScore}
+        />
+      </div>
+    );
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      {/* Scheda allargata orizzontalmente: max-w-3xl */}
-      <div className="relative w-full max-w-3xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-5 my-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-4xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-auto shadow-2xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[94vh]">
         
-        {/* Header Modal */}
-        <div className="flex items-center justify-between pb-2.5 border-b border-emerald-700/50">
+        {/* HEADER MODAL */}
+        <div className="flex items-center justify-between pb-3 border-b border-emerald-700/50 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-emerald-950 font-black shadow-md shrink-0">
-              <Calculator className="w-4 h-4 text-emerald-950" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md shrink-0">
+              <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-950" />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white m-0">
-                {roundToEdit ? `Modifica Mano #${roundToEdit.roundNumber}` : `Punteggio Mano #${roundNumber}`}
+                {roundToEdit ? `Modifica Smazzata #${roundToEdit.roundNumber}` : `Registra Smazzata #${roundNumber}`}
               </h2>
               <p className="text-[11px] text-emerald-300/80 m-0">
-                Calcolo onori, carte a terra e carte in mano
+                Inserisci i burrachi, la chiusura e i punti carte delle due squadre
               </p>
             </div>
           </div>
@@ -342,14 +372,15 @@ export default function RoundCalculatorModal({
           <button 
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer shrink-0"
+            title="Chiudi"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modalità di Inserimento (Guidato vs Rapido) */}
-        <div className="mt-2.5 flex items-center justify-between gap-2 p-1 rounded-xl bg-emerald-950/70 border border-emerald-800/60">
+        {/* TOGGLE MODALITÀ (Guidato vs Rapido) */}
+        <div className="my-3 flex items-center justify-between gap-2 p-1 rounded-xl bg-emerald-950/70 border border-emerald-800/60 shrink-0">
           <button
             type="button"
             onClick={() => setEntryMode('guided')}
@@ -360,8 +391,9 @@ export default function RoundCalculatorModal({
             }`}
           >
             <Calculator className="w-3.5 h-3.5" />
-            <span>Calcolo Guidato (Ufficiale)</span>
+            <span>Calcolo Dettagliato Guidato</span>
           </button>
+          
           <button
             type="button"
             onClick={() => setEntryMode('quick')}
@@ -372,253 +404,243 @@ export default function RoundCalculatorModal({
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>Inserimento Rapido Totali</span>
+            <span>Inserimento Totali Rapido</span>
           </button>
         </div>
 
-        {/* CONTENUTO INSERIMENTO RAPIDO */}
-        {entryMode === 'quick' ? (
-          <QuickEntryPad
-            isTrio={isTrio}
-            activeGame={activeGame}
-            team1Data={team1Data}
-            setTeam1Data={setTeam1Data}
-            team2Data={team2Data}
-            setTeam2Data={setTeam2Data}
-            team3Data={team3Data}
-            setTeam3Data={setTeam3Data}
-          />
-        ) : (
-          /* CONTENUTO CALCOLO GUIDATO */
-          <div className="mt-3 space-y-3">
-            
-            {/* SE MODALITÀ A 3: SELETTORE CHI È IL SOLITARIO (18 CARTE) */}
-            {isTrio && (
-              <TrioLoneSelector
-                lonePlayer={lonePlayer}
-                setLonePlayer={setLonePlayer}
-                activeGame={activeGame}
-                pairNames={pairNames}
-                pairRawScore={pairRawScore}
-                pairSplitScore={pairSplitScore}
-              />
-            )}
-
-            {/* SELETTORE TAB GUIDATO */}
-            {isTrio ? (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onPointerDown={() => handleSwitchTab('lone')}
-                  onClick={() => handleSwitchTab('lone')}
-                  className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
-                    activeTab === 'lone'
-                      ? 'bg-emerald-900/90 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
-                      : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1 truncate">
-                      <span>👤</span> Solitario: {lonePlayerName}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
-                      loneScore > 0 ? 'bg-amber-400/25 text-amber-300 border border-amber-400/40' : 'bg-emerald-950 text-emerald-300'
-                    }`}>
-                      {loneScore > 0 ? `+${loneScore}` : loneScore} pt
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-emerald-400/80 truncate mt-0.5">
-                    100% punti assegnati a {lonePlayerName}
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onPointerDown={() => handleSwitchTab('pair')}
-                  onClick={() => handleSwitchTab('pair')}
-                  className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
-                    activeTab === 'pair'
-                      ? 'bg-emerald-900/90 border-blue-400 ring-2 ring-blue-400/40 shadow-md'
-                      : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1 truncate">
-                      <span>👥</span> Coppia: {pairNames}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
-                      pairSplitScore > 0 ? 'bg-blue-400/25 text-blue-300 border border-blue-400/40' : 'bg-emerald-950 text-emerald-300'
-                    }`}>
-                      {pairSplitScore > 0 ? `+${pairSplitScore}` : pairSplitScore} pt cad.
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-emerald-400/80 truncate mt-0.5">
-                    Totale tavolo: {pairRawScore} pt (÷2 per ciascun compagno)
-                  </div>
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onPointerDown={() => handleSwitchTab('team1')}
-                  onClick={() => handleSwitchTab('team1')}
-                  className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
-                    activeTab === 'team1'
-                      ? 'bg-emerald-900/90 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
-                      : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1 truncate">
-                      <span>♦</span> {activeGame.team1.name}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
-                      team1Score > 0 ? 'bg-amber-400/25 text-amber-300 border border-amber-400/40' : 'bg-emerald-950 text-emerald-300'
-                    }`}>
-                      {team1Score > 0 ? `+${team1Score}` : team1Score} pt
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-emerald-400/80 truncate mt-0.5">
-                    {activeGame.team1.players.join(' & ')}
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onPointerDown={() => handleSwitchTab('team2')}
-                  onClick={() => handleSwitchTab('team2')}
-                  className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
-                    activeTab === 'team2'
-                      ? 'bg-emerald-900/90 border-blue-400 ring-2 ring-blue-400/40 shadow-md'
-                      : 'bg-emerald-950/60 border-emerald-800 text-emerald-300/70 hover:bg-emerald-900/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1 truncate">
-                      <span>♠</span> {activeGame.team2.name}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-black shrink-0 ${
-                      team2Score > 0 ? 'bg-blue-400/25 text-blue-300 border border-blue-400/40' : 'bg-emerald-950 text-emerald-300'
-                    }`}>
-                      {team2Score > 0 ? `+${team2Score}` : team2Score} pt
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-emerald-400/80 truncate mt-0.5">
-                    {activeGame.team2.players.join(' & ')}
-                  </div>
-                </button>
-              </div>
-            )}
-
-            {/* AREA COMPILAZIONE SQUADRA ATTIVA */}
-            <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-0.5">
+        {/* BODY SCORREVOLE */}
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
+          
+          {entryMode === 'quick' ? (
+            <QuickEntryPad
+              isTrio={isTrio}
+              activeGame={activeGame}
+              team1Data={team1Data}
+              setTeam1Data={setTeam1Data}
+              team2Data={team2Data}
+              setTeam2Data={setTeam2Data}
+              team3Data={team3Data}
+              setTeam3Data={setTeam3Data}
+            />
+          ) : (
+            <div className="space-y-3">
               
-              {/* TOGGLES: Chiusura, Pozzetto e Burrachi */}
-              <BurracoToggles
-                currentData={currentData}
-                setCurrentData={setCurrentData}
-                onToggleChiusura={() => handleChiusura(activeTab)}
-                allowSemipulito={activeGame.allowSemipulito}
-                currentHonorsBurrachi={currentHonorsBurrachi}
-              />
-
-              {/* RIGA CARTE: A TERRA (+) E IN MANO (-) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                
-                {/* Colonna Sinistra: Carte a Terra */}
-                <CardsPointsInput
-                  isHand={false}
-                  directValue={currentData.cardsOnTableDirect}
-                  onChangeDirect={(val) => setCurrentData(p => ({ ...p, cardsOnTableDirect: val }))}
-                  onAddAmount={(val) => setCurrentData(p => {
-                    const current = Number(p.cardsOnTableDirect) || 0;
-                    return { ...p, cardsOnTableDirect: String(current + val) };
-                  })}
-                  onClear={() => setCurrentData(p => ({ ...p, cardsOnTableDirect: '' }))}
-                  showPad={currentData.showTableCardPad}
-                  onTogglePad={() => setCurrentData(p => ({ ...p, showTableCardPad: !p.showTableCardPad }))}
-                  cardCounts={currentData.cardsOnTableCount}
-                  onChangeCount={handleTableCountChange}
-                  totalPoints={currentTablePoints}
+              {/* SELETTORE TRIO (se modalità a 3) */}
+              {isTrio && (
+                <TrioLoneSelector
+                  lonePlayer={lonePlayer}
+                  setLonePlayer={setLonePlayer}
+                  activeGame={activeGame}
+                  pairNames={pairNames}
+                  pairRawScore={pairRawScore}
+                  pairSplitScore={pairSplitScore}
                 />
+              )}
 
-                {/* Colonna Destra: Carte in Mano */}
-                <CardsPointsInput
-                  isHand={true}
-                  directValue={currentData.cardsInHandDirect}
-                  onChangeDirect={(val) => setCurrentData(p => ({ ...p, cardsInHandDirect: val }))}
-                  onAddAmount={(val) => setCurrentData(p => {
-                    const current = Number(p.cardsInHandDirect) || 0;
-                    return { ...p, cardsInHandDirect: String(current + val) };
-                  })}
-                  onClear={() => setCurrentData(p => ({ ...p, cardsInHandDirect: '' }))}
-                  showPad={currentData.showHandCardPad}
-                  onTogglePad={() => setCurrentData(p => ({ ...p, showHandCardPad: !p.showHandCardPad }))}
-                  cardCounts={currentData.cardsInHandCount}
-                  onChangeCount={handleHandCountChange}
-                  totalPoints={currentHandPoints}
-                />
+              {/* SELETTORE SQUADRE SU SMARTPHONE (Nascosto su Tablet se affiancato) */}
+              <div className={`${isTrio ? 'grid grid-cols-2' : 'grid grid-cols-2 lg:hidden'} gap-2`}>
+                {isTrio ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('lone')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                        activeTab === 'lone'
+                          ? 'bg-emerald-900 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
+                          : 'bg-emerald-950/70 border-emerald-800 text-emerald-300/80 hover:bg-emerald-900/50'
+                      }`}
+                    >
+                      <div className="truncate">
+                        <span className="text-[10px] uppercase font-bold text-amber-300 block">Solitario</span>
+                        <span className="text-xs font-black text-white truncate block">{lonePlayerName}</span>
+                      </div>
+                      <span className="text-xs font-black text-amber-300 ml-2">
+                        {loneScore >= 0 ? `+${loneScore}` : loneScore} pt
+                      </span>
+                    </button>
 
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('pair')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                        activeTab === 'pair'
+                          ? 'bg-emerald-900 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
+                          : 'bg-emerald-950/70 border-emerald-800 text-emerald-300/80 hover:bg-emerald-900/50'
+                      }`}
+                    >
+                      <div className="truncate">
+                        <span className="text-[10px] uppercase font-bold text-emerald-300 block">Coppia</span>
+                        <span className="text-xs font-black text-white truncate block">{pairNames}</span>
+                      </div>
+                      <span className="text-xs font-black text-emerald-300 ml-2">
+                        {pairSplitScore >= 0 ? `+${pairSplitScore}` : pairSplitScore} pt cad.
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('team1')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                        activeTab === 'team1'
+                          ? 'bg-emerald-900 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
+                          : 'bg-emerald-950/70 border-emerald-800 text-emerald-300/80 hover:bg-emerald-900/50'
+                      }`}
+                    >
+                      <div className="truncate">
+                        <span className="text-[10px] uppercase font-bold text-amber-300 block">Squadra 1</span>
+                        <span className="text-xs font-black text-white truncate block">{activeGame.team1.name}</span>
+                      </div>
+                      <span className="text-xs font-black text-amber-300 ml-2">
+                        {team1Score >= 0 ? `+${team1Score}` : team1Score} pt
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('team2')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                        activeTab === 'team2'
+                          ? 'bg-emerald-900 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
+                          : 'bg-emerald-950/70 border-emerald-800 text-emerald-300/80 hover:bg-emerald-900/50'
+                      }`}
+                    >
+                      <div className="truncate">
+                        <span className="text-[10px] uppercase font-bold text-emerald-300 block">Squadra 2</span>
+                        <span className="text-xs font-black text-white truncate block">{activeGame.team2.name}</span>
+                      </div>
+                      <span className="text-xs font-black text-emerald-300 ml-2">
+                        {team2Score >= 0 ? `+${team2Score}` : team2Score} pt
+                      </span>
+                    </button>
+                  </>
+                )}
               </div>
 
-              {/* MINI-SCONTRINO DI RIEPILOGO TRASPARENTE IN TEMPO REALE */}
-              <RoundReceiptSummary
-                currentTeamName={currentTeamName}
-                currentChiusuraPoints={currentChiusuraPoints}
-                currentHonorsBurrachi={currentHonorsBurrachi}
-                currentPozzettoPoints={currentPozzettoPoints}
-                currentTablePoints={currentTablePoints}
-                currentHandPoints={currentHandPoints}
-                currentTeamScore={currentTeamScore}
-              />
-
-            </div>
-          </div>
-        )}
-
-        {/* BARRA INFERIORE DI RIEPILOGO E SALVATAGGIO */}
-        <div className="mt-3.5 pt-2.5 border-t border-emerald-700/50">
-          <div className="flex items-center justify-between mb-2 text-xs">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-emerald-300/80 text-[11px]">Riepilogo Mano:</span>
-              <span className="font-bold text-amber-300 text-xs">
-                ♦ {activeGame.team1.name}: {team1Score >= 0 ? `+${team1Score}` : team1Score} pt
-              </span>
-              <span className="text-emerald-600 font-bold">•</span>
-              <span className="font-bold text-blue-300 text-xs">
-                ♠ {activeGame.team2.name}: {team2Score >= 0 ? `+${team2Score}` : team2Score} pt
-              </span>
-              {isTrio && (
+              {/* VISTA CONTENUTI: AFFIANCATA SU IPAD/TABLET (quando 2 squadre) OPPURE A TAB SU SMARTPHONE */}
+              {!isTrio ? (
                 <>
-                  <span className="text-emerald-600 font-bold">•</span>
-                  <span className="font-bold text-rose-300 text-xs">
-                    ♥ {activeGame.team3?.name || 'Giocatore 3'}: {team3Score >= 0 ? `+${team3Score}` : team3Score} pt
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
+                  {/* Vista Affiancata Tablet/iPad Desktop (lg:) */}
+                  <div className="hidden lg:grid lg:grid-cols-2 gap-4 items-start">
+                    {renderTeamSection('team1', team1Data, setTeam1Data, activeGame.team1.name, team1Score)}
+                    {renderTeamSection('team2', team2Data, setTeam2Data, activeGame.team2.name, team2Score)}
+                  </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 font-semibold text-xs border border-emerald-700/50 transition-colors cursor-pointer"
-            >
-              Annulla
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSubmitting}
-              className={`flex-[2] py-2 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-900/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 ${
-                isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
-            >
-              <Check className="w-4 h-4 text-emerald-950 stroke-[3]" />
-              <span>{isSubmitting ? 'Salvataggio...' : roundToEdit ? 'Aggiorna Mano' : 'Conferma e Salva Mano'}</span>
-            </button>
+                  {/* Vista Singola Mobile (lg:hidden) */}
+                  <div className="lg:hidden">
+                    {activeTab === 'team1' ? (
+                      <div className="space-y-3">
+                        {renderTeamSection('team1', team1Data, setTeam1Data, activeGame.team1.name, team1Score)}
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('team2')}
+                          className="w-full py-2.5 px-4 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-amber-300 font-bold text-xs border border-amber-400/40 shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                        >
+                          <span>Compila Punteggio {activeGame.team2.name}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {renderTeamSection('team2', team2Data, setTeam2Data, activeGame.team2.name, team2Score)}
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('team1')}
+                          className="w-full py-2 px-4 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-bold text-xs border border-emerald-700/60 shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          <span>Rivedi {activeGame.team1.name}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Modalità Trio */
+                <div>
+                  {activeTab === 'lone' ? (
+                    <div className="space-y-3">
+                      {renderTeamSection('lone', loneData, setLoneData, `👤 ${lonePlayerName} (Solitario)`, loneScore)}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('pair')}
+                        className="w-full py-2.5 px-4 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-amber-300 font-bold text-xs border border-amber-400/40 shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                      >
+                        <span>Compila Coppia ({pairNames})</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {renderTeamSection('pair', pairData, setPairData, `👥 Coppia (${pairNames})`, pairRawScore)}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('lone')}
+                        className="w-full py-2 px-4 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-bold text-xs border border-emerald-700/60 shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Rivedi Solitario ({lonePlayerName})</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          )}
+
+        </div>
+
+        {/* FOOTER BAR: RIEPILOGO NETTO & TASTO SALVATAGGIO DORATO */}
+        <div className="mt-3.5 pt-3 border-t border-emerald-700/50 shrink-0">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            
+            {/* Riepilogo sintetico dei due totali */}
+            <div className="flex items-center gap-2.5 text-xs text-white w-full sm:w-auto justify-between sm:justify-start">
+              <span className="text-[11px] text-emerald-300/80 font-medium">Totale Mano:</span>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-600/50 font-black text-amber-300 text-xs">
+                  {activeGame.team1.name}: {team1Score >= 0 ? `+${team1Score}` : team1Score} pt
+                </span>
+                <span className="text-emerald-500 font-black">•</span>
+                <span className="px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-600/50 font-black text-emerald-200 text-xs">
+                  {activeGame.team2.name}: {team2Score >= 0 ? `+${team2Score}` : team2Score} pt
+                </span>
+                {isTrio && (
+                  <>
+                    <span className="text-emerald-500 font-black">•</span>
+                    <span className="px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-600/50 font-black text-rose-300 text-xs">
+                      {activeGame.team3?.name || 'P3'}: {team3Score >= 0 ? `+${team3Score}` : team3Score} pt
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Pulsanti Annulla e Conferma */}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="py-2.5 px-4 rounded-xl bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Annulla
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isSubmitting}
+                className={`py-3 px-6 rounded-2xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>{isSubmitting ? 'Salvataggio...' : roundToEdit ? 'Aggiorna Smazzata' : 'Salva Smazzata 🃏'}</span>
+              </button>
+            </div>
+
           </div>
         </div>
 
