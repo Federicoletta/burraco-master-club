@@ -31,7 +31,19 @@ export default function HomeLobby({
   // Ultima partita per rivincita rapida
   const lastGame = gamesHistory && gamesHistory.length > 0 ? gamesHistory[0] : null;
 
-  // Avvio rapido per modalità specifica
+  // Apertura configurazione tavolo con modalità preselezionata
+  const handleSelectModeLaunch = (mode) => {
+    try {
+      sound.playTap();
+    } catch {}
+    if (typeof onOpenNewGameModal === 'function') {
+      onOpenNewGameModal(mode);
+    } else {
+      handleQuickLaunchMode(mode);
+    }
+  };
+
+  // Avvio rapido per modalità specifica (fallback)
   const handleQuickLaunchMode = (mode) => {
     try {
       sound.playCardDeal();
@@ -205,7 +217,7 @@ export default function HomeLobby({
           {/* Modalità 1: Coppie (2 vs 2) - Più usata */}
           <button
             type="button"
-            onClick={() => handleQuickLaunchMode('pairs')}
+            onClick={() => handleSelectModeLaunch('pairs')}
             className="p-4 sm:p-5 rounded-3xl bg-gradient-to-b from-emerald-900/80 to-emerald-950/90 hover:to-emerald-900 border-2 border-amber-400/60 hover:border-amber-400 shadow-xl text-left transition-all cursor-pointer active:scale-95 group flex flex-col justify-between min-h-[140px] relative overflow-hidden"
           >
             <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-400 text-emerald-950 font-black text-[9px] uppercase tracking-wider">
@@ -219,7 +231,7 @@ export default function HomeLobby({
               <p className="text-xs text-emerald-300/80 mt-0.5">2 contro 2 con pozzetti</p>
             </div>
             <div className="mt-3 flex items-center gap-1 text-xs font-black text-amber-300 group-hover:translate-x-1 transition-transform">
-              <span>Gioca Subito</span>
+              <span>Configura Tavolo</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </button>
@@ -227,7 +239,7 @@ export default function HomeLobby({
           {/* Modalità 2: Singolo (1 vs 1) */}
           <button
             type="button"
-            onClick={() => handleQuickLaunchMode('singles')}
+            onClick={() => handleSelectModeLaunch('singles')}
             className="p-4 sm:p-5 rounded-3xl bg-emerald-950/70 hover:bg-emerald-900/60 border border-emerald-600/40 hover:border-amber-400/60 shadow-lg text-left transition-all cursor-pointer active:scale-95 group flex flex-col justify-between min-h-[140px]"
           >
             <div>
@@ -238,7 +250,7 @@ export default function HomeLobby({
               <p className="text-xs text-emerald-300/80 mt-0.5">1 contro 1 testa a testa</p>
             </div>
             <div className="mt-3 flex items-center gap-1 text-xs font-black text-emerald-300 group-hover:text-amber-300 group-hover:translate-x-1 transition-all">
-              <span>Gioca Subito</span>
+              <span>Configura Tavolo</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </button>
@@ -246,7 +258,7 @@ export default function HomeLobby({
           {/* Modalità 3: A Tre (Trio a rotazione) */}
           <button
             type="button"
-            onClick={() => handleQuickLaunchMode('trio')}
+            onClick={() => handleSelectModeLaunch('trio')}
             className="p-4 sm:p-5 rounded-3xl bg-emerald-950/70 hover:bg-emerald-900/60 border border-emerald-600/40 hover:border-amber-400/60 shadow-lg text-left transition-all cursor-pointer active:scale-95 group flex flex-col justify-between min-h-[140px]"
           >
             <div>
@@ -257,7 +269,7 @@ export default function HomeLobby({
               <p className="text-xs text-emerald-300/80 mt-0.5">Trio a rotazione</p>
             </div>
             <div className="mt-3 flex items-center gap-1 text-xs font-black text-emerald-300 group-hover:text-amber-300 group-hover:translate-x-1 transition-all">
-              <span>Gioca Subito</span>
+              <span>Configura Tavolo</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </button>
