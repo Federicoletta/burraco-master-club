@@ -130,7 +130,9 @@ service cloud.firestore {
 
     function isValidTournament(data, tournamentId) {
       let allowedFields = [
-        'id', 'name', 'createdAt', 'targetScore', 'scoringSystem', 'teams', 'rounds', 'status', 'completedAt', 'updatedAt', 'ownerUid', 'ownerEmail', 'ownerName'
+        'id', 'name', 'createdAt', 'targetScore', 'scoringSystem', 'teams', 'rounds', 'status',
+        'pausedAt', 'resumeDate', 'resumeNote', 'completedAt', 'updatedAt',
+        'ownerUid', 'ownerEmail', 'ownerName'
       ];
       let requiredFields = [
         'id', 'name', 'teams', 'rounds', 'status'
@@ -145,7 +147,7 @@ service cloud.firestore {
              data.name is string &&
              data.name.size() > 0 &&
              data.name.size() <= 100 &&
-             data.status in ['in_progress', 'completed'] &&
+             data.status in ['in_progress', 'paused', 'completed'] &&
              data.teams is list &&
              data.teams.size() >= 2 &&
              data.teams.size() <= 64 &&
@@ -153,6 +155,9 @@ service cloud.firestore {
              data.rounds.size() <= 100 &&
              (!('targetScore' in data) || ((data.targetScore is int || data.targetScore is float) && data.targetScore >= 100 && data.targetScore <= 10000)) &&
              (!('scoringSystem' in data) || data.scoringSystem in ['fibur', 'classic']) &&
+             (!('pausedAt' in data) || data.pausedAt == null || (data.pausedAt is string && data.pausedAt.size() <= 50) || data.pausedAt is timestamp) &&
+             (!('resumeDate' in data) || data.resumeDate == null || (data.resumeDate is string && data.resumeDate.size() <= 25)) &&
+             (!('resumeNote' in data) || data.resumeNote == null || (data.resumeNote is string && data.resumeNote.size() <= 240)) &&
              (!('createdAt' in data) || data.createdAt == null || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
              (!('completedAt' in data) || data.completedAt == null || (data.completedAt is string && data.completedAt.size() <= 50) || data.completedAt is timestamp) &&
              (!('updatedAt' in data) || data.updatedAt == null || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp) &&

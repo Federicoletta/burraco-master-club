@@ -3,6 +3,7 @@ import { safeSetItem } from './storage';
 
 export const TOURNAMENT_STORAGE_KEYS = {
   ACTIVE: 'burraco_active_tournament_v1',
+  PAUSED: 'burraco_paused_tournaments_v1',
   HISTORY: 'burraco_tournaments_history_v1',
 };
 
@@ -327,4 +328,100 @@ export function deleteTournamentFromHistory(tournamentId) {
   const history = getTournamentsHistory().filter(t => t.id !== tournamentId);
   safeSetItem(TOURNAMENT_STORAGE_KEYS.HISTORY, JSON.stringify(history));
   return history;
+}
+
+// ---------------- MULTI-TOURNAMENT PAUSE & PROGRESS ----------------
+
+export function getPausedTournaments() {
+  try {
+    const raw = localStorage.getItem(TOURNAMENT_STORAGE_KEYS.PAUSED);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function savePausedTournaments(list) {
+  const safeList = Array.isArray(list) ? list.filter(Boolean) : [];
+  safeSetItem(TOURNAMENT_STORAGE_KEYS.PAUSED, JSON.stringify(safeList));
+  return safeList;
+}
+
+/**
+ * Calcola in dettaglio lo stato di avanzamento del torneo (giornate, tavoli completati e rimasti).
+ */
+export function computeTournamentProgress(tournament) {
+  const rounds = Array.isArray(tournament?.rounds) ? tournament.rounds : [];
+  const roundsProgress = rounds.map((r, idx) => {
+    const matches = Array.isArray(r?.matches) ? r.matches : [];
+    const total = matches.length;
+    const completed = matches.filter(m => m && m.status === 'completed').length;
+    const inProgress = matches.filter(m => m && m.status === 'in_progress').length;
+    const remaining = Math.max(0, total - completed);
+    return {
+      roundNumber: r?.roundNumber || idx + 1,
+      title: r?.title || `Giornata ${idx + 1}`,
+      totalMatches: total,
+      completedMatches: completed,
+      inProgressMatches: inProgress,
+      remainingMatches: remaining,
+      isDone: total > 0 && remaining === 0,
+    };
+  });
+
+  const totalMatches = roundsProgress.reduce((acc, r) => acc + r.totalMatches, 0);
+  const completedMatches = roundsProgress.reduce((acc, r) => acc + r.completedMatches, 0);
+  const inProgressMatches = roundsProgress.reduce((acc, r) => acc + r.inProgressMatches, 0);
+  const remainingMatches = Math.max(0, totalMatches - completedMatches);
+  const percentComplete = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
+
+  const totalRounds = roundsProgress.length;
+  const completedRounds = roundsProgress.filter(r => r.isDone).length;
+  const firstPendingRound = roundsProgress.find(r => !r.isDone) || roundsProgress[roundsProgress.length - 1] || null;
+
+  return {
+    totalMatches,
+    completedMatches,
+    inProgressMatches,
+    remainingMatches,
+    percentComplete,
+    totalRounds,
+    completedRounds,
+    currentRoundNumber: firstPendingRound ? firstPendingRound.roundNumber : 1,
+    currentRoundRemaining: firstPendingRound ? firstPendingRound.remainingMatches : 0,
+    roundsProgress,
+  };
+}
+
+/**
+ * Converte un torneo in stato 'paused' preservando punteggi e aggiungendo data/nota di ripresa.
+ */
+export function pauseTournamentObject(tournament, { resumeDate = '', resumeNote = '' } = {}) {
+  if (!tournament) return null;
+  const nowIso = new Date().toISOString();
+  const cleanDate = typeof resumeDate === 'string' ? resumeDate.trim().slice(0, 25) : '';
+  const cleanNote = typeof resumeNote === 'string' ? resumeNote.trim().slice(0, 240) : '';
+
+  return {
+    ...tournament,
+    status: 'paused',
+    pausedAt: tournament.status === 'paused' && tournament.pausedAt ? tournament.pausedAt : nowIso,
+    resumeDate: cleanDate || null,
+    resumeNote: cleanNote || null,
+  };
+}
+
+/**
+ * Riporta un torneo in pausa allo stato attivo 'in_progress'.
+ */
+export function resumeTournamentObject(tournament) {
+  if (!tournament) return null;
+  return {
+    ...tournament,
+    status: 'in_progress',
+    pausedAt: null,
+    resumeDate: null,
+    resumeNote: null,
+  };
 }

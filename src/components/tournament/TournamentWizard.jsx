@@ -22,6 +22,7 @@ export default function TournamentWizard({
   onAssignPlayer,
   onCreateTournament,
   activeTournament,
+  hasPausedOrHistory = false,
   onCancelCreating
 }) {
   const allAssignedPlayers = useMemo(() => {
@@ -440,23 +441,31 @@ export default function TournamentWizard({
       </div>
 
       {/* AVVIO TORNEO */}
-      <div className="pt-3 border-t club-divider flex flex-wrap items-center justify-between gap-3">
+      <div className="pt-3 border-t club-divider space-y-2.5">
         {activeTournament && (
-          <button
-            type="button"
-            onClick={onCancelCreating}
-            className="min-h-[44px] px-4 rounded-xl club-btn-secondary text-xs font-semibold cursor-pointer"
-          >
-            Torna al Torneo Attivo
-          </button>
+          <p className="text-xs club-text-muted m-0">
+            Il torneo attualmente in corso (<strong className="text-white">{activeTournament.name}</strong>) verrà messo automaticamente <strong className="club-text-gold">In Pausa</strong> e potrai riprenderlo in qualsiasi momento.
+          </p>
         )}
-        <button
-          type="submit"
-          className="ml-auto min-h-[46px] px-6 rounded-xl gold-gradient font-bold text-xs sm:text-sm active:scale-95 transition-all cursor-pointer flex items-center gap-2"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>Genera Calendario e Avvia</span>
-        </button>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {(activeTournament || hasPausedOrHistory) && onCancelCreating && (
+            <button
+              type="button"
+              onClick={onCancelCreating}
+              className="min-h-[44px] px-4 rounded-xl club-btn-secondary text-xs font-semibold cursor-pointer"
+            >
+              {activeTournament ? 'Torna al Torneo Attivo' : 'Torna all\'Hub Tornei'}
+            </button>
+          )}
+          <button
+            type="submit"
+            className="ml-auto min-h-[46px] px-6 rounded-xl gold-gradient font-bold text-xs sm:text-sm active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Genera Calendario e Avvia</span>
+          </button>
+        </div>
       </div>
     </form>
   );

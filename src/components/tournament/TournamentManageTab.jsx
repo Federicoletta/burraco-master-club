@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Trophy, Plus, Edit2, Check, Trash2, Eye, Award, Calendar, Users, ArrowLeftRight } from 'lucide-react';
+import { Trophy, Plus, Edit2, Check, Trash2, Eye, Award, Calendar, Users, ArrowLeftRight, PauseCircle } from 'lucide-react';
 import PlayerAutocompleteInput from '../PlayerAutocompleteInput';
 import { sound } from '../../utils/soundEffects';
 
@@ -7,6 +7,7 @@ export default function TournamentManageTab({
   activeTournament,
   teams = [],
   onUpdateTeams,
+  onPauseTournament,
   onFinishAndCelebrate,
   onStartNewTournament,
   tournamentsHistory = [],
@@ -195,19 +196,30 @@ export default function TournamentManageTab({
         </div>
       </div>
 
-      {/* CONCLUSIONE & PREMIAZIONE */}
+      {/* PAUSA, CONCLUSIONE & PREMIAZIONE */}
       {activeTournament && (
         <div className="p-4 rounded-2xl club-card border-amber-400/50 space-y-3">
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 club-text-gold" />
             <h3 className="text-sm font-bold text-white uppercase tracking-wider m-0">
-              Conclusione e Premiazione
+              Stato Torneo e Premiazione
             </h3>
           </div>
           <p className="text-xs club-text-muted m-0">
-            Proclama i campioni e salva i risultati ufficiali nell&apos;Albo d&apos;Oro.
+            Metti in pausa per riprendere nei giorni successivi (anche se inizi un altro torneo, questo verrà salvato in pausa automaticamente) oppure proclama i campioni nell&apos;Albo d&apos;Oro.
           </p>
           <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            {onPauseTournament && (
+              <button
+                type="button"
+                onClick={onPauseTournament}
+                className="min-h-[44px] px-4 py-2 rounded-xl club-btn-secondary text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer"
+              >
+                <PauseCircle className="w-4 h-4 club-text-gold" />
+                <span>Metti in Pausa</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onFinishAndCelebrate}
@@ -223,7 +235,7 @@ export default function TournamentManageTab({
               className="min-h-[44px] px-4 py-2 rounded-xl club-btn-secondary text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4 club-text-gold" />
-              <span>Avvia Nuovo Torneo</span>
+              <span>Nuovo Torneo</span>
             </button>
           </div>
         </div>

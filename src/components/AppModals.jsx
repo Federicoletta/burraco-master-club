@@ -71,12 +71,17 @@ export default function AppModals({
         isOpen={isVictoryOpen}
         onClose={() => setIsVictoryOpen(false)}
         activeGame={game.activeGame}
-        activeTournament={tournament.activeTournament}
+        activeTournament={
+          (game.activeGame?.tournamentId &&
+            (tournament.allActiveAndPausedTournaments?.find(t => t.id === game.activeGame.tournamentId) ||
+             tournament.tournamentsHistory?.find(t => t.id === game.activeGame.tournamentId))) ||
+          tournament.activeTournament
+        }
         onRematch={game.handleRematch}
         onArchiveAndNew={() => game.handleArchiveAndNew(onOpenNewGame)}
         onOpenTournament={(targetTab, roundNumber) => {
           setIsVictoryOpen(false);
-          onOpenTournament(targetTab, roundNumber);
+          onOpenTournament(targetTab, roundNumber, game.activeGame?.tournamentId || null);
         }}
       />
 

@@ -1,6 +1,8 @@
 import {
   getActiveTournament,
   saveActiveTournament,
+  getPausedTournaments,
+  savePausedTournaments,
   getTournamentsHistory,
   TOURNAMENT_STORAGE_KEYS
 } from './tournament';
@@ -21,6 +23,7 @@ export function exportBackupData(userKey) {
     history: getGamesHistory(userKey),
     players: getStoredPlayers(userKey),
     activeTournament: getActiveTournament(),
+    pausedTournaments: getPausedTournaments(),
     tournamentsHistory: getTournamentsHistory(),
   };
 
@@ -69,6 +72,10 @@ export function importBackupData(jsonData, userKey) {
       } else if (typeof data.activeTournament === 'object') {
         saveActiveTournament(data.activeTournament);
       }
+      importedCount++;
+    }
+    if (Array.isArray(data.pausedTournaments)) {
+      savePausedTournaments(data.pausedTournaments);
       importedCount++;
     }
     if (Array.isArray(data.tournamentsHistory)) {

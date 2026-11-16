@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   generateRoundRobinSchedule,
   calculateTournamentStandings,
   calculateFiburVictoryPoints,
   formatStandingsForSharing,
   formatScheduleForSharing,
+  computeTournamentProgress,
+  pauseTournamentObject,
+  resumeTournamentObject,
+  getPausedTournaments,
+  savePausedTournaments,
 } from '../src/utils/tournament';
 
 describe('Tournament Engine - generateRoundRobinSchedule', () => {
@@ -243,3 +248,129 @@ describe('Tournament Engine - calculateTournamentStandings', () => {
     expect(scheduleText).toContain('Tavolo 1');
   });
 });
+
+describe('Tournament Engine - Multi-Tournament Pause, Resume & Progress', () => {
+  const localStorageMock = (() => {
+    let store = {};
+    return {
+      getItem: (key) => (key in store ? store[key] : null),
+      setItem: (key, val) => {
+        store[key] = String(val);
+      },
+      removeItem: (key) => {
+        delete store[key];
+      },
+      clear: () => {
+        store = {};
+      },
+    };
+  })();
+
+  beforeEach(() => {
+    global.localStorage = localStorageMock;
+    localStorage.clear();
+  });
+
+  it('computes detailed progress for rounds, tables, and remaining matches', () => {
+    const emptyProgress = computeTournamentProgress(null);
+    expect(emptyProgress.totalMatches).toBe(0);
+    expect(emptyProgress.percentComplete).toBe(0);
+
+    const tournament = {
+      id: 'tourn_prog',
+      rounds: [
+        {
+          roundNumber: 1,
+          title: 'Giornata 1',
+          matches: [
+            { id: 'm1', status: 'completed' },
+            { id: 'm2', status: 'completed' },
+          ],
+        },
+        {
+          roundNumber: 2,
+          title: 'Giornata 2',
+          matches: [
+            { id: 'm3', status: 'in_progress' },
+            { id: 'm4', status: 'pending' },
+          ],
+        },
+        {
+          roundNumber: 3,
+          title: 'Giornata 3',
+          matches: [
+            { id: 'm5', status: 'pending' },
+            { id: 'm6', status: 'pending' },
+          ],
+        },
+      ],
+    };
+
+    const progress = computeTournamentProgress(tournament);
+    expect(progress.totalMatches).toBe(6);
+    expect(progress.completedMatches).toBe(2);
+    expect(progress.inProgressMatches).toBe(1);
+    expect(progress.remainingMatches).toBe(4);
+    expect(progress.percentComplete).toBe(33);
+    expect(progress.totalRounds).toBe(3);
+    expect(progress.completedRounds).toBe(1);
+    expect(progress.currentRoundNumber).toBe(2);
+    expect(progress.currentRoundRemaining).toBe(2);
+    expect(progress.roundsProgress[0].isDone).toBe(true);
+    expect(progress.roundsProgress[1].isDone).toBe(false);
+  });
+
+  it('pauses and resumes tournament objects while preserving rounds and trimming metadata', () => {
+    const active = {
+      id: 'tourn_1',
+      name: 'Torneo Autunno',
+      status: 'in_progress',
+      rounds: [{ roundNumber: 1, matches: [{ id: 'm1', status: 'completed', team1Score: 2000, team2Score: 1500 }] }],
+    };
+
+    const longNote = 'N'.repeat(300);
+    const paused = pauseTournamentObject(active, {
+      resumeDate: '  2026-11-20  ',
+      resumeNote: `  ${longNote}  `,
+    });
+
+    expect(paused.status).toBe('paused');
+    expect(typeof paused.pausedAt).toBe('string');
+    expect(paused.resumeDate).toBe('2026-11-20');
+    expect(paused.resumeNote.length).toBe(240);
+    expect(paused.rounds[0].matches[0].team1Score).toBe(2000);
+
+    // Updating metadata on an already paused tournament keeps original pausedAt timestamp
+    const originalPausedAt = paused.pausedAt;
+    const edited = pauseTournamentObject(paused, {
+      resumeDate: '',
+      resumeNote: 'Riprendiamo sabato sera',
+    });
+    expect(edited.pausedAt).toBe(originalPausedAt);
+    expect(edited.resumeDate).toBeNull();
+    expect(edited.resumeNote).toBe('Riprendiamo sabato sera');
+
+    // Resuming clears pause metadata and restores 'in_progress'
+    const resumed = resumeTournamentObject(edited);
+    expect(resumed.status).toBe('in_progress');
+    expect(resumed.pausedAt).toBeNull();
+    expect(resumed.resumeDate).toBeNull();
+    expect(resumed.resumeNote).toBeNull();
+    expect(resumed.rounds[0].matches[0].team1Score).toBe(2000);
+  });
+
+  it('persists and loads paused tournaments list safely in localStorage', () => {
+    expect(getPausedTournaments()).toEqual([]);
+
+    savePausedTournaments([
+      { id: 't_p1', name: 'Coppa Venerdi', status: 'paused' },
+      null,
+      { id: 't_p2', name: 'Trofeo Domenica', status: 'paused' },
+    ]);
+
+    const loaded = getPausedTournaments();
+    expect(loaded.length).toBe(2);
+    expect(loaded.map(t => t.id)).toEqual(['t_p1', 't_p2']);
+  });
+});
+

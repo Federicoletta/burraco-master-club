@@ -92,11 +92,18 @@ function BurracoAppContent() {
     }
   }, [activeNavTab, setIsProfileOpen]);
 
-  const handleOpenTournament = useCallback((targetTab = 'standings', roundNumber = 'all') => {
+  const handleOpenTournament = useCallback((targetTab = 'standings', roundNumber = 'all', tournamentId = null) => {
+    if (
+      tournamentId &&
+      tournament.activeTournament?.id !== tournamentId &&
+      tournament.pausedTournaments?.some(t => t.id === tournamentId)
+    ) {
+      tournament.handleResumeTournament(tournamentId);
+    }
     setTournamentInitialTab(targetTab || 'standings');
     setTournamentInitialRound(roundNumber || 'all');
     setActiveNavTab('tournament');
-  }, []);
+  }, [tournament]);
 
   const handleOpenHistory = useCallback(() => {
     setActiveNavTab('history');
@@ -189,7 +196,7 @@ function BurracoAppContent() {
             </div>
             <button
               type="button"
-              onClick={() => handleOpenTournament('standings')}
+              onClick={() => handleOpenTournament('standings', 'all', game.activeGame.tournamentId)}
               className="min-h-[36px] px-3 rounded-xl gold-gradient font-bold text-xs cursor-pointer shrink-0 transition-transform active:scale-95"
             >
               Classifica
@@ -248,12 +255,17 @@ function BurracoAppContent() {
               isOpen={true}
               onClose={handleNavigateToTable}
               activeTournament={tournament.activeTournament}
+              pausedTournaments={tournament.pausedTournaments}
               tournamentsHistory={tournament.tournamentsHistory}
               onStartTournament={tournament.handleStartTournament}
+              onPauseTournament={tournament.handlePauseTournament}
+              onUpdatePausedMetadata={tournament.handleUpdatePausedMetadata}
+              onResumeTournament={tournament.handleResumeTournament}
+              onDeletePausedTournament={tournament.handleDeletePausedTournament}
               onUpdateTournament={tournament.handleUpdateTournament}
               onFinishTournament={tournament.handleFinishTournament}
               onDeleteTournamentHistory={tournament.handleDeleteTournamentHistory}
-              onPlayMatch={(match) => game.handlePlayTournamentMatch(match, tournament.activeTournament, handleNavigateToTable)}
+              onPlayMatch={(match, targetTournament) => game.handlePlayTournamentMatch(match, targetTournament || tournament.activeTournament, handleNavigateToTable)}
               playersList={game.recentPlayers}
               currentUser={social.currentUser}
               friendsList={social.friendsList}
@@ -321,7 +333,7 @@ function BurracoAppContent() {
         activeTab={activeNavTab}
         onSelectTab={handleSelectNavTab}
         hasActiveGame={Boolean(game.activeGame)}
-        hasActiveTournament={Boolean(tournament.activeTournament)}
+        hasActiveTournament={Boolean(tournament.activeTournament || tournament.pausedTournaments?.length)}
         currentUser={social.currentUser}
         notificationCount={social.notifications.length}
         onlineFriendsCount={onlineFriendsCount}

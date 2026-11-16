@@ -34,7 +34,9 @@ export function useBurracoGame({
   currentUser,
   friendsList = [],
   activeTournament = null,
+  allActiveAndPausedTournaments = [],
   handleUpdateTournament = () => {},
+  updateTournamentById = null,
   onCelebrate = () => {},
 }) {
   const customAlert = useAlert();
@@ -60,7 +62,9 @@ export function useBurracoGame({
   const currentUserRef = useRef(currentUser);
   const friendsListRef = useRef(friendsList);
   const activeTournamentRef = useRef(activeTournament);
+  const allTournamentsRef = useRef(allActiveAndPausedTournaments);
   const handleUpdateTournamentRef = useRef(handleUpdateTournament);
+  const updateTournamentByIdRef = useRef(updateTournamentById);
   const onCelebrateRef = useRef(onCelebrate);
   const activeGameRef = useRef(activeGame);
 
@@ -74,8 +78,14 @@ export function useBurracoGame({
     activeTournamentRef.current = activeTournament;
   }, [activeTournament]);
   useEffect(() => {
+    allTournamentsRef.current = allActiveAndPausedTournaments;
+  }, [allActiveAndPausedTournaments]);
+  useEffect(() => {
     handleUpdateTournamentRef.current = handleUpdateTournament;
   }, [handleUpdateTournament]);
+  useEffect(() => {
+    updateTournamentByIdRef.current = updateTournamentById;
+  }, [updateTournamentById]);
   useEffect(() => {
     onCelebrateRef.current = onCelebrate;
   }, [onCelebrate]);
@@ -262,26 +272,40 @@ export function useBurracoGame({
     syncWithStatus(updatedGame, true);
     upsertHistoryGame(userKey, updatedGame, setGamesHistory);
 
-    const tourn = activeTournamentRef.current;
-    if (current.tournamentMatchId && tourn?.rounds) {
+    if (current.tournamentMatchId) {
       try {
-        const tournUpdatedRounds = (tourn.rounds || []).map(r => ({
-          ...r,
-          matches: (r.matches || []).map(m => {
-            if (m.id === current.tournamentMatchId) {
-              return {
-                ...m,
-                team1Score: t1Total,
-                team2Score: t2Total,
-                status: winner ? 'completed' : 'in_progress',
-                winnerId: winner ? (winner === 'team1' ? m.team1Id : m.team2Id) : null,
-                completedAt: winner ? new Date().toISOString() : m.completedAt,
-              };
-            }
-            return m;
-          })
-        }));
-        handleUpdateTournamentRef.current({ ...tourn, rounds: tournUpdatedRounds });
+        const list = allTournamentsRef.current || [];
+        const tourn = (current.tournamentId && list.find(t => t?.id === current.tournamentId))
+          || list.find(t => (t?.rounds || []).some(r => (r.matches || []).some(m => m.id === current.tournamentMatchId)))
+          || activeTournamentRef.current;
+
+        if (tourn?.rounds) {
+          const applyMatchUpdate = (targetTourn) => ({
+            ...targetTourn,
+            rounds: (targetTourn.rounds || []).map(r => ({
+              ...r,
+              matches: (r.matches || []).map(m => {
+                if (m.id === current.tournamentMatchId) {
+                  return {
+                    ...m,
+                    team1Score: t1Total,
+                    team2Score: t2Total,
+                    status: winner ? 'completed' : 'in_progress',
+                    winnerId: winner ? (winner === 'team1' ? m.team1Id : m.team2Id) : null,
+                    completedAt: winner ? new Date().toISOString() : m.completedAt,
+                  };
+                }
+                return m;
+              })
+            }))
+          });
+
+          if (typeof updateTournamentByIdRef.current === 'function') {
+            updateTournamentByIdRef.current(tourn.id, applyMatchUpdate);
+          } else {
+            handleUpdateTournamentRef.current(applyMatchUpdate(tourn));
+          }
+        }
       } catch (tournErr) {
         console.warn('Errore sync match torneo:', tournErr);
       }
@@ -471,26 +495,40 @@ export function useBurracoGame({
     saveActiveGame(updatedGame);
     syncWithStatus(updatedGame, true);
 
-    const tourn = activeTournamentRef.current;
-    if (current.tournamentMatchId && tourn?.rounds) {
-      const winnerTeamId = winner === 'team1' ? current.team1?.id : current.team2?.id;
-      const tournUpdatedRounds = tourn.rounds.map(r => ({
-        ...r,
-        matches: r.matches.map(m => {
-          if (m.id === current.tournamentMatchId) {
-            return {
-              ...m,
-              team1Score: t1Total,
-              team2Score: t2Total,
-              status: 'completed',
-              winnerId: t1Total === t2Total ? 'tie' : winnerTeamId,
-              completedAt: new Date().toISOString(),
-            };
-          }
-          return m;
-        })
-      }));
-      handleUpdateTournamentRef.current({ ...tourn, rounds: tournUpdatedRounds });
+    if (current.tournamentMatchId) {
+      const list = allTournamentsRef.current || [];
+      const tourn = (current.tournamentId && list.find(t => t?.id === current.tournamentId))
+        || list.find(t => (t?.rounds || []).some(r => (r.matches || []).some(m => m.id === current.tournamentMatchId)))
+        || activeTournamentRef.current;
+
+      if (tourn?.rounds) {
+        const winnerTeamId = winner === 'team1' ? current.team1?.id : current.team2?.id;
+        const applyFinishUpdate = (targetTourn) => ({
+          ...targetTourn,
+          rounds: (targetTourn.rounds || []).map(r => ({
+            ...r,
+            matches: (r.matches || []).map(m => {
+              if (m.id === current.tournamentMatchId) {
+                return {
+                  ...m,
+                  team1Score: t1Total,
+                  team2Score: t2Total,
+                  status: 'completed',
+                  winnerId: t1Total === t2Total ? 'tie' : winnerTeamId,
+                  completedAt: new Date().toISOString(),
+                };
+              }
+              return m;
+            })
+          }))
+        });
+
+        if (typeof updateTournamentByIdRef.current === 'function') {
+          updateTournamentByIdRef.current(tourn.id, applyFinishUpdate);
+        } else {
+          handleUpdateTournamentRef.current(applyFinishUpdate(tourn));
+        }
+      }
     }
 
     const updatedHistory = archiveCurrentGame(updatedGame, userKey);

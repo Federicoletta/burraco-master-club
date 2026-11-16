@@ -6,14 +6,21 @@ import { GameContext } from './gameContextStore';
 
 export function GameProvider({ children }) {
   const { currentUser, friendsList } = useSocial();
-  const { activeTournament, handleUpdateTournament } = useTournamentContext();
+  const {
+    activeTournament,
+    allActiveAndPausedTournaments,
+    handleUpdateTournament,
+    updateTournamentById,
+  } = useTournamentContext();
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
 
   const game = useBurracoGame({
     currentUser,
     friendsList,
     activeTournament,
+    allActiveAndPausedTournaments,
     handleUpdateTournament,
+    updateTournamentById,
     onCelebrate: () => setIsVictoryOpen(true),
   });
 

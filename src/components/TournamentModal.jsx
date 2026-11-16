@@ -1,5 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { X, Trophy, Plus, Calendar, Users, ArrowLeft } from 'lucide-react';
+import {
+  X,
+  Trophy,
+  Plus,
+  Calendar,
+  Users,
+  ArrowLeft,
+  PauseCircle,
+  LayoutGrid
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useConfirm } from '../context/confirmContextStore';
 import { sound } from '../utils/soundEffects';
@@ -7,6 +16,7 @@ import { useModalEscape } from '../hooks/useModalEscape';
 import {
   generateRoundRobinSchedule,
   calculateTournamentStandings,
+  computeTournamentProgress,
   getTournamentsHistory,
   deleteTournamentFromHistory
 } from '../utils/tournament';
@@ -14,15 +24,22 @@ import TournamentWizard from './tournament/TournamentWizard';
 import TournamentStandingsTab from './tournament/TournamentStandingsTab';
 import TournamentScheduleTab from './tournament/TournamentScheduleTab';
 import TournamentManageTab from './tournament/TournamentManageTab';
+import TournamentHub from './tournament/TournamentHub';
 import MatchScoreEditModal from './tournament/MatchScoreEditModal';
+import PauseTournamentModal from './tournament/PauseTournamentModal';
 
 export default function TournamentModal({
   isOpen,
   onClose,
   isPage = false,
   activeTournament,
+  pausedTournaments = [],
   tournamentsHistory: externalHistory = null,
   onStartTournament,
+  onPauseTournament,
+  onUpdatePausedMetadata,
+  onResumeTournament,
+  onDeletePausedTournament,
   onUpdateTournament,
   onFinishTournament,
   onDeleteTournamentHistory = null,
@@ -44,11 +61,18 @@ export default function TournamentModal({
   const selectedRoundFilter = roundState.base === baseRoundFilter ? roundState.value : baseRoundFilter;
   const setSelectedRoundFilter = (nextFilter) => setRoundState({ base: baseRoundFilter, value: nextFilter });
 
-  const [forceCreating, setForceCreating] = useState(false);
-  const isCreating = forceCreating || !activeTournament;
+  // 'auto' | 'hub' | 'detail' | 'create'
+  const [requestedView, setRequestedView] = useState('auto');
   const [localHistory, setLocalHistory] = useState(() => getTournamentsHistory());
   const tournamentsHistory = externalHistory ?? localHistory;
   const [viewingHistoricalTournament, setViewingHistoricalTournament] = useState(null);
+
+  // Stato modale pausa / modifica nota
+  const [pauseModalState, setPauseModalState] = useState({
+    isOpen: false,
+    tournament: null,
+    mode: 'pause', // 'pause' | 'edit'
+  });
 
   useModalEscape(!isPage && isOpen, onClose);
 
@@ -67,6 +91,19 @@ export default function TournamentModal({
   const [manualScore1, setManualScore1] = useState('');
   const [manualScore2, setManualScore2] = useState('');
   const [activePlayerField, setActivePlayerField] = useState({ teamIndex: 0, playerSlot: 1 });
+
+  const hasPausedOrHistory = pausedTournaments.length > 0 || tournamentsHistory.length > 0;
+  const effectiveView = viewingHistoricalTournament
+    ? 'historical'
+    : requestedView === 'create'
+      ? 'create'
+      : requestedView === 'hub'
+        ? 'hub'
+        : activeTournament
+          ? 'detail'
+          : hasPausedOrHistory
+            ? 'hub'
+            : 'create';
 
   const handleAssignPlayer = useCallback((playerName) => {
     if (!playerName) return;
@@ -167,6 +204,11 @@ export default function TournamentModal({
     return tournamentRounds.flatMap(r => r.matches || []);
   }, [tournamentRounds]);
 
+  const activeProgress = useMemo(() => {
+    if (!activeTournament) return null;
+    return computeTournamentProgress(activeTournament);
+  }, [activeTournament]);
+
   const standings = useMemo(() => {
     if (!tournamentTeams) return [];
     return calculateTournamentStandings(
@@ -217,7 +259,7 @@ export default function TournamentModal({
 
     sound.playCardDeal();
     onStartTournament(newTournament);
-    setForceCreating(false);
+    setRequestedView('detail');
     setActiveTab('standings');
   };
 
@@ -299,7 +341,7 @@ export default function TournamentModal({
     });
   };
 
-  const handleFinishAndCelebrate = async () => {
+  const handleFinishAndCelebrate = async (tournamentIdOverride = null) => {
     const ok = await confirm({
       title: 'Concludi Torneo e Premiazione',
       message: "Vuoi proclamare i campioni ufficiali e archiviare il torneo nell'Albo d'Oro?",
@@ -313,11 +355,11 @@ export default function TournamentModal({
       confetti({ particleCount: 220, spread: 90, origin: { y: 0.6 } });
     } catch {}
 
-    onFinishTournament();
+    onFinishTournament(tournamentIdOverride);
     if (!externalHistory) {
       setLocalHistory(getTournamentsHistory());
     }
-    setActiveTab('standings');
+    setRequestedView('hub');
   };
 
   const handleDeleteHistoricalTournament = async (tournamentId) => {
@@ -340,11 +382,71 @@ export default function TournamentModal({
     }
   };
 
+  const handleDeletePausedWithConfirm = async (tournamentId) => {
+    const target = pausedTournaments.find(t => t.id === tournamentId);
+    const ok = await confirm({
+      title: 'Elimina Torneo in Pausa',
+      message: `Vuoi eliminare definitivamente "${target?.name || 'questo torneo'}" e tutti i relativi incontri salvati?`,
+      confirmText: 'Elimina definitivamente',
+      variant: 'danger'
+    });
+    if (!ok) return;
+
+    if (typeof onDeletePausedTournament === 'function') {
+      onDeletePausedTournament(tournamentId);
+    }
+    sound.playTap();
+  };
+
+  const handleResumeAndOpen = (tournamentId) => {
+    if (typeof onResumeTournament === 'function') {
+      onResumeTournament(tournamentId);
+    }
+    sound.playTap();
+    setRequestedView('detail');
+    setActiveTab('standings');
+  };
+
+  const handleConfirmPauseModal = (pauseDetails) => {
+    const target = pauseModalState.tournament;
+    if (!target) return;
+
+    if (pauseModalState.mode === 'edit') {
+      if (typeof onUpdatePausedMetadata === 'function') {
+        onUpdatePausedMetadata(target.id, pauseDetails);
+      }
+    } else {
+      if (typeof onPauseTournament === 'function') {
+        onPauseTournament(target.id, pauseDetails);
+      }
+      setRequestedView('hub');
+    }
+
+    sound.playTap();
+    setPauseModalState({ isOpen: false, tournament: null, mode: 'pause' });
+  };
+
   const handleEditMatch = (match) => {
     setEditingMatch(match);
     setManualScore1(match.team1Score !== null ? String(match.team1Score) : '');
     setManualScore2(match.team2Score !== null ? String(match.team2Score) : '');
   };
+
+  const headerTitle = effectiveView === 'historical'
+    ? `Albo d'Oro: ${viewingHistoricalTournament?.name}`
+    : effectiveView === 'create'
+      ? 'Nuovo Torneo del Club'
+      : effectiveView === 'hub'
+        ? 'Hub Tornei del Club'
+        : activeTournament?.name || 'Torneo';
+
+  const headerSubtitle = effectiveView === 'historical'
+    ? 'Classifica finale archiviata'
+    : effectiveView === 'create'
+      ? 'Configura formula, coppie partecipanti e calendario'
+      : effectiveView === 'hub'
+        ? `${(activeTournament ? 1 : 0) + pausedTournaments.length} aperti · ${tournamentsHistory.length} nell'Albo d'Oro`
+        : `Obiettivo ${activeTournament?.targetScore || 2505} pt · ${activeTournament?.scoringSystem === 'classic' ? 'Formula Classica (3-1-0)' : 'FIBUR Victory Points (20-0)'}`;
 
   const cardContent = (
     <div
@@ -360,52 +462,68 @@ export default function TournamentModal({
           <div className="min-w-0">
             <div className="flex items-baseline gap-2 flex-wrap">
               <h2 className="font-display text-lg sm:text-xl font-bold text-white truncate">
-                {viewingHistoricalTournament
-                  ? `Albo d'Oro: ${viewingHistoricalTournament.name}`
-                  : isCreating
-                    ? 'Nuovo Torneo del Club'
-                    : activeTournament?.name}
+                {headerTitle}
               </h2>
-              {activeTournament && !isCreating && !viewingHistoricalTournament && (
-                <span className={`text-xs font-semibold ${
-                  activeTournament.status === 'completed' ? 'club-text-gold' : 'text-emerald-300'
-                }`}>
-                  · {activeTournament.status === 'completed' ? 'Concluso' : 'In corso'}
+              {effectiveView === 'detail' && activeTournament && (
+                <span className="text-xs font-semibold text-emerald-300">
+                  · In corso
                 </span>
               )}
             </div>
             <p className="text-xs club-text-muted mt-0.5 truncate">
-              {viewingHistoricalTournament
-                ? 'Classifica finale archiviata'
-                : isCreating
-                  ? 'Configura formula, coppie partecipanti e calendario'
-                  : `Obiettivo ${activeTournament?.targetScore || 2505} pt · ${activeTournament?.scoringSystem === 'classic' ? 'Formula Classica (3-1-0)' : 'FIBUR Victory Points (20-0)'}`}
+              {headerSubtitle}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {viewingHistoricalTournament ? (
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
+          {effectiveView === 'historical' && (
             <button
               type="button"
               onClick={() => setViewingHistoricalTournament(null)}
               className="min-h-[42px] px-3 rounded-xl club-btn-secondary text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 club-text-gold" />
-              <span>Torna al Torneo</span>
+              <span>Torna all&apos;Hub</span>
             </button>
-          ) : (
-            !isCreating && activeTournament && (
+          )}
+
+          {effectiveView === 'detail' && activeTournament && (
+            <>
               <button
                 type="button"
-                onClick={() => setForceCreating(true)}
-                className="hidden sm:flex min-h-[42px] px-3.5 rounded-xl club-btn-secondary text-xs font-semibold items-center gap-1.5 cursor-pointer active:scale-95"
+                onClick={() => setRequestedView('hub')}
+                className="min-h-[42px] px-3 rounded-xl club-btn-secondary text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                title="Gestisci tutti i tornei in corso, in pausa e conclusi"
+              >
+                <LayoutGrid className="w-4 h-4 club-text-gold" />
+                <span>Hub{pausedTournaments.length > 0 ? ` (${pausedTournaments.length} in pausa)` : ''}</span>
+              </button>
+
+              {onPauseTournament && (
+                <button
+                  type="button"
+                  onClick={() => setPauseModalState({ isOpen: true, tournament: activeTournament, mode: 'pause' })}
+                  className="hidden sm:flex min-h-[42px] px-3 rounded-xl club-btn-secondary text-xs font-semibold items-center gap-1.5 cursor-pointer"
+                  title="Metti in pausa questo torneo per riprenderlo in seguito"
+                >
+                  <PauseCircle className="w-4 h-4 club-text-gold" />
+                  <span>Pausa</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setRequestedView('create')}
+                className="hidden sm:flex min-h-[42px] px-3 rounded-xl club-btn-secondary text-xs font-semibold items-center gap-1.5 cursor-pointer active:scale-95"
+                title="Crea un nuovo torneo (quello attuale resta salvato in pausa)"
               >
                 <Plus className="w-4 h-4 club-text-gold" />
-                <span>Nuovo Torneo</span>
+                <span>Nuovo</span>
               </button>
-            )
+            </>
           )}
+
           {!isPage && onClose && (
             <button
               type="button"
@@ -419,7 +537,8 @@ export default function TournamentModal({
         </div>
       </div>
 
-      {isCreating ? (
+      {/* CORPO PRINCIPALE IN BASE ALLA VISTA */}
+      {effectiveView === 'create' && (
         <TournamentWizard
           tournamentName={tournamentName}
           setTournamentName={setTournamentName}
@@ -439,9 +558,12 @@ export default function TournamentModal({
           onAssignPlayer={handleAssignPlayer}
           onCreateTournament={handleCreateTournament}
           activeTournament={activeTournament}
-          onCancelCreating={() => setForceCreating(false)}
+          hasPausedOrHistory={hasPausedOrHistory}
+          onCancelCreating={() => setRequestedView(activeTournament ? 'detail' : 'hub')}
         />
-      ) : viewingHistoricalTournament ? (
+      )}
+
+      {effectiveView === 'historical' && viewingHistoricalTournament && (
         <div className="flex-1 flex flex-col min-h-0 my-3">
           <TournamentStandingsTab
             tournament={viewingHistoricalTournament}
@@ -449,8 +571,58 @@ export default function TournamentModal({
             onGoToSchedule={null}
           />
         </div>
-      ) : (
+      )}
+
+      {effectiveView === 'hub' && (
+        <div className="flex-1 overflow-y-auto pr-0.5">
+          <TournamentHub
+            activeTournament={activeTournament}
+            pausedTournaments={pausedTournaments}
+            tournamentsHistory={tournamentsHistory}
+            onOpenActiveTournament={() => setRequestedView('detail')}
+            onStartNewTournament={() => setRequestedView('create')}
+            onRequestPauseTournament={(t) => setPauseModalState({ isOpen: true, tournament: t, mode: 'pause' })}
+            onEditPausedMetadata={(t) => setPauseModalState({ isOpen: true, tournament: t, mode: 'edit' })}
+            onResumeTournament={handleResumeAndOpen}
+            onDeletePausedTournament={handleDeletePausedWithConfirm}
+            onFinishTournament={handleFinishAndCelebrate}
+            onViewHistoricalStandings={(t) => setViewingHistoricalTournament(t)}
+            onDeleteHistoricalTournament={handleDeleteHistoricalTournament}
+          />
+        </div>
+      )}
+
+      {effectiveView === 'detail' && activeTournament && (
         <div className="flex-1 flex flex-col min-h-0">
+          {/* STRIP AVANZAMENTO COMPATTA */}
+          {activeProgress && (
+            <div className="mt-3 px-3.5 py-2.5 rounded-xl club-inset flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="font-mono-num text-white font-semibold">
+                Giornata {activeProgress.currentRoundNumber} di {activeProgress.totalRounds}
+                <span className="club-text-subtle"> · </span>
+                <span className="club-text-gold">
+                  {activeProgress.completedMatches}/{activeProgress.totalMatches} incontri ({activeProgress.percentComplete}%)
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="club-text-muted font-mono-num">
+                  {activeProgress.remainingMatches > 0
+                    ? `${activeProgress.remainingMatches} ${activeProgress.remainingMatches === 1 ? 'tavolo rimasto' : 'tavoli rimasti'}`
+                    : 'Tutti conclusi'}
+                </span>
+                {onPauseTournament && (
+                  <button
+                    type="button"
+                    onClick={() => setPauseModalState({ isOpen: true, tournament: activeTournament, mode: 'pause' })}
+                    className="sm:hidden club-text-gold font-bold underline cursor-pointer"
+                  >
+                    Pausa
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* BARRA TAB */}
           <div className="grid grid-cols-3 gap-1 p-1 rounded-xl club-tab-bar my-3 shrink-0">
             <button
@@ -521,8 +693,9 @@ export default function TournamentModal({
                 activeTournament={activeTournament}
                 teams={activeTournament?.teams || []}
                 onUpdateTeams={handleUpdateTeamsInTournament}
-                onFinishAndCelebrate={handleFinishAndCelebrate}
-                onStartNewTournament={() => setForceCreating(true)}
+                onPauseTournament={() => setPauseModalState({ isOpen: true, tournament: activeTournament, mode: 'pause' })}
+                onFinishAndCelebrate={() => handleFinishAndCelebrate(activeTournament.id)}
+                onStartNewTournament={() => setRequestedView('create')}
                 tournamentsHistory={tournamentsHistory}
                 onDeleteHistoricalTournament={handleDeleteHistoricalTournament}
                 onViewHistoricalStandings={(t) => setViewingHistoricalTournament(t)}
@@ -544,6 +717,14 @@ export default function TournamentModal({
         manualScore2={manualScore2}
         setManualScore2={setManualScore2}
         onSave={handleSaveManualMatchScore}
+      />
+
+      <PauseTournamentModal
+        isOpen={pauseModalState.isOpen}
+        tournament={pauseModalState.tournament}
+        mode={pauseModalState.mode}
+        onClose={() => setPauseModalState({ isOpen: false, tournament: null, mode: 'pause' })}
+        onConfirm={handleConfirmPauseModal}
       />
     </div>
   );

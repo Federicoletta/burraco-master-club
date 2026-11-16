@@ -33,7 +33,7 @@
     },
     "Tournament": {
       "title": "Burraco Tournament",
-      "description": "FIBUR or classic Burraco tournament bracket and schedule.",
+      "description": "FIBUR or classic Burraco tournament bracket and schedule with pause/resume support.",
       "type": "object",
       "properties": {
         "id": { "type": "string", "description": "Unique tournament ID." },
@@ -42,7 +42,11 @@
         "scoringSystem": { "type": "string", "enum": ["fibur", "classic"], "description": "Tournament ranking formula." },
         "teams": { "type": "array", "description": "Enrolled teams." },
         "rounds": { "type": "array", "description": "Scheduled rounds and matches." },
-        "status": { "type": "string", "enum": ["in_progress", "completed"], "description": "Current tournament status." },
+        "status": { "type": "string", "enum": ["in_progress", "paused", "completed"], "description": "Current tournament status." },
+        "pausedAt": { "type": "string", "format": "date-time", "description": "Timestamp when the tournament was paused." },
+        "resumeDate": { "type": "string", "maxLength": 25, "description": "Optional planned resume date (YYYY-MM-DD)." },
+        "resumeNote": { "type": "string", "maxLength": 240, "description": "Optional organizer reminder note for resuming." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last modification timestamp." },
         "ownerUid": { "type": "string", "description": "Organizer Firebase Auth UID." }
       },
       "required": ["id", "name", "teams", "rounds", "status"]

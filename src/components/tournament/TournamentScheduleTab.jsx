@@ -17,12 +17,31 @@ export default function TournamentScheduleTab({
 
   const teams = useMemo(() => tournament?.teams || [], [tournament?.teams]);
 
-  const { totalMatches, completedMatches, percentComplete } = useMemo(() => {
+  const {
+    totalMatches,
+    completedMatches,
+    remainingMatches,
+    percentComplete,
+    totalRounds,
+    completedRounds,
+  } = useMemo(() => {
     const all = rounds.flatMap(r => r.matches || []);
     const completed = all.filter(m => m.status === 'completed').length;
     const total = all.length;
+    const remaining = Math.max(0, total - completed);
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { totalMatches: total, completedMatches: completed, percentComplete: percent };
+    const doneRounds = rounds.filter(r => {
+      const ms = r.matches || [];
+      return ms.length > 0 && ms.every(m => m.status === 'completed');
+    }).length;
+    return {
+      totalMatches: total,
+      completedMatches: completed,
+      remainingMatches: remaining,
+      percentComplete: percent,
+      totalRounds: rounds.length,
+      completedRounds: doneRounds,
+    };
   }, [rounds]);
 
   const filteredRounds = useMemo(() => {
@@ -63,12 +82,21 @@ export default function TournamentScheduleTab({
       {/* AVANZAMENTO & CONDIVISIONE */}
       <div className="p-3.5 rounded-2xl club-inset space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-xs sm:text-sm font-semibold text-white">
-            Avanzamento:{' '}
-            <strong className="font-mono-num club-text-gold">
-              {completedMatches}/{totalMatches}
-            </strong>{' '}
-            incontri ({percentComplete}%)
+          <div>
+            <div className="text-xs sm:text-sm font-semibold text-white">
+              Avanzamento:{' '}
+              <strong className="font-mono-num club-text-gold">
+                {completedMatches}/{totalMatches}
+              </strong>{' '}
+              incontri ({percentComplete}%)
+            </div>
+            <div className="text-[11px] club-text-muted font-mono-num mt-0.5">
+              {completedRounds}/{totalRounds} giornate concluse
+              <span aria-hidden="true"> · </span>
+              {remainingMatches > 0
+                ? `${remainingMatches} ${remainingMatches === 1 ? 'tavolo da completare' : 'tavoli da completare'}`
+                : 'Tutti i tavoli completati'}
+            </div>
           </div>
 
           <button
@@ -156,13 +184,29 @@ export default function TournamentScheduleTab({
             )}
           </div>
         ) : (
-          filteredRounds.map(round => (
+          filteredRounds.map(round => {
+            const roundDone = round.matches.filter(m => m.status === 'completed').length;
+            const roundTotal = round.matches.length;
+            const roundRem = Math.max(0, roundTotal - roundDone);
+            const roundPct = roundTotal > 0 ? Math.round((roundDone / roundTotal) * 100) : 0;
+
+            return (
             <div key={round.roundNumber} className="rounded-2xl club-inset overflow-hidden">
-              <div className="px-4 py-2.5 bg-black/25 border-b club-divider flex items-center justify-between text-xs font-bold">
-                <span className="club-text-gold">{round.title}</span>
-                <span className="font-mono-num club-text-subtle font-medium">
-                  {round.matches.filter(m => m.status === 'completed').length} / {round.matches.length} conclusi
-                </span>
+              <div className="px-4 py-2.5 bg-black/25 border-b club-divider space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold gap-2">
+                  <span className="club-text-gold">{round.title}</span>
+                  <span className={`font-mono-num font-medium ${roundRem === 0 ? 'text-emerald-300' : 'club-text-subtle'}`}>
+                    {roundRem === 0
+                      ? `Completata (${roundDone}/${roundTotal})`
+                      : `${roundDone}/${roundTotal} · ${roundRem} ${roundRem === 1 ? 'tavolo rimasto' : 'tavoli rimasti'}`}
+                  </span>
+                </div>
+                <div className="w-full bg-black/35 rounded-full h-1 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${roundRem === 0 ? 'bg-emerald-400' : 'bg-amber-400'}`}
+                    style={{ width: `${roundPct}%` }}
+                  />
+                </div>
               </div>
 
               <div className="p-3 divide-y club-divider space-y-3">
@@ -282,7 +326,8 @@ export default function TournamentScheduleTab({
                 })}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
