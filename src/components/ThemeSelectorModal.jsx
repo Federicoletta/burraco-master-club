@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Check, Sparkles, Palette } from 'lucide-react';
+import { X, Check, Palette } from 'lucide-react';
 import { THEMES, getStoredTheme, applyTheme } from '../utils/theme';
 import { sound } from '../utils/soundEffects';
 import { useModalEscape } from '../hooks/useModalEscape';
@@ -30,30 +30,30 @@ export default function ThemeSelectorModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Panno del tavolo"
     >
-      
-      {/* Backdrop click to close */}
       <div className="fixed inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-lg felt-card rounded-3xl border border-amber-500/40 p-5 sm:p-6 my-4 shadow-2xl z-10 space-y-5">
-        
+      <div className="relative w-full max-w-lg club-card-solid rounded-t-3xl sm:rounded-3xl max-h-[90dvh] flex flex-col overflow-hidden z-10 club-sheet-enter">
+        <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
+          <span className="w-10 h-1 rounded-full bg-white/25" />
+        </div>
+
         {/* Header Modale */}
-        <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center justify-center shrink-0 shadow-sm">
-              <Palette className="w-5 h-5 text-amber-300" />
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b club-divider flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
+              <Palette className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+            <div className="min-w-0">
+              <h2 className="font-display text-lg sm:text-xl font-bold text-white m-0 truncate">
                 Panno del Tavolo
-                <Sparkles className="w-4 h-4 text-amber-400" />
               </h2>
-              <p className="text-xs text-emerald-300/80 font-normal">
-                Scegli il feltro e l'atmosfera per le tue partite
+              <p className="text-xs club-text-subtle m-0 truncate">
+                Scegli il feltro e l&apos;atmosfera del club
               </p>
             </div>
           </div>
@@ -61,15 +61,16 @@ export default function ThemeSelectorModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-emerald-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+            className="w-11 h-11 rounded-xl club-btn-secondary flex items-center justify-center cursor-pointer shrink-0"
             title="Chiudi"
+            aria-label="Chiudi selezione tema"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Griglia Selezione Temi */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
           {THEMES.map((theme) => {
             const isActive = activeTheme === theme.id;
             return (
@@ -77,41 +78,39 @@ export default function ThemeSelectorModal({
                 key={theme.id}
                 type="button"
                 onClick={() => handleSelect(theme.id)}
-                className={`relative p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between overflow-hidden group active:scale-[0.98] ${
+                className={`relative p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between active:scale-[0.98] ${
                   isActive
-                    ? 'border-amber-400 ring-2 ring-amber-400/30 shadow-lg shadow-black/40 bg-white/10'
-                    : 'border-white/10 hover:border-white/25 bg-black/30 hover:bg-black/40'
+                    ? 'club-card border-[var(--accent-gold)] ring-2 ring-[var(--accent-ring)]'
+                    : 'club-inset border-[var(--border-subtle)] hover:border-[var(--border-hairline)]'
                 }`}
               >
-                {/* Anteprima Panno con Sfumatura e Texture */}
-                <div className={`w-full h-18 rounded-xl bg-gradient-to-br ${theme.previewBg} p-2 flex items-center justify-between border border-white/10 shadow-inner mb-3`}>
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-black/40 backdrop-blur-xs text-[11px] font-bold text-white border border-white/10">
-                    <span className="text-amber-400 font-serif text-sm">{theme.primarySuit}</span>
+                <div className={`w-full h-18 rounded-xl bg-gradient-to-br ${theme.previewBg} p-2.5 flex items-center justify-between border border-white/15 shadow-inner mb-3`}>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/45 text-xs font-bold text-white border border-white/15">
+                    <span className="text-amber-300 font-display text-sm">{theme.primarySuit}</span>
                     <span>{theme.name.split(' ')[0]}</span>
                   </div>
 
                   {isActive ? (
-                    <div className="w-6 h-6 rounded-full bg-amber-400 text-emerald-950 flex items-center justify-center shadow-md animate-in zoom-in-75 duration-200">
+                    <div className="w-6 h-6 rounded-full gold-gradient flex items-center justify-center shadow">
                       <Check className="w-3.5 h-3.5 stroke-[3]" />
                     </div>
                   ) : (
-                    <div className="w-5 h-5 rounded-full border border-white/30 group-hover:border-white/60 transition-colors" />
+                    <div className="w-5 h-5 rounded-full border border-white/35" />
                   )}
                 </div>
 
-                {/* Info Tema */}
                 <div>
                   <div className="flex items-center justify-between gap-1 mb-0.5">
-                    <span className="text-xs font-bold text-white group-hover:text-amber-200 transition-colors">
+                    <span className="text-sm font-bold text-white">
                       {theme.name}
                     </span>
                     {isActive && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black bg-amber-400/20 text-amber-300 border border-amber-400/30 uppercase">
+                      <span className="text-[10px] font-extrabold club-text-gold uppercase tracking-wider">
                         Attivo
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-white/60 line-clamp-2">
+                  <p className="text-xs club-text-subtle line-clamp-2 m-0">
                     {theme.description}
                   </p>
                 </div>
@@ -121,19 +120,18 @@ export default function ThemeSelectorModal({
         </div>
 
         {/* Footer */}
-        <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-          <span className="text-[11px] text-white/50">
-            Il tema viene salvato automaticamente per le prossime partite.
+        <div className="px-4 sm:px-6 py-3.5 border-t club-divider flex items-center justify-between gap-3 shrink-0">
+          <span className="text-xs club-text-subtle">
+            Salvato per le prossime partite
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl gold-gradient text-emerald-950 font-bold text-xs shadow-md shadow-amber-900/30 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+            className="min-h-[42px] px-5 rounded-xl gold-gradient font-bold text-xs active:scale-95 transition-all cursor-pointer"
           >
             Fatto
           </button>
         </div>
-
       </div>
     </div>,
     document.body

@@ -13,10 +13,12 @@ import {
   respondToGameInvite,
   subscribeToMyNotifications,
   subscribeToMyFriends,
+  subscribeToFriendsPresence,
   subscribeToClubUsers,
   removeFriend,
   toggleCloseFriend,
-  subscribeToMyProfile
+  subscribeToMyProfile,
+  getFriendOnlineStatus
 } from '../services/social';
 import { sound } from '../utils/soundEffects';
 
@@ -24,6 +26,7 @@ export function useSocialClub() {
   const customAlert = useAlert();
   const [currentUser, setCurrentUser] = useState(null);
   const [rawFriendsList, setRawFriendsList] = useState([]);
+  const [liveFriendProfiles, setLiveFriendProfiles] = useState({});
   const [closeFriends, setCloseFriends] = useState([]);
   const [clubUsers, setClubUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -54,6 +57,7 @@ export function useSocialClub() {
       if (!user) {
         setNotifications([]);
         setRawFriendsList([]);
+        setLiveFriendProfiles({});
         setCloseFriends([]);
         setClubUsers([]);
         setToastNotification(null);
@@ -108,19 +112,29 @@ export function useSocialClub() {
     };
   }, [currentUid, currentEmail]);
 
-  // Arricchisce gli amici con il flag isCloseFriend e ordina prima gli Amici Stretti in cima
+  const friendUidsKey = useMemo(
+    () => (rawFriendsList || []).map(f => f?.uid).filter(Boolean).sort().join(','),
+    [rawFriendsList]
+  );
+
+  // Arricchisce gli amici con il flag isCloseFriend, presenza live (se profilo aperto) e ordina gli Amici Stretti in cima
   const friendsList = useMemo(() => {
-    return (rawFriendsList || []).map(f => ({
-      ...f,
-      isCloseFriend: closeFriends.includes(f.uid)
-    })).sort((a, b) => {
+    return (rawFriendsList || []).map(f => {
+      const liveProfile = isProfileOpen && f?.uid ? liveFriendProfiles[f.uid] : null;
+      const merged = liveProfile ? { ...f, ...liveProfile } : f;
+      return {
+        ...merged,
+        isOnline: getFriendOnlineStatus(merged?.lastSeen).isOnline,
+        isCloseFriend: closeFriends.includes(merged.uid)
+      };
+    }).sort((a, b) => {
       if (a.isCloseFriend && !b.isCloseFriend) return -1;
       if (!a.isCloseFriend && b.isCloseFriend) return 1;
       return (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '');
     });
-  }, [rawFriendsList, closeFriends]);
+  }, [rawFriendsList, liveFriendProfiles, isProfileOpen, closeFriends]);
 
-  // 3. Ascolto soci e membri club su richiesta (solo ad apertura profilo per risparmio letture DB)
+  // 3. Ascolto soci, membri club e presenza live amici su richiesta (solo ad apertura profilo per risparmio letture DB)
   useEffect(() => {
     if (!currentUid || !isProfileOpen) {
       return;
@@ -128,8 +142,15 @@ export function useSocialClub() {
     const unsubClub = subscribeToClubUsers({ uid: currentUid }, (cUsers) => {
       setClubUsers(cUsers);
     });
-    return () => unsubClub();
-  }, [currentUid, isProfileOpen]);
+    const friendUids = friendUidsKey ? friendUidsKey.split(',').filter(Boolean) : [];
+    const unsubPresence = subscribeToFriendsPresence(friendUids, (profilesMap) => {
+      setLiveFriendProfiles(profilesMap);
+    });
+    return () => {
+      unsubClub();
+      unsubPresence();
+    };
+  }, [currentUid, isProfileOpen, friendUidsKey]);
 
   // Login
   const handleLogin = useCallback(async () => {

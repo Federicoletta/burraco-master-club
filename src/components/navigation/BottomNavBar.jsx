@@ -1,14 +1,13 @@
 import React from 'react';
-import { 
-  Users, 
-  Trophy, 
-  History, 
+import {
+  Users,
+  Trophy,
+  History,
   User
 } from 'lucide-react';
 
 /**
- * BottomNavBar - Dock di navigazione inferiore moderno, flottante ad effetto vetro (Glassmorphism)
- * Ottimizzato sia per mobile con una mano sia per tablet/iPad.
+ * BottomNavBar - Dock di navigazione inferiore ergonomico, adattivo su tutti i 4 panni
  */
 export default function BottomNavBar({
   activeTab = 'table',
@@ -24,54 +23,45 @@ export default function BottomNavBar({
       id: 'table',
       label: hasActiveGame ? 'Partita' : 'Tavolo',
       icon: Users,
-      badge: hasActiveGame ? (
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ring-2 ring-emerald-950" />
-      ) : null
+      indicator: hasActiveGame ? 'emerald' : null
     },
     {
       id: 'tournament',
       label: 'Torneo',
       icon: Trophy,
-      badge: hasActiveTournament ? (
-        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse ring-2 ring-emerald-950" />
-      ) : null
+      indicator: hasActiveTournament ? 'gold' : null
     },
     {
       id: 'history',
       label: 'Storico',
       icon: History,
-      badge: null
+      indicator: null
     },
     {
       id: 'profile',
       label: currentUser ? (currentUser.displayName?.split(' ')[0] || 'Profilo') : 'Accedi',
       icon: User,
       customAvatar: currentUser?.photoURL ? (
-        <img 
-          src={currentUser.photoURL} 
-          alt={currentUser.displayName || 'Avatar'} 
-          className="w-5 h-5 rounded-full object-cover border border-amber-400 shrink-0" 
+        <img
+          src={currentUser.photoURL}
+          alt={currentUser.displayName || 'Avatar'}
+          className="w-5 h-5 rounded-full object-cover border border-amber-400/80 shrink-0"
         />
       ) : null,
-      badge: notificationCount > 0 ? (
-        <span className="min-w-[15px] h-[15px] px-1 rounded-full bg-amber-400 text-emerald-950 text-[9px] font-black flex items-center justify-center border border-emerald-950">
-          {notificationCount}
-        </span>
-      ) : onlineFriendsCount > 0 ? (
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ring-2 ring-emerald-950" />
-      ) : null
+      countBadge: notificationCount > 0 ? notificationCount : null,
+      indicator: notificationCount === 0 && onlineFriendsCount > 0 ? 'emerald' : null
     }
   ];
 
   return (
-    <nav 
+    <nav
       aria-label="Navigazione Principale"
-      className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.25rem)] max-w-md sm:max-w-lg select-none pointer-events-auto"
+      className="fixed left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.25rem)] max-w-md sm:max-w-lg select-none pointer-events-auto"
       style={{
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)'
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.65rem)'
       }}
     >
-      <div className="p-1.5 sm:p-2 rounded-2xl bg-emerald-950/90 backdrop-blur-xl border border-emerald-500/40 shadow-2xl shadow-emerald-950/80 flex items-center justify-around gap-1">
+      <div className="p-1.5 rounded-2xl club-dock flex items-center justify-around gap-1">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const IconComponent = tab.icon;
@@ -81,29 +71,36 @@ export default function BottomNavBar({
               key={tab.id}
               type="button"
               onClick={() => onSelectTab && onSelectTab(tab.id)}
-              className={`relative flex-1 py-1.5 sm:py-2 px-2 rounded-xl transition-all duration-150 flex flex-col items-center justify-center gap-0.5 cursor-pointer touch-manipulation ${
+              className={`relative flex-1 min-h-[46px] py-1.5 px-2 rounded-xl transition-all duration-150 flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
                 isActive
-                  ? 'gold-gradient text-emerald-950 font-black shadow-md shadow-amber-400/25 scale-[1.02]'
-                  : 'text-emerald-300/75 hover:text-white hover:bg-emerald-900/50 active:scale-95'
+                  ? 'gold-gradient font-bold shadow-sm'
+                  : 'club-text-muted hover:text-white hover:bg-white/5 active:scale-95'
               }`}
             >
               <div className="relative flex items-center justify-center">
                 {tab.customAvatar && !isActive ? (
                   tab.customAvatar
                 ) : (
-                  <IconComponent className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                  <IconComponent className={`w-[18px] h-[18px] sm:w-5 sm:h-5 ${isActive ? 'stroke-[2.4px]' : 'stroke-[1.9px]'}`} />
                 )}
 
-                {/* Badge di notifica o stato attivo */}
-                {tab.badge && (
-                  <span className="absolute -top-1 -right-2">
-                    {tab.badge}
+                {tab.countBadge && (
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] px-1 rounded-full bg-amber-400 text-slate-950 text-[10px] font-extrabold tabular-nums flex items-center justify-center shadow-sm">
+                    {tab.countBadge}
                   </span>
+                )}
+
+                {!tab.countBadge && tab.indicator && !isActive && (
+                  <span
+                    className={`absolute -top-0.5 -right-1.5 w-2 h-2 rounded-full ring-2 ring-black/40 ${
+                      tab.indicator === 'gold' ? 'bg-amber-400' : 'bg-emerald-400'
+                    }`}
+                  />
                 )}
               </div>
 
-              <span className={`text-[10px] sm:text-[11px] truncate leading-tight tracking-wide ${
-                isActive ? 'font-black' : 'font-medium'
+              <span className={`text-[11px] truncate leading-tight tracking-tight ${
+                isActive ? 'font-bold' : 'font-medium'
               }`}>
                 {tab.label}
               </span>

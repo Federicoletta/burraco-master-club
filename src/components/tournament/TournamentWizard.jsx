@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Users, Sparkles, Award, Dices, Wand2, Trash2, ArrowLeftRight, Check } from 'lucide-react';
+import { Users, Award, Dices, Wand2, Trash2, ArrowLeftRight, Check, Sparkles } from 'lucide-react';
 import { DEFAULT_TARGET_SCORES } from '../../constants/burraco';
 import PlayerAutocompleteInput from '../PlayerAutocompleteInput';
 import { sound } from '../../utils/soundEffects';
@@ -24,7 +24,6 @@ export default function TournamentWizard({
   activeTournament,
   onCancelCreating
 }) {
-  // Elenco normalizzato di tutti i giocatori attualmente inseriti per evitare duplicati
   const allAssignedPlayers = useMemo(() => {
     const list = [];
     (teamsForm || []).forEach(t => {
@@ -34,7 +33,6 @@ export default function TournamentWizard({
     return list;
   }, [teamsForm]);
 
-  // Gestione modifica giocatore con auto-aggiornamento intelligente del nome della coppia
   const handlePlayerChange = (teamIdx, slot, newName) => {
     setTeamsForm(prev => {
       return prev.map((item, i) => {
@@ -48,9 +46,8 @@ export default function TournamentWizard({
         const oldP2 = (item.player2 || '').trim();
         const oldCombined = [oldP1, oldP2].filter(Boolean).join(' & ');
 
-        // Se il nome era generico (Coppia X, vuoto o derivato dai vecchi nomi), lo sincronizziamo
-        const isDefault = !item.name || 
-          item.name.startsWith('Coppia ') || 
+        const isDefault = !item.name ||
+          item.name.startsWith('Coppia ') ||
           (oldCombined && item.name === oldCombined) ||
           item.name === oldP1 ||
           item.name === oldP2;
@@ -63,7 +60,6 @@ export default function TournamentWizard({
     });
   };
 
-  // Inverti Giocatore 1 e Giocatore 2 all'interno della stessa coppia
   const handleSwapPlayers = (teamIdx) => {
     setTeamsForm(prev => {
       return prev.map((item, i) => {
@@ -81,12 +77,9 @@ export default function TournamentWizard({
     sound.playTap();
   };
 
-  // 🎲 Sorteggia Coppie a Caso (Randomizer)
   const handleShufflePairs = () => {
-    // Raccogli tutti i giocatori attualmente inseriti
     let pool = [...allAssignedPlayers];
 
-    // Se sono meno dei necessari per riempire le coppie, attingi dagli amici e dai partecipanti recenti
     if (pool.length < numTeams * 2) {
       const candidates = [];
       if (currentUser) {
@@ -100,16 +93,12 @@ export default function TournamentWizard({
         }
       });
 
-      // Aggiungi candidati fino a riempire gli slot
       const needed = (numTeams * 2) - pool.length;
       pool = [...pool, ...candidates.slice(0, needed)];
     }
 
-    if (pool.length < 2) {
-      return;
-    }
+    if (pool.length < 2) return;
 
-    // Fisher-Yates shuffle
     const shuffled = [...pool];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -134,7 +123,6 @@ export default function TournamentWizard({
     sound.playCardFlip();
   };
 
-  // ✨ Auto-nomina tutte le coppie secondo i nomi dei componenti
   const handleAutoNameAll = () => {
     setTeamsForm(prev => {
       return prev.map((t, i) => {
@@ -150,7 +138,6 @@ export default function TournamentWizard({
     sound.playTap();
   };
 
-  // 🧹 Pulisci tutte le formazioni
   const handleClearAllPlayers = () => {
     setTeamsForm(prev => {
       return prev.map((t, i) => ({
@@ -164,12 +151,11 @@ export default function TournamentWizard({
   };
 
   return (
-    <form onSubmit={onCreateTournament} className="overflow-y-auto pr-1 my-3 space-y-4 flex-1">
-      
-      {/* 1. NOME TORNEO & TRAGUARDO PARTITE */}
+    <form onSubmit={onCreateTournament} className="overflow-y-auto pr-0.5 my-3 space-y-4 flex-1">
+      {/* NOME TORNEO & TRAGUARDO */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-bold text-amber-300 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold club-text-gold uppercase tracking-wider mb-1.5">
             Nome Torneo
           </label>
           <input
@@ -178,18 +164,18 @@ export default function TournamentWizard({
             value={tournamentName}
             onChange={(e) => setTournamentName(e.target.value)}
             placeholder="Es: Torneo d'Autunno"
-            className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/15 text-white text-xs sm:text-sm font-semibold focus:outline-none focus:border-amber-400"
+            className="w-full min-h-[44px] px-3.5 py-2 rounded-xl club-input text-sm font-semibold"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-amber-300 uppercase tracking-wider mb-1">
-            Traguardo Punti Partite
+          <label className="block text-xs font-bold club-text-gold uppercase tracking-wider mb-1.5">
+            Traguardo Partite
           </label>
           <select
             value={targetScore}
             onChange={(e) => setTargetScore(Number(e.target.value))}
-            className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/15 text-white text-xs sm:text-sm font-semibold focus:outline-none focus:border-amber-400 cursor-pointer"
+            className="w-full min-h-[44px] px-3.5 py-2 rounded-xl club-input text-sm font-semibold cursor-pointer"
           >
             {DEFAULT_TARGET_SCORES.map(s => (
               <option key={s.value} value={s.value} className="bg-zinc-900 text-white">
@@ -200,66 +186,58 @@ export default function TournamentWizard({
         </div>
       </div>
 
-      {/* 2. FORMULA E SISTEMA PUNTEGGIO (FIBUR VICTORY POINTS VS CLASSICO) */}
-      <div className="p-3 rounded-2xl felt-card border border-amber-500/30 space-y-2">
-        <label className="block text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-          <Award className="w-4 h-4 text-amber-400" />
-          <span>Sistema di Punteggio & Formula di Calcolo</span>
-        </label>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {/* Opzione 1: FIBUR Ufficiale Victory Points */}
+      {/* SISTEMA PUNTEGGIO */}
+      <div className="p-3.5 rounded-2xl club-inset space-y-2.5">
+        <div className="text-xs font-bold club-text-gold uppercase tracking-wider flex items-center gap-1.5">
+          <Award className="w-4 h-4" />
+          <span>Sistema di Punteggio</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <button
             type="button"
             onClick={() => setScoringSystem && setScoringSystem('fibur')}
-            className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+            className={`min-h-[64px] p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
               scoringSystem === 'fibur'
-                ? 'bg-amber-400/20 border-amber-400 ring-2 ring-amber-400/30 shadow-md'
-                : 'bg-black/25 border-white/10 hover:border-white/30'
+                ? 'club-card border-amber-400/75 ring-1 ring-amber-400/30'
+                : 'border-white/10 hover:border-white/25'
             }`}
           >
-            <div className="flex items-center justify-between gap-1 mb-1">
-              <span className="text-xs font-black text-white flex items-center gap-1.5">
-                <span>🥇 FIBUR Victory Points (20-0)</span>
-              </span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black bg-amber-400 text-emerald-950 uppercase">
-                Ufficiale
-              </span>
+            <div className="flex items-baseline justify-between gap-2 mb-1">
+              <span className="text-xs sm:text-sm font-bold text-white">FIBUR Victory Points (20-0)</span>
+              <span className="text-[11px] font-bold club-text-gold shrink-0">Ufficiale</span>
             </div>
-            <p className="text-[11px] text-white/70 m-0">
-              Conversione dello scarto punti in VP da 10-10 a 20-0 secondo la scala federale nazionale FIBUR.
+            <p className="text-xs club-text-subtle m-0">
+              Converte lo scarto punti in VP federali da 10-10 a 20-0.
             </p>
           </button>
 
-          {/* Opzione 2: Classico (3-1-0) */}
           <button
             type="button"
             onClick={() => setScoringSystem && setScoringSystem('classic')}
-            className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+            className={`min-h-[64px] p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
               scoringSystem === 'classic'
-                ? 'bg-amber-400/20 border-amber-400 ring-2 ring-amber-400/30 shadow-md'
-                : 'bg-black/25 border-white/10 hover:border-white/30'
+                ? 'club-card border-amber-400/75 ring-1 ring-amber-400/30'
+                : 'border-white/10 hover:border-white/25'
             }`}
           >
-            <div className="flex items-center justify-between gap-1 mb-1">
-              <span className="text-xs font-black text-white">
-                ⚽ Classico (3 pt Vittoria, 1 pt Pareggio)
-              </span>
+            <div className="text-xs sm:text-sm font-bold text-white mb-1">
+              Classico (3-1-0)
             </div>
-            <p className="text-[11px] text-white/70 m-0">
-              3 punti a chi vince l'incontro, 1 punto per pareggio, 0 per sconfitta.
+            <p className="text-xs club-text-subtle m-0">
+              3 punti per vittoria, 1 per pareggio, 0 per sconfitta.
             </p>
           </button>
         </div>
       </div>
 
-      {/* 3. SELETTORE NUMERO COPPIE */}
+      {/* NUMERO COPPIE */}
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="text-xs font-bold text-white uppercase tracking-wider">
-            Numero di Coppie Partecipanti: <strong className="text-amber-400 text-sm">{numTeams}</strong>
-          </label>
-          <span className="text-[11px] text-white/70">Minimo 2, consigliato 4 o 6</span>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold text-white uppercase tracking-wider">
+            Coppie Partecipanti: <strong className="font-mono-num club-text-gold text-sm">{numTeams}</strong>
+          </span>
+          <span className="text-xs club-text-subtle">Consigliato 4 o 6</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {[2, 3, 4, 5, 6, 8, 10, 12].map(n => (
@@ -267,10 +245,10 @@ export default function TournamentWizard({
               key={n}
               type="button"
               onClick={() => onNumTeamsChange(n)}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              className={`min-h-[40px] px-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                 numTeams === n
-                  ? 'bg-amber-400 text-emerald-950 border-amber-300 shadow-md font-black'
-                  : 'bg-black/30 border-white/10 text-white/80 hover:bg-white/10'
+                  ? 'gold-gradient border-amber-300'
+                  : 'club-btn-secondary club-text-muted hover:text-white'
               }`}
             >
               {n} Coppie
@@ -279,172 +257,128 @@ export default function TournamentWizard({
         </div>
       </div>
 
-      {/* 4. RUBRICA AMICI ACCETTATI & PARTECIPANTI (Inserimento Rapido con un Tocco) */}
-      <div className="p-3 rounded-xl felt-card border border-white/10 space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-amber-400" />
-            <span>Inserimento Rapido con un Tocco</span>
-          </span>
-          <span className="text-[11px] font-bold text-amber-300 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
-            Slot attivo: Coppia #{activePlayerField.teamIndex + 1} (G{activePlayerField.playerSlot})
-          </span>
-        </div>
-
-        {/* Amici Burraco Club (Google) con Amicizia Accettata & Account Personale */}
-        {(currentUser || (friendsList && friendsList.length > 0)) && (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-amber-200 font-bold flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" />
-                <span>Amici Burraco Club (Amicizie Accettate):</span>
-              </span>
-              <span className="text-[10px] text-white/60">
-                {(friendsList || []).length} amici disponibili
-              </span>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {/* Chip Utente Personale "Tu" */}
-              {currentUser && (() => {
-                const myName = (currentUser.displayName || currentUser.email?.split('@')[0] || 'Tu').trim();
-                const assignedTeamIdx = teamsForm.findIndex(
-                  t => (t.player1 || '').trim().toLowerCase() === myName.toLowerCase() ||
-                       (t.player2 || '').trim().toLowerCase() === myName.toLowerCase()
-                );
-                const isAssigned = assignedTeamIdx !== -1;
-
-                return (
-                  <button
-                    key="me-chip"
-                    type="button"
-                    onClick={() => onAssignPlayer(myName)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
-                      isAssigned
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400 ring-1 ring-emerald-400/30'
-                        : 'bg-emerald-950/80 hover:bg-emerald-900 text-white border-emerald-400/60 shadow-sm'
-                    }`}
-                    title={isAssigned ? `Assegnato a Coppia #${assignedTeamIdx + 1} (Tocca per rimuovere)` : `Inserisci ${myName}`}
-                  >
-                    {currentUser.photoURL ? (
-                      <img src={currentUser.photoURL} alt="" className="w-4 h-4 rounded-full border border-emerald-400 object-cover" />
-                    ) : (
-                      <span className="w-4 h-4 rounded-full bg-emerald-400 text-emerald-950 font-black text-[9px] flex items-center justify-center">
-                        {(currentUser.displayName || 'T').slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                    <span>{myName} (Tu)</span>
-                    {isAssigned ? (
-                      <span className="text-[10px] font-black text-emerald-400 flex items-center gap-0.5">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                        <span>#{assignedTeamIdx + 1}</span>
-                      </span>
-                    ) : (
-                      <span className="text-amber-400 text-xs font-black">+</span>
-                    )}
-                  </button>
-                );
-              })()}
-
-              {/* Chips Amici con Amicizia Accettata */}
-              {(friendsList || []).map(f => {
-                const friendName = (f.displayName || f.email || 'Amico').trim();
-                const assignedTeamIdx = teamsForm.findIndex(
-                  t => (t.player1 || '').trim().toLowerCase() === friendName.toLowerCase() ||
-                       (t.player2 || '').trim().toLowerCase() === friendName.toLowerCase()
-                );
-                const isAssigned = assignedTeamIdx !== -1;
-
-                return (
-                  <button
-                    key={f.uid || f.email || friendName}
-                    type="button"
-                    onClick={() => onAssignPlayer(friendName)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
-                      isAssigned
-                        ? 'bg-amber-400/20 text-amber-200 border-amber-400 ring-1 ring-amber-400/30'
-                        : 'bg-black/40 hover:bg-white/10 text-white border-white/20 hover:border-amber-400 shadow-sm'
-                    }`}
-                    title={isAssigned ? `Assegnato a Coppia #${assignedTeamIdx + 1} (Tocca per rimuovere)` : `Inserisci ${friendName}`}
-                  >
-                    {f.photoURL ? (
-                      <img src={f.photoURL} alt="" className="w-4 h-4 rounded-full border border-amber-400 object-cover" />
-                    ) : (
-                      <span className="w-4 h-4 rounded-full bg-amber-400 text-emerald-950 font-black text-[9px] flex items-center justify-center">
-                        {friendName.slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                    <span>{friendName}</span>
-                    {isAssigned ? (
-                      <span className="text-[10px] font-black text-amber-400 flex items-center gap-0.5">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                        <span>#{assignedTeamIdx + 1}</span>
-                      </span>
-                    ) : (
-                      <span className="text-amber-400 text-xs font-black">+</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+      {/* AMICI CON UN TOCCO */}
+      {(currentUser || (friendsList && friendsList.length > 0)) && (
+        <div className="p-3.5 rounded-2xl club-inset space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="font-bold club-text-gold flex items-center gap-1.5">
+              <Users className="w-4 h-4" />
+              <span>Assegna Amici con un Tocco</span>
+            </span>
+            <span className="text-[11px] font-semibold club-text-muted">
+              Slot: Coppia #{activePlayerField.teamIndex + 1} (G{activePlayerField.playerSlot})
+            </span>
           </div>
-        )}
 
-      </div>
+          <div className="flex flex-wrap gap-1.5">
+            {currentUser && (() => {
+              const myName = (currentUser.displayName || currentUser.email?.split('@')[0] || 'Tu').trim();
+              const assignedTeamIdx = teamsForm.findIndex(
+                t => (t.player1 || '').trim().toLowerCase() === myName.toLowerCase() ||
+                     (t.player2 || '').trim().toLowerCase() === myName.toLowerCase()
+              );
+              const isAssigned = assignedTeamIdx !== -1;
 
-      {/* 5. CONFIGURAZIONE FORMAZIONI COPPIE */}
+              return (
+                <button
+                  key="me-chip"
+                  type="button"
+                  onClick={() => onAssignPlayer(myName)}
+                  className={`min-h-[38px] px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all cursor-pointer ${
+                    isAssigned
+                      ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60'
+                      : 'club-btn-secondary text-white'
+                  }`}
+                >
+                  <span>{myName} (Tu)</span>
+                  {isAssigned && (
+                    <span className="font-mono-num text-[11px] text-emerald-300 flex items-center gap-0.5">
+                      <Check className="w-3 h-3" />#{assignedTeamIdx + 1}
+                    </span>
+                  )}
+                </button>
+              );
+            })()}
+
+            {(friendsList || []).map(f => {
+              const friendName = (f.displayName || f.email || 'Amico').trim();
+              const assignedTeamIdx = teamsForm.findIndex(
+                t => (t.player1 || '').trim().toLowerCase() === friendName.toLowerCase() ||
+                     (t.player2 || '').trim().toLowerCase() === friendName.toLowerCase()
+              );
+              const isAssigned = assignedTeamIdx !== -1;
+
+              return (
+                <button
+                  key={f.uid || f.email || friendName}
+                  type="button"
+                  onClick={() => onAssignPlayer(friendName)}
+                  className={`min-h-[38px] px-3 py-1 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer ${
+                    isAssigned
+                      ? 'bg-amber-400/20 text-amber-200 border-amber-400/60'
+                      : 'club-btn-secondary club-text-muted hover:text-white'
+                  }`}
+                >
+                  <span>{friendName}</span>
+                  {isAssigned && (
+                    <span className="font-mono-num text-[11px] club-text-gold flex items-center gap-0.5">
+                      <Check className="w-3 h-3" />#{assignedTeamIdx + 1}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* COMPOSIZIONE COPPIE */}
       <div className="space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="block text-xs font-bold text-amber-300 uppercase tracking-wider">
-            Composizione delle Coppie ({teamsForm.length})
-          </label>
+          <span className="text-xs font-bold club-text-gold uppercase tracking-wider">
+            Formazioni ({teamsForm.length})
+          </span>
 
-          {/* Barra Strumenti Intelligenti */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <button
               type="button"
               onClick={handleShufflePairs}
-              className="px-2.5 py-1 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 shadow-xs"
-              title="Mischia a caso i partecipanti creando coppie a sorpresa"
+              className="min-h-[38px] px-3 rounded-xl club-btn-secondary club-text-gold text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
-              <Dices className="w-3.5 h-3.5 text-amber-400" />
-              <span>🎲 Sorteggia Coppie</span>
+              <Dices className="w-3.5 h-3.5" />
+              <span>Sorteggia</span>
             </button>
 
             <button
               type="button"
               onClick={handleAutoNameAll}
-              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer active:scale-95"
-              title="Rinomina tutte le coppie come 'Nome1 & Nome2'"
+              className="min-h-[38px] px-3 rounded-xl club-btn-secondary text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
             >
-              <Wand2 className="w-3.5 h-3.5 text-amber-400" />
+              <Wand2 className="w-3.5 h-3.5 club-text-gold" />
               <span>Auto-nomina</span>
             </button>
 
             <button
               type="button"
               onClick={handleClearAllPlayers}
-              className="px-2 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-400/30 text-red-300 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer active:scale-95"
-              title="Svuota tutti gli slot per reinserire da zero"
+              className="min-h-[38px] px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-rose-200 text-xs font-semibold flex items-center gap-1 cursor-pointer"
             >
-              <Trash2 className="w-3 h-3 text-red-400" />
+              <Trash2 className="w-3.5 h-3.5" />
               <span>Svuota</span>
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[42vh] overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[42vh] overflow-y-auto pr-0.5">
           {teamsForm.map((team, idx) => {
             const isP1Active = activePlayerField.teamIndex === idx && activePlayerField.playerSlot === 1;
             const isP2Active = activePlayerField.teamIndex === idx && activePlayerField.playerSlot === 2;
 
             return (
-              <div key={team.id} className="p-3 rounded-xl felt-card border border-white/10 space-y-2.5 shadow-sm">
-                
-                {/* Nome Coppia */}
+              <div key={team.id} className="p-3 rounded-2xl club-inset space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-black text-amber-300 flex items-center gap-1 shrink-0">
-                    <Users className="w-3.5 h-3.5" /> Coppia #{idx + 1}
+                  <span className="text-xs font-bold club-text-gold shrink-0">
+                    Coppia #{idx + 1}
                   </span>
                   <input
                     type="text"
@@ -454,97 +388,76 @@ export default function TournamentWizard({
                       const val = e.target.value;
                       setTeamsForm(prev => prev.map((item, i) => i === idx ? { ...item, name: val } : item));
                     }}
-                    className="px-2.5 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-white font-bold w-full text-right focus:outline-none focus:border-amber-400 transition-colors"
+                    className="px-2.5 py-1.5 rounded-lg club-input text-xs font-bold w-full text-right"
                   />
                 </div>
 
-                {/* Giocatori con Autocompletamento e Tasto Scambio Ruoli */}
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
-                  {/* Giocatore 1 */}
-                  <div className="relative">
-                    <PlayerAutocompleteInput
-                      value={team.player1 || ''}
-                      onChange={(val) => handlePlayerChange(idx, 1, val)}
-                      placeholder="Giocatore 1"
-                      currentUser={currentUser}
-                      friendsList={friendsList}
-                      alreadySelected={allAssignedPlayers}
-                      onFocus={() => setActivePlayerField({ teamIndex: idx, playerSlot: 1 })}
-                      className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white focus:outline-none transition-all ${
-                        isP1Active
-                          ? 'bg-amber-400/20 border-2 border-amber-400 ring-2 ring-amber-400/30'
-                          : 'bg-black/30 border border-white/15'
-                      }`}
-                    />
-                    {isP1Active && (
-                      <span className="absolute -top-1 -right-1 flex h-2 w-2 pointer-events-none">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
-                      </span>
-                    )}
-                  </div>
+                  <PlayerAutocompleteInput
+                    value={team.player1 || ''}
+                    onChange={(val) => handlePlayerChange(idx, 1, val)}
+                    placeholder="Giocatore 1"
+                    currentUser={currentUser}
+                    friendsList={friendsList}
+                    alreadySelected={allAssignedPlayers}
+                    onFocus={() => setActivePlayerField({ teamIndex: idx, playerSlot: 1 })}
+                    className={`w-full min-h-[40px] px-2.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-all ${
+                      isP1Active
+                        ? 'club-card border-amber-400 ring-1 ring-amber-400/40'
+                        : 'club-input'
+                    }`}
+                  />
 
-                  {/* Pulsante Inverti Posizione */}
                   <button
                     type="button"
                     onClick={() => handleSwapPlayers(idx)}
-                    className="p-1 rounded-md bg-white/5 hover:bg-white/15 text-white/70 hover:text-amber-300 transition-colors cursor-pointer border border-white/10"
+                    className="min-w-[36px] min-h-[36px] rounded-xl club-btn-secondary flex items-center justify-center club-text-muted hover:text-amber-300 cursor-pointer"
+                    aria-label="Inverti giocatori"
                     title="Inverti Giocatore 1 e 2"
                   >
-                    <ArrowLeftRight className="w-3 h-3" />
+                    <ArrowLeftRight className="w-3.5 h-3.5" />
                   </button>
 
-                  {/* Giocatore 2 */}
-                  <div className="relative">
-                    <PlayerAutocompleteInput
-                      value={team.player2 || ''}
-                      onChange={(val) => handlePlayerChange(idx, 2, val)}
-                      placeholder="Giocatore 2"
-                      currentUser={currentUser}
-                      friendsList={friendsList}
-                      alreadySelected={allAssignedPlayers}
-                      onFocus={() => setActivePlayerField({ teamIndex: idx, playerSlot: 2 })}
-                      className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white focus:outline-none transition-all ${
-                        isP2Active
-                          ? 'bg-amber-400/20 border-2 border-amber-400 ring-2 ring-amber-400/30'
-                          : 'bg-black/30 border border-white/15'
-                      }`}
-                    />
-                    {isP2Active && (
-                      <span className="absolute -top-1 -right-1 flex h-2 w-2 pointer-events-none">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
-                      </span>
-                    )}
-                  </div>
+                  <PlayerAutocompleteInput
+                    value={team.player2 || ''}
+                    onChange={(val) => handlePlayerChange(idx, 2, val)}
+                    placeholder="Giocatore 2"
+                    currentUser={currentUser}
+                    friendsList={friendsList}
+                    alreadySelected={allAssignedPlayers}
+                    onFocus={() => setActivePlayerField({ teamIndex: idx, playerSlot: 2 })}
+                    className={`w-full min-h-[40px] px-2.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-all ${
+                      isP2Active
+                        ? 'club-card border-amber-400 ring-1 ring-amber-400/40'
+                        : 'club-input'
+                    }`}
+                  />
                 </div>
-
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* AZIONI AVVIO TORNEO */}
-      <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-3">
+      {/* AVVIO TORNEO */}
+      <div className="pt-3 border-t club-divider flex flex-wrap items-center justify-between gap-3">
         {activeTournament && (
           <button
             type="button"
             onClick={onCancelCreating}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all cursor-pointer"
+            className="min-h-[44px] px-4 rounded-xl club-btn-secondary text-xs font-semibold cursor-pointer"
           >
-            Annulla e Torna al Torneo Attivo
+            Torna al Torneo Attivo
           </button>
         )}
         <button
           type="submit"
-          className="ml-auto px-6 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-xl hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+          className="ml-auto min-h-[46px] px-6 rounded-xl gold-gradient font-bold text-xs sm:text-sm active:scale-95 transition-all cursor-pointer flex items-center gap-2"
         >
-          <Sparkles className="w-4 h-4 text-emerald-950" />
-          <span>Genera Calendario & Avvia Torneo 🏆</span>
+          <Sparkles className="w-4 h-4" />
+          <span>Genera Calendario e Avvia</span>
         </button>
       </div>
-
     </form>
   );
 }

@@ -15,12 +15,8 @@ export default function TournamentScheduleTab({
   const [copied, setCopied] = useState(false);
   const isFibur = tournament?.scoringSystem !== 'classic';
 
-  // Tutte le squadre presenti per il filtro a tendina
-  const teams = useMemo(() => {
-    return tournament?.teams || [];
-  }, [tournament?.teams]);
+  const teams = useMemo(() => tournament?.teams || [], [tournament?.teams]);
 
-  // Calcola statistiche avanzamento
   const { totalMatches, completedMatches, percentComplete } = useMemo(() => {
     const all = rounds.flatMap(r => r.matches || []);
     const completed = all.filter(m => m.status === 'completed').length;
@@ -29,7 +25,6 @@ export default function TournamentScheduleTab({
     return { totalMatches: total, completedMatches: completed, percentComplete: percent };
   }, [rounds]);
 
-  // Match filtrati per giornata e per squadra
   const filteredRounds = useMemo(() => {
     return rounds
       .filter(r => selectedRoundFilter === 'all' || r.roundNumber === selectedRoundFilter)
@@ -46,7 +41,7 @@ export default function TournamentScheduleTab({
   const handleShareSchedule = () => {
     if (!tournament) return;
     const text = formatScheduleForSharing(
-      tournament, 
+      tournament,
       selectedRoundFilter !== 'all' ? selectedRoundFilter : null
     );
 
@@ -65,49 +60,45 @@ export default function TournamentScheduleTab({
 
   return (
     <div className="space-y-3.5">
-      
-      {/* 1. BARRA AVANZAMENTO TORNEO & CONDIVISIONE */}
-      <div className="p-3 rounded-2xl felt-card border border-white/10 space-y-2">
+      {/* AVANZAMENTO & CONDIVISIONE */}
+      <div className="p-3.5 rounded-2xl club-inset space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <div className="text-xs font-bold text-white flex items-center gap-2">
-              <span>Avanzamento Torneo:</span>
-              <strong className="text-amber-400">{completedMatches} di {totalMatches} incontri completati</strong>
-              <span className="text-[11px] text-white/70">({percentComplete}%)</span>
-            </div>
+          <div className="text-xs sm:text-sm font-semibold text-white">
+            Avanzamento:{' '}
+            <strong className="font-mono-num club-text-gold">
+              {completedMatches}/{totalMatches}
+            </strong>{' '}
+            incontri ({percentComplete}%)
           </div>
 
           <button
             type="button"
             onClick={handleShareSchedule}
-            className="px-3 py-1.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs flex items-center gap-1.5 shadow-sm hover:brightness-110 active:scale-95 transition-all cursor-pointer shrink-0"
-            title="Invia il calendario su WhatsApp"
+            className="min-h-[40px] px-3.5 rounded-xl gold-gradient font-bold text-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shrink-0"
           >
-            {copied ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Share2 className="w-3.5 h-3.5 stroke-[2.5]" />}
-            <span>{copied ? 'Calendario Copiato!' : 'Condividi Calendario'}</span>
+            {copied ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Share2 className="w-3.5 h-3.5" />}
+            <span>{copied ? 'Copiato' : 'Condividi'}</span>
           </button>
         </div>
 
-        {/* Barra di Progresso */}
-        <div className="w-full bg-black/40 rounded-full h-2.5 p-0.5 border border-white/10 overflow-hidden shadow-inner">
-          <div 
-            className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-200 h-full rounded-full transition-all duration-500 shadow-sm"
+        <div className="w-full club-card rounded-full h-2 overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-amber-500 to-amber-300 h-full rounded-full transition-all duration-500"
             style={{ width: `${percentComplete}%` }}
           />
         </div>
       </div>
 
-      {/* 2. FILTRI DOPPI: GIORNATA & COPPIA */}
+      {/* FILTRI GIORNATA & COPPIA */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        {/* Filtro Giornate (Tabs / Pills orizzontali) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 max-w-full">
           <button
             type="button"
             onClick={() => setSelectedRoundFilter('all')}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`min-h-[40px] px-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedRoundFilter === 'all'
-                ? 'bg-amber-400 text-emerald-950 border-amber-300 shadow-sm font-black'
-                : 'bg-black/30 border-white/10 text-white/80 hover:bg-white/10'
+                ? 'gold-gradient border-amber-300'
+                : 'club-btn-secondary club-text-muted hover:text-white'
             }`}
           >
             Tutte ({rounds.length})
@@ -117,10 +108,10 @@ export default function TournamentScheduleTab({
               key={r.roundNumber}
               type="button"
               onClick={() => setSelectedRoundFilter(r.roundNumber)}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`min-h-[40px] px-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 selectedRoundFilter === r.roundNumber
-                  ? 'bg-amber-400 text-emerald-950 border-amber-300 shadow-sm font-black'
-                  : 'bg-black/30 border-white/10 text-white/80 hover:bg-white/10'
+                  ? 'gold-gradient border-amber-300'
+                  : 'club-btn-secondary club-text-muted hover:text-white'
               }`}
             >
               {r.title}
@@ -128,19 +119,18 @@ export default function TournamentScheduleTab({
           ))}
         </div>
 
-        {/* Filtro per Coppia (Dropdown comodo) */}
         {teams.length > 0 && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Filter className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <div className="flex items-center gap-2 shrink-0">
+            <Filter className="w-4 h-4 club-text-gold shrink-0" />
             <select
               value={selectedTeamFilter}
               onChange={(e) => setSelectedTeamFilter(e.target.value)}
-              className="px-2.5 py-1.5 rounded-xl bg-black/40 border border-white/15 text-xs text-white font-medium focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="min-h-[40px] px-3 py-1.5 rounded-xl club-input text-xs font-semibold cursor-pointer flex-1 sm:flex-initial"
             >
               <option value="all" className="bg-zinc-900 text-white">Tutte le Coppie</option>
               {teams.map(t => (
                 <option key={t.id} value={t.id} className="bg-zinc-900 text-white">
-                  Solo: {t.name}
+                  {t.name}
                 </option>
               ))}
             </select>
@@ -148,18 +138,18 @@ export default function TournamentScheduleTab({
         )}
       </div>
 
-      {/* 3. LISTA MATCH */}
+      {/* LISTA GIORNATE E INCONTRI */}
       <div className="space-y-3">
         {filteredRounds.length === 0 ? (
-          <div className="p-8 text-center felt-card rounded-2xl border border-white/10 space-y-2">
-            <p className="text-xs text-white/70 m-0">
+          <div className="p-8 text-center club-inset rounded-2xl space-y-2">
+            <p className="text-xs club-text-muted m-0">
               Nessun incontro trovato con i filtri selezionati.
             </p>
             {selectedTeamFilter !== 'all' && (
               <button
                 type="button"
                 onClick={() => setSelectedTeamFilter('all')}
-                className="text-xs text-amber-400 hover:underline font-bold cursor-pointer"
+                className="min-h-[40px] px-3 text-xs club-text-gold hover:underline font-bold cursor-pointer"
               >
                 Mostra tutte le coppie
               </button>
@@ -167,131 +157,126 @@ export default function TournamentScheduleTab({
           </div>
         ) : (
           filteredRounds.map(round => (
-            <div key={round.roundNumber} className="rounded-2xl border border-white/10 overflow-hidden felt-card shadow-md">
-              <div className="px-3.5 py-2 bg-black/40 border-b border-white/10 flex items-center justify-between text-xs font-bold text-amber-300">
-                <span className="flex items-center gap-2">
-                  <span>📍 {round.title}</span>
-                </span>
-                <span className="text-[10px] text-white/70 font-normal">
+            <div key={round.roundNumber} className="rounded-2xl club-inset overflow-hidden">
+              <div className="px-4 py-2.5 bg-black/25 border-b club-divider flex items-center justify-between text-xs font-bold">
+                <span className="club-text-gold">{round.title}</span>
+                <span className="font-mono-num club-text-subtle font-medium">
                   {round.matches.filter(m => m.status === 'completed').length} / {round.matches.length} conclusi
                 </span>
               </div>
 
-              <div className="p-2 sm:p-2.5 divide-y divide-white/10">
+              <div className="p-3 divide-y club-divider space-y-3">
                 {round.matches.map(match => {
                   const isCompleted = match.status === 'completed';
                   const isT1Winner = isCompleted && match.team1Score > match.team2Score;
                   const isT2Winner = isCompleted && match.team2Score > match.team1Score;
-
-                  // Se formula FIBUR, calcola i Victory Points assegnati
                   const fiburVp = (isCompleted && isFibur)
                     ? calculateFiburVictoryPoints(match.team1Score, match.team2Score)
                     : null;
 
                   return (
-                    <div key={match.id} className="py-2.5 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      
-                      {/* INFO MATCH & SQUADRE */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider bg-black/40 text-amber-300 border border-white/10">
-                            Tavolo {match.tableNumber || 1}
+                    <div
+                      key={match.id}
+                      className="pt-3 first:pt-0 flex flex-col gap-2.5"
+                    >
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-mono-num font-bold club-text-gold">
+                          Tavolo {match.tableNumber || 1}
+                        </span>
+                        {isCompleted ? (
+                          <span className="text-emerald-300 font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Completato</span>
                           </span>
-                          {isCompleted ? (
-                            <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 text-amber-400" />
-                              <span>Completata</span>
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-white/60 flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-amber-400" />
-                              <span>In attesa di gioco</span>
-                            </span>
-                          )}
-                        </div>
+                        ) : (
+                          <span className="club-text-subtle font-medium flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 club-text-gold" />
+                            <span>Da giocare</span>
+                          </span>
+                        )}
+                      </div>
 
-                        {/* CONFRONTO SQUADRE */}
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          {/* Squadra 1 */}
-                          <div className={`p-2 rounded-xl border transition-all ${
-                            isT1Winner 
-                              ? 'bg-amber-400/20 border-amber-400 text-white shadow-xs' 
-                              : 'bg-black/25 border-white/10 text-white/90'
-                          }`}>
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold truncate">{match.team1Name}</span>
-                              {isCompleted && (
-                                <div className="text-right shrink-0">
-                                  <span className="text-sm font-black text-white block">
-                                    {match.team1Score.toLocaleString('it-IT')}
-                                  </span>
-                                  {fiburVp && (
-                                    <span className="text-[10px] font-black text-amber-400">
-                                      {fiburVp.team1Vp} VP
-                                    </span>
-                                  )}
-                                </div>
-                              )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* Coppia 1 */}
+                        <div className={`p-3 rounded-xl border flex items-center justify-between gap-2 ${
+                          isT1Winner ? 'club-card border-amber-400/65' : 'bg-black/20 club-divider'
+                        }`}>
+                          <div className="min-w-0">
+                            <div className="text-xs sm:text-sm font-bold text-white truncate">
+                              {match.team1Name}
                             </div>
                             {match.team1Players && match.team1Players.length > 0 && (
-                              <div className="text-[10px] text-white/70 truncate mt-0.5">
+                              <div className="text-[11px] club-text-subtle truncate mt-0.5">
                                 {match.team1Players.join(' & ')}
                               </div>
                             )}
                           </div>
 
-                          {/* Squadra 2 */}
-                          <div className={`p-2 rounded-xl border transition-all ${
-                            isT2Winner 
-                              ? 'bg-amber-400/20 border-amber-400 text-white shadow-xs' 
-                              : 'bg-black/25 border-white/10 text-white/90'
-                          }`}>
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold truncate">{match.team2Name}</span>
-                              {isCompleted && (
-                                <div className="text-right shrink-0">
-                                  <span className="text-sm font-black text-white block">
-                                    {match.team2Score.toLocaleString('it-IT')}
-                                  </span>
-                                  {fiburVp && (
-                                    <span className="text-[10px] font-black text-amber-400">
-                                      {fiburVp.team2Vp} VP
-                                    </span>
-                                  )}
-                                </div>
+                          {isCompleted && (
+                            <div className="text-right shrink-0 font-mono-num">
+                              <span className="text-base font-bold text-white block leading-tight">
+                                {match.team1Score.toLocaleString('it-IT')}
+                              </span>
+                              {fiburVp && (
+                                <span className="text-[11px] font-bold club-text-gold">
+                                  {fiburVp.team1Vp} VP
+                                </span>
                               )}
                             </div>
+                          )}
+                        </div>
+
+                        {/* Coppia 2 */}
+                        <div className={`p-3 rounded-xl border flex items-center justify-between gap-2 ${
+                          isT2Winner ? 'club-card border-amber-400/65' : 'bg-black/20 club-divider'
+                        }`}>
+                          <div className="min-w-0">
+                            <div className="text-xs sm:text-sm font-bold text-white truncate">
+                              {match.team2Name}
+                            </div>
                             {match.team2Players && match.team2Players.length > 0 && (
-                              <div className="text-[10px] text-white/70 truncate mt-0.5">
+                              <div className="text-[11px] club-text-subtle truncate mt-0.5">
                                 {match.team2Players.join(' & ')}
                               </div>
                             )}
                           </div>
+
+                          {isCompleted && (
+                            <div className="text-right shrink-0 font-mono-num">
+                              <span className="text-base font-bold text-white block leading-tight">
+                                {match.team2Score.toLocaleString('it-IT')}
+                              </span>
+                              {fiburVp && (
+                                <span className="text-[11px] font-bold club-text-gold">
+                                  {fiburVp.team2Vp} VP
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* AZIONI MATCH */}
-                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                        <button
-                          type="button"
-                          onClick={() => onPlayMatch(match)}
-                          className="px-3 py-1.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs flex items-center gap-1.5 shadow-sm hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-                          title="Carica questo incontro sul foglio segnapunti dell'app"
-                        >
-                          <PlayCircle className="w-3.5 h-3.5 text-emerald-950 stroke-[2.5]" />
-                          <span>{isCompleted ? 'Rigioca al Tavolo' : 'Gioca al Tavolo ♠'}</span>
-                        </button>
-
+                      {/* Azioni Incontro */}
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => onEditMatch(match)}
-                          className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 text-xs transition-all cursor-pointer"
-                          title="Inserisci o correggi manualmente il punteggio finale"
+                          className="min-h-[42px] px-3 rounded-xl club-btn-secondary club-text-muted hover:text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                          title="Inserisci o correggi punteggio finale"
                         >
-                          <Edit2 className="w-3.5 h-3.5 text-amber-300" />
+                          <Edit2 className="w-3.5 h-3.5 club-text-gold" />
+                          <span>Punteggio</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => onPlayMatch(match)}
+                          className="min-h-[42px] px-4 rounded-xl gold-gradient font-bold text-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <PlayCircle className="w-4 h-4" />
+                          <span>{isCompleted ? 'Rigioca al Tavolo' : 'Gioca al Tavolo'}</span>
                         </button>
                       </div>
-
                     </div>
                   );
                 })}
@@ -300,7 +285,6 @@ export default function TournamentScheduleTab({
           ))
         )}
       </div>
-
     </div>
   );
 }

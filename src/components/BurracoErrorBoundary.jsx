@@ -85,50 +85,50 @@ export default class BurracoErrorBoundary extends Component {
 
       return (
         <div className="min-h-screen felt-bg flex items-center justify-center p-4">
-          <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl bg-emerald-950/95 border-2 border-amber-500/50 shadow-2xl text-center backdrop-blur-xl space-y-4">
-            
-            {/* Icona decorativa */}
-            <div className="w-16 h-16 rounded-2xl gold-gradient flex items-center justify-center mx-auto shadow-xl text-emerald-950">
-              <span className="text-3xl font-black">♠</span>
+          <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl club-card-solid border-2 border-[var(--accent-gold)]/55 shadow-2xl text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl gold-gradient flex items-center justify-center mx-auto shadow-xl">
+              <span className="font-display text-3xl font-bold">♠</span>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold">
-              <AlertTriangle className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/40 text-xs font-bold">
+              <AlertTriangle className="w-4 h-4" />
               <span>Interfaccia Interrotta</span>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-black text-white">
+            <h2 className="font-display text-xl sm:text-2xl font-bold text-white m-0">
               Si è verificato un imprevisto
             </h2>
 
-            <p className="text-xs sm:text-sm text-emerald-200/80 leading-relaxed">
-              Il tavolo di gioco ha riscontrato un'anomalia. Nessun dato dello storico o dei partecipanti è andato perduto.
+            <p className="text-xs sm:text-sm club-text-muted leading-relaxed">
+              Il tavolo di gioco ha riscontrato un&apos;anomalia. Nessun dato dello storico o dei partecipanti è andato perduto.
             </p>
 
-            {/* Dettaglio tecnico errore per diagnosi rapida */}
-            <div className="p-2.5 rounded-xl bg-black/60 border border-rose-500/30 text-left text-[11px] font-mono text-rose-300 break-words max-h-28 overflow-y-auto">
+            <div className="p-3 rounded-xl bg-black/50 border border-rose-500/30 text-left text-[11px] font-mono text-rose-300 break-words max-h-28 overflow-y-auto">
               {errorMsg}
             </div>
 
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2.5 pt-2">
               <button
+                type="button"
                 onClick={this.handleReload}
-                className="w-full py-3 px-4 rounded-xl gold-gradient text-emerald-950 font-black text-sm shadow-lg hover:brightness-110 active:scale-95 cursor-pointer flex items-center justify-center gap-2 transition-all"
+                className="w-full min-h-[46px] px-4 rounded-xl gold-gradient font-bold text-sm active:scale-95 cursor-pointer flex items-center justify-center gap-2 transition-all"
               >
-                <RefreshCw className="w-4 h-4 text-emerald-950" />
+                <RefreshCw className="w-4 h-4" />
                 <span>Ricarica Tavolo</span>
               </button>
 
               <button
+                type="button"
                 onClick={this.handleResumeLastGame}
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 font-bold text-xs shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-2 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl club-btn-secondary club-text-gold font-bold text-xs active:scale-95 cursor-pointer flex items-center justify-center gap-2 transition-all"
               >
-                <span>⏳ Ripristina Ultima Partita in Sospeso</span>
+                <span>Ripristina Ultima Partita in Sospeso</span>
               </button>
 
               <button
+                type="button"
                 onClick={this.handleResetTable}
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-900/60 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/50 font-bold text-xs shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-2 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl club-btn-secondary club-text-muted font-bold text-xs active:scale-95 cursor-pointer flex items-center justify-center gap-2 transition-all"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Inizia Nuovo Tavolo Pulito</span>

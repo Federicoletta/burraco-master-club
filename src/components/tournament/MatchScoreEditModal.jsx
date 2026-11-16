@@ -1,5 +1,7 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { calculateFiburVictoryPoints } from '../../utils/tournament';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 export default function MatchScoreEditModal({
   editingMatch,
@@ -11,7 +13,9 @@ export default function MatchScoreEditModal({
   setManualScore2,
   onSave
 }) {
-  if (!editingMatch) return null;
+  useModalEscape(Boolean(editingMatch), onClose);
+
+  if (!editingMatch || typeof document === 'undefined') return null;
 
   const isFibur = scoringSystem !== 'classic';
   const s1 = Number(manualScore1);
@@ -19,20 +23,33 @@ export default function MatchScoreEditModal({
   const hasScores = !isNaN(s1) && !isNaN(s2) && (manualScore1 !== '' || manualScore2 !== '');
   const vpPreview = hasScores && isFibur ? calculateFiburVictoryPoints(s1, s2) : null;
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 bg-black/80 backdrop-blur-xs">
-      <div className="w-full max-w-sm felt-card rounded-2xl border-2 border-amber-400 p-4 shadow-2xl text-center space-y-3 animate-in zoom-in-95 duration-150">
-        <h3 className="text-sm font-bold text-white m-0">
-          Punteggio: {editingMatch.team1Name} vs {editingMatch.team2Name}
-        </h3>
-        <p className="text-[11px] text-white/70 m-0">
-          Inserisci i punti realizzati dalle due coppie nell'incontro
-        </p>
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center sm:p-4 bg-black/75 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Risultato ${editingMatch.team1Name} vs ${editingMatch.team2Name}`}
+    >
+      <div
+        className="w-full max-w-sm club-card-solid rounded-t-3xl sm:rounded-2xl p-5 text-center space-y-4 club-sheet-enter pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pb-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 rounded-full bg-white/20 mx-auto sm:hidden" />
 
-        <form onSubmit={onSave} className="space-y-3">
+        <div>
+          <h3 className="font-display text-base sm:text-lg font-bold text-white">
+            {editingMatch.team1Name} vs {editingMatch.team2Name}
+          </h3>
+          <p className="text-xs club-text-muted mt-0.5">
+            Inserisci i punti realizzati nell&apos;incontro
+          </p>
+        </div>
+
+        <form onSubmit={onSave} className="space-y-3.5">
           <div className="grid grid-cols-2 gap-3 text-left">
             <div>
-              <label className="text-[11px] font-bold text-amber-300 truncate block mb-1">
+              <label className="text-xs font-bold text-amber-300 truncate block mb-1">
                 {editingMatch.team1Name}
               </label>
               <input
@@ -42,11 +59,11 @@ export default function MatchScoreEditModal({
                 placeholder="0"
                 value={manualScore1}
                 onChange={(e) => setManualScore1(e.target.value)}
-                className="w-full text-center text-xl font-black py-2 rounded-xl bg-black/40 border border-amber-400/50 text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full min-h-[48px] text-center text-xl font-mono-num font-bold py-2 rounded-xl club-input"
               />
             </div>
             <div>
-              <label className="text-[11px] font-bold text-blue-300 truncate block mb-1">
+              <label className="text-xs font-bold text-sky-300 truncate block mb-1">
                 {editingMatch.team2Name}
               </label>
               <input
@@ -56,41 +73,41 @@ export default function MatchScoreEditModal({
                 placeholder="0"
                 value={manualScore2}
                 onChange={(e) => setManualScore2(e.target.value)}
-                className="w-full text-center text-xl font-black py-2 rounded-xl bg-black/40 border border-blue-400/50 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full min-h-[48px] text-center text-xl font-mono-num font-bold py-2 rounded-xl club-input"
               />
             </div>
           </div>
 
-          {/* Anteprima Live Victory Points FIBUR */}
           {vpPreview && (
-            <div className="p-2 rounded-xl bg-black/40 border border-white/10 text-xs text-white/90">
+            <div className="p-2.5 rounded-xl club-inset text-xs font-mono-num">
               <div className="flex items-center justify-between font-bold">
                 <span className="text-amber-300">{vpPreview.team1Vp} VP</span>
-                <span className="text-[10px] text-white/60">
-                  Scarto: {Math.abs(vpPreview.diff).toLocaleString('it-IT')} pt
+                <span className="text-[11px] club-text-subtle font-sans">
+                  Scarto {Math.abs(vpPreview.diff).toLocaleString('it-IT')} pt
                 </span>
-                <span className="text-blue-300">{vpPreview.team2Vp} VP</span>
+                <span className="text-sky-300">{vpPreview.team2Vp} VP</span>
               </div>
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+          <div className="flex items-center gap-2 pt-2 border-t club-divider">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold cursor-pointer transition-all"
+              className="flex-1 min-h-[44px] rounded-xl club-btn-secondary text-xs font-semibold cursor-pointer"
             >
               Annulla
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 rounded-lg gold-gradient text-emerald-950 font-black text-xs shadow-md hover:brightness-110 active:scale-95 cursor-pointer transition-all"
+              className="flex-1 min-h-[44px] rounded-xl gold-gradient font-bold text-xs cursor-pointer active:scale-95"
             >
               Salva Risultato
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

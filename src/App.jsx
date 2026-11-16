@@ -4,33 +4,25 @@ import ScoreBoard from './components/ScoreBoard';
 import HomeLobby from './components/HomeLobby';
 import NotificationToast from './components/NotificationToast';
 import BottomNavBar from './components/navigation/BottomNavBar';
+import AppModals from './components/AppModals';
 import { Trophy } from 'lucide-react';
 
 // Context Providers & Hooks architetturali
 import { ConfirmProvider } from './context/ConfirmContext';
 import { useConfirm } from './context/confirmContextStore';
 import { SocialProvider } from './context/SocialContext';
+import { TournamentProvider } from './context/TournamentContext';
 import { GameProvider } from './context/GameContext';
 import { useBurraco } from './context/gameContextStore';
 import { getStoredTheme, applyTheme } from './utils/theme';
 import { getStoredPlayers } from './utils/storage';
 
-// Modali caricati in modo asincrono (Lazy Loading) per ottimizzazione caricamento iniziale
-const NewGameModal = lazy(() => import('./components/NewGameModal'));
-const RoundCalculatorModal = lazy(() => import('./components/RoundCalculatorModal'));
+// Viste a schermo intero caricate asincronamente
 const HistoryModal = lazy(() => import('./components/HistoryModal'));
-const VictoryModal = lazy(() => import('./components/VictoryModal'));
-const CloudSyncModal = lazy(() => import('./components/CloudSyncModal'));
-const RulesModal = lazy(() => import('./components/RulesModal'));
-const EditTeamsModal = lazy(() => import('./components/EditTeamsModal'));
 const TournamentModal = lazy(() => import('./components/TournamentModal'));
 const UserProfileModal = lazy(() => import('./components/UserProfileModal'));
-const NotificationsModal = lazy(() => import('./components/NotificationsModal'));
-const WelcomeModal = lazy(() => import('./components/WelcomeModal'));
-const ThemeSelectorModal = lazy(() => import('./components/ThemeSelectorModal'));
 
 function BurracoAppContent() {
-  // 1. Modals UI State
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
   const [isRoundCalcOpen, setIsRoundCalcOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
@@ -41,16 +33,15 @@ function BurracoAppContent() {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [tournamentInitialTab, setTournamentInitialTab] = useState('standings');
   const [tournamentInitialRound, setTournamentInitialRound] = useState('all');
+  const [activeNavTab, setActiveNavTab] = useState('table'); // 'table' | 'tournament' | 'history' | 'profile'
 
   React.useEffect(() => {
     applyTheme(currentTheme);
   }, [currentTheme]);
 
-  // 2. Accesso unificato ai domini applicativi tramite Context
   const { game, tournament, social, isVictoryOpen, setIsVictoryOpen } = useBurraco();
   const confirm = useConfirm();
 
-  // 3. Event handlers memoizzati per evitare re-render a cascata su Header e ScoreBoard
   const handleOpenNewGame = useCallback((modeOrEvent) => {
     if (typeof modeOrEvent === 'string') {
       game.setNewGameInitialSetup({ mode: modeOrEvent });
@@ -66,6 +57,7 @@ function BurracoAppContent() {
   const handleOpenEditTeams = useCallback(() => setIsEditTeamsOpen(true), []);
   const handleOpenThemeSelector = useCallback(() => setIsThemeModalOpen(true), []);
   const handleThemeChange = useCallback((newTheme) => setCurrentTheme(newTheme), []);
+  const handleNavigateToTable = useCallback(() => setActiveNavTab('table'), []);
 
   const handleAddRound = useCallback(() => {
     setRoundToEdit(null);
@@ -92,8 +84,6 @@ function BurracoAppContent() {
   const handleCloseTable = useCallback(() => {
     game.handleCloseTable(confirm);
   }, [game, confirm]);
-
-  const [activeNavTab, setActiveNavTab] = useState('table'); // 'table' | 'tournament' | 'history' | 'profile'
 
   const setIsProfileOpen = social.setIsProfileOpen;
   React.useEffect(() => {
@@ -133,10 +123,10 @@ function BurracoAppContent() {
     setActiveNavTab(tabId);
   }, []);
 
+  const hasStickyMobileAction = activeNavTab === 'table' && Boolean(game.activeGame);
+
   return (
-    <div className="min-h-screen felt-bg flex flex-col selection:bg-amber-400 selection:text-emerald-950">
-      
-      {/* Barra Superiore */}
+    <div className="min-h-screen felt-bg flex flex-col selection:bg-amber-400 selection:text-slate-950">
       <Header
         onOpenRules={handleOpenRules}
         onShareGame={game.handleShareGame}
@@ -146,7 +136,6 @@ function BurracoAppContent() {
         onOpenThemeSelector={handleOpenThemeSelector}
       />
 
-      {/* Toast Notifiche in tempo reale */}
       <NotificationToast
         key={social.toastNotification?.id || 'empty'}
         notification={social.toastNotification}
@@ -172,37 +161,38 @@ function BurracoAppContent() {
         onClose={() => social.setToastNotification(null)}
       />
 
-      {/* Contenuto Principale */}
-      <main 
-        className="flex-1 max-w-5xl w-full mx-auto p-2.5 sm:p-4 md:p-5"
+      <main
+        className="flex-1 max-w-6xl w-full mx-auto pt-3 sm:pt-5 md:pt-6"
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)',
-          paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 0.625rem)',
-          paddingRight: 'calc(env(safe-area-inset-right, 0px) + 0.625rem)',
+          paddingBottom: hasStickyMobileAction
+            ? 'calc(env(safe-area-inset-bottom, 0px) + 9.75rem)'
+            : 'calc(env(safe-area-inset-bottom, 0px) + 5.75rem)',
+          paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 0.75rem)',
+          paddingRight: 'calc(env(safe-area-inset-right, 0px) + 0.75rem)',
         }}
       >
-        
-        {/* Banner Incontro Torneo Attivo */}
         {game.activeGame?.tournamentMatchId && (
-          <div className="mb-2.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-950/90 via-emerald-950/90 to-amber-950/90 backdrop-blur-md border border-amber-500/50 flex items-center justify-between text-xs text-amber-200 shadow-lg">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="p-1.5 rounded-lg bg-amber-400/20 text-amber-300 border border-amber-400/30 shrink-0">
-                <Trophy className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+          <div className="mb-3 px-3.5 py-2.5 rounded-2xl club-card flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-8 h-8 rounded-xl club-inset flex items-center justify-center club-text-gold shrink-0">
+                <Trophy className="w-4 h-4" />
               </span>
               <div className="truncate">
-                <span className="font-black text-amber-300">
-                  {game.activeGame.tournamentName || 'Torneo Burraco'}:
-                </span>{' '}
+                <span className="font-bold club-text-gold">
+                  {game.activeGame.tournamentName || 'Torneo Burraco'}
+                </span>
+                <span className="club-text-subtle"> · </span>
                 <span className="text-white font-medium">
-                  Giornata {game.activeGame.tournamentRoundNumber} • Tavolo {game.activeGame.tournamentTableNumber}
+                  Giornata {game.activeGame.tournamentRoundNumber} · Tavolo {game.activeGame.tournamentTableNumber}
                 </span>
               </div>
             </div>
             <button
-              onClick={handleOpenTournament}
-              className="px-2.5 py-1 rounded-lg gold-gradient text-emerald-950 font-black text-[11px] shadow-sm hover:brightness-110 active:scale-95 cursor-pointer shrink-0 transition-transform"
+              type="button"
+              onClick={() => handleOpenTournament('standings')}
+              className="min-h-[36px] px-3 rounded-xl gold-gradient font-bold text-xs cursor-pointer shrink-0 transition-transform active:scale-95"
             >
-              Classifica 🏆
+              Classifica
             </button>
           </div>
         )}
@@ -251,20 +241,19 @@ function BurracoAppContent() {
           )
         )}
 
-        {/* VISTA TORNEO A SCHERMO INTERO (NESSUN POPUP) */}
         {activeNavTab === 'tournament' && (
-          <Suspense fallback={<div className="p-8 text-center text-amber-300 font-bold">Caricamento Torneo...</div>}>
+          <Suspense fallback={<div className="p-10 text-center club-text-gold font-semibold">Caricamento Torneo...</div>}>
             <TournamentModal
               isPage={true}
               isOpen={true}
-              onClose={() => setActiveNavTab('table')}
+              onClose={handleNavigateToTable}
               activeTournament={tournament.activeTournament}
               tournamentsHistory={tournament.tournamentsHistory}
               onStartTournament={tournament.handleStartTournament}
               onUpdateTournament={tournament.handleUpdateTournament}
               onFinishTournament={tournament.handleFinishTournament}
               onDeleteTournamentHistory={tournament.handleDeleteTournamentHistory}
-              onPlayMatch={(match) => game.handlePlayTournamentMatch(match, tournament.activeTournament, () => setActiveNavTab('table'))}
+              onPlayMatch={(match) => game.handlePlayTournamentMatch(match, tournament.activeTournament, handleNavigateToTable)}
               playersList={game.recentPlayers}
               currentUser={social.currentUser}
               friendsList={social.friendsList}
@@ -274,13 +263,12 @@ function BurracoAppContent() {
           </Suspense>
         )}
 
-        {/* VISTA STORICO PARTITE A SCHERMO INTERO (NESSUN POPUP) */}
         {activeNavTab === 'history' && (
-          <Suspense fallback={<div className="p-8 text-center text-amber-300 font-bold">Caricamento Archivio...</div>}>
+          <Suspense fallback={<div className="p-10 text-center club-text-gold font-semibold">Caricamento Archivio...</div>}>
             <HistoryModal
               isPage={true}
               isOpen={true}
-              onClose={() => setActiveNavTab('table')}
+              onClose={handleNavigateToTable}
               gamesHistory={game.gamesHistory}
               activeGame={game.activeGame}
               currentUser={social.currentUser}
@@ -298,13 +286,12 @@ function BurracoAppContent() {
           </Suspense>
         )}
 
-        {/* VISTA PROFILO & ANALYTICS A SCHERMO INTERO (NESSUN POPUP) */}
         {activeNavTab === 'profile' && (
-          <Suspense fallback={<div className="p-8 text-center text-amber-300 font-bold">Caricamento Profilo...</div>}>
+          <Suspense fallback={<div className="p-10 text-center club-text-gold font-semibold">Caricamento Profilo...</div>}>
             <UserProfileModal
               isPage={true}
               isOpen={true}
-              onClose={() => setActiveNavTab('table')}
+              onClose={handleNavigateToTable}
               currentUser={social.currentUser}
               onLogin={social.handleLogin}
               onLogout={social.handleLogout}
@@ -330,7 +317,6 @@ function BurracoAppContent() {
         )}
       </main>
 
-      {/* Dock di Navigazione Inferiore Glassmorphism (Mobile & Tablet) */}
       <BottomNavBar
         activeTab={activeNavTab}
         onSelectTab={handleSelectNavTab}
@@ -341,120 +327,34 @@ function BurracoAppContent() {
         onlineFriendsCount={onlineFriendsCount}
       />
 
-      {/* MODALI */}
-      <Suspense fallback={null}>
-        {/* 1. Modal Nuova Partita */}
-        <NewGameModal
-          isOpen={isNewGameOpen}
-          onClose={() => {
-            setIsNewGameOpen(false);
-            game.setNewGameInitialSetup(null);
-          }}
-          onStartGame={game.handleStartGame}
-          friendsList={social.friendsList}
-          storedPlayers={storedPlayers}
-          currentUser={social.currentUser}
-          lastGame={game.gamesHistory?.[0] || null}
-          hasActiveGame={Boolean(game.activeGame && game.activeGame.rounds && game.activeGame.rounds.length > 0)}
-          initialSetup={game.newGameInitialSetup}
-        />
-
-        {/* 2. Modal Calcolatore Mano */}
-        <RoundCalculatorModal
-          isOpen={isRoundCalcOpen}
-          onClose={() => {
-            setIsRoundCalcOpen(false);
-            setRoundToEdit(null);
-          }}
-          onSaveRound={game.handleSaveRound}
-          activeGame={game.activeGame}
-          roundToEdit={roundToEdit}
-          roundNumber={(game.activeGame?.rounds?.length || 0) + 1}
-        />
-
-
-
-        {/* 4. Modal Vittoria & Coriandoli */}
-        <VictoryModal
-          isOpen={isVictoryOpen}
-          onClose={() => setIsVictoryOpen(false)}
-          activeGame={game.activeGame}
-          activeTournament={tournament.activeTournament}
-          onRematch={game.handleRematch}
-          onArchiveAndNew={() => game.handleArchiveAndNew(handleOpenNewGame)}
-          onOpenTournament={(targetTab, roundNumber) => {
-            setIsVictoryOpen(false);
-            handleOpenTournament(targetTab, roundNumber);
-          }}
-        />
-
-        {/* 5. Modal Database Cloud & Condivisione Tavolo */}
-        <CloudSyncModal
-          isOpen={isCloudModalOpen}
-          onClose={() => setIsCloudModalOpen(false)}
-          activeGame={game.activeGame}
-          currentUser={social.currentUser}
-          tablePlayers={game.tablePlayers}
-          friendsList={social.friendsList}
-          onSendFriendRequest={social.handleSendFriendRequest}
-          onInviteFriendToGame={(friend) => social.handleInviteFriendToActiveGame(friend, game.activeGame)}
-          onJoinGame={(target) => {
-            setIsCloudModalOpen(false);
-            game.handleResumeGame(target);
-            setActiveNavTab('table');
-          }}
-        />
-
-        {/* 6. Modal Regole del Gioco & Valori Carte */}
-        <RulesModal
-          isOpen={isRulesOpen}
-          onClose={() => setIsRulesOpen(false)}
-        />
-
-        {/* 7. Modal Modifica Squadre & Giocatori Partita Attiva */}
-        <EditTeamsModal
-          isOpen={isEditTeamsOpen}
-          onClose={() => setIsEditTeamsOpen(false)}
-          activeGame={game.activeGame}
-          tablePlayers={game.tablePlayers}
-          currentUser={social.currentUser}
-          friendsList={social.friendsList}
-          onSave={game.handleUpdateTeams}
-        />
-
-
-
-        {/* 10. Modal Notifiche & Inviti Amici */}
-        <NotificationsModal
-          isOpen={social.isNotificationsOpen}
-          onClose={() => social.setIsNotificationsOpen(false)}
-          notifications={social.notifications}
-          onAcceptFriendRequest={social.handleAcceptFriendRequest}
-          onDeclineFriendRequest={social.handleDeclineFriendRequest}
-          onAcceptGameInvite={(notif) => social.handleAcceptGameInvite(notif, (gameId) => {
-            game.handleResumeGame(gameId);
-            setActiveNavTab('table');
-          })}
-          onDeclineGameInvite={social.handleDeclineGameInvite}
-        />
-
-        {/* 11. Modal Benvenuto Primo Accesso / Registrazione */}
-        <WelcomeModal
-          isOpen={Boolean(social.welcomeUser)}
-          onClose={() => social.setWelcomeUser(null)}
-          user={social.welcomeUser}
-          onOpenProfile={() => handleOpenProfile('profile')}
-        />
-
-        {/* 12. Modal Scelta Panno del Tavolo */}
-        <ThemeSelectorModal
-          isOpen={isThemeModalOpen}
-          onClose={() => setIsThemeModalOpen(false)}
-          currentTheme={currentTheme}
-          onThemeChange={handleThemeChange}
-        />
-      </Suspense>
-
+      <AppModals
+        game={game}
+        tournament={tournament}
+        social={social}
+        storedPlayers={storedPlayers}
+        isNewGameOpen={isNewGameOpen}
+        setIsNewGameOpen={setIsNewGameOpen}
+        isRoundCalcOpen={isRoundCalcOpen}
+        setIsRoundCalcOpen={setIsRoundCalcOpen}
+        roundToEdit={roundToEdit}
+        setRoundToEdit={setRoundToEdit}
+        isVictoryOpen={isVictoryOpen}
+        setIsVictoryOpen={setIsVictoryOpen}
+        isCloudModalOpen={isCloudModalOpen}
+        setIsCloudModalOpen={setIsCloudModalOpen}
+        isRulesOpen={isRulesOpen}
+        setIsRulesOpen={setIsRulesOpen}
+        isEditTeamsOpen={isEditTeamsOpen}
+        setIsEditTeamsOpen={setIsEditTeamsOpen}
+        isThemeModalOpen={isThemeModalOpen}
+        setIsThemeModalOpen={setIsThemeModalOpen}
+        currentTheme={currentTheme}
+        onThemeChange={handleThemeChange}
+        onOpenNewGame={handleOpenNewGame}
+        onOpenTournament={handleOpenTournament}
+        onOpenProfile={handleOpenProfile}
+        onNavigateToTable={handleNavigateToTable}
+      />
     </div>
   );
 }
@@ -463,9 +363,11 @@ export default function App() {
   return (
     <ConfirmProvider>
       <SocialProvider>
-        <GameProvider>
-          <BurracoAppContent />
-        </GameProvider>
+        <TournamentProvider>
+          <GameProvider>
+            <BurracoAppContent />
+          </GameProvider>
+        </TournamentProvider>
       </SocialProvider>
     </ConfirmProvider>
   );

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'burraco-cache-v4';
+const CACHE_NAME = 'burraco-cache-v5';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/version.json'
@@ -25,14 +25,15 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Network-First for HTML/version, Stale-While-Revalidate for JS/CSS/Audio
+// Fetch: Network-First for HTML/version, Stale-While-Revalidate for JS/CSS/SVG
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET and cross-origin Firestore/Google Auth requests
+  // Skip non-GET, cross-origin, heavy streaming audio, and internal screenshots
   if (request.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/audio/') || url.pathname.startsWith('/assets/aistudio/')) return;
 
   // HTML & version: Network First, Fallback to Cache
   if (request.mode === 'navigate' || url.pathname.endsWith('version.json') || url.pathname === '/' || url.pathname.endsWith('.html')) {

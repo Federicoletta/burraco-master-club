@@ -1,21 +1,26 @@
-import React, { useState, useEffect, memo, lazy, Suspense } from 'react';
-import { 
-  Share2, 
-  BookOpen, 
+import React, { useState, useEffect, useRef, useCallback, memo, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  Share2,
+  BookOpen,
   Settings,
   Music,
   Sun,
   RotateCw,
   Bell,
-  Palette
+  Palette,
+  X,
+  Check
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
 import { wakeLock } from '../utils/wakeLock';
 import { checkForUpdates, forceAppUpdate, getFormattedBuildDate } from '../utils/versionCheck';
+import { useModalEscape } from '../hooks/useModalEscape';
+
 const AudioSettingsModal = lazy(() => import('./AudioSettingsModal'));
 
-function Header({ 
+function Header({
   onOpenRules,
   onShareGame,
   hasActiveGame,
@@ -27,8 +32,10 @@ function Header({
   const [soundVolume, setSoundVolume] = useState(() => Math.round(sound.volume * 100));
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuCoords, setMenuCoords] = useState({ top: 68, right: 16 });
   const [updateInfo, setUpdateInfo] = useState({ hasUpdate: false });
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [upToDateNotice, setUpToDateNotice] = useState(false);
   const [musicState, setMusicState] = useState({
     isPlaying: bgMusic.isPlaying,
     volume: bgMusic.volume,
@@ -41,6 +48,40 @@ function Header({
     active: wakeLock.active
   });
 
+  const menuButtonRef = useRef(null);
+  const upToDateTimerRef = useRef(null);
+
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
+
+  useModalEscape(isMenuOpen, closeMenu);
+
+  const updateMenuCoords = useCallback(() => {
+    const btn = menuButtonRef.current;
+    if (!btn || typeof window === 'undefined') return;
+    const rect = btn.getBoundingClientRect();
+    const rightOffset = Math.max(12, Math.round(window.innerWidth - rect.right));
+    const topOffset = Math.max(56, Math.round(rect.bottom + 8));
+    setMenuCoords({ top: topOffset, right: rightOffset });
+  }, []);
+
+  const handleToggleMenu = useCallback(() => {
+    if (!isMenuOpen) {
+      updateMenuCoords();
+      setIsMenuOpen(true);
+    } else {
+      setIsMenuOpen(false);
+    }
+  }, [isMenuOpen, updateMenuCoords]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return undefined;
+    const handleResize = () => updateMenuCoords();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMenuOpen, updateMenuCoords]);
+
   useEffect(() => {
     let mounted = true;
     const runCheck = async () => {
@@ -51,7 +92,7 @@ function Header({
     };
     runCheck();
 
-    const interval = setInterval(runCheck, 60000); // Controlla ogni 60s
+    const interval = setInterval(runCheck, 60000);
     const onVisChange = () => {
       if (document.visibilityState === 'visible') runCheck();
     };
@@ -69,228 +110,273 @@ function Header({
       document.removeEventListener('visibilitychange', onVisChange);
       unsubMusic();
       unsubWakeLock();
+      if (upToDateTimerRef.current) clearTimeout(upToDateTimerRef.current);
     };
   }, []);
 
+  const menuPortal = isMenuOpen && typeof document !== 'undefined'
+    ? createPortal(
+      <>
+        <div
+          className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-[2px]"
+          onClick={closeMenu}
+          aria-hidden="true"
+        />
+
+        {/* Bottom Sheet su mobile (<640px), Dropdown ancorato al pulsante su tablet/desktop (>=640px) */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Opzioni Tavolo"
+          style={{
+            '--menu-top': `${menuCoords.top}px`,
+            '--menu-right': `${menuCoords.right}px`,
+          }}
+          className="fixed inset-x-0 bottom-0 sm:bottom-auto sm:left-auto sm:top-[var(--menu-top)] sm:right-[var(--menu-right)] sm:w-80 max-h-[85dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl club-card-solid p-4 sm:p-3 z-[95] text-white space-y-2 club-sheet-enter pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pb-3"
+        >
+          <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-2 sm:hidden" />
+
+          <div className="px-2 pb-2 border-b club-divider flex items-center justify-between">
+            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider club-text-gold">
+              <Settings className="w-3.5 h-3.5" />
+              Opzioni Tavolo
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono-num club-text-subtle">
+                {getFormattedBuildDate()}
+              </span>
+              <button
+                type="button"
+                onClick={closeMenu}
+                className="sm:hidden min-w-[36px] min-h-[36px] rounded-lg club-inset text-slate-300 flex items-center justify-center cursor-pointer"
+                aria-label="Chiudi menu"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Schermo Sempre Acceso */}
+          <button
+            type="button"
+            onClick={() => {
+              wakeLock.toggle();
+              setWakeLockState({ enabled: wakeLock.enabled, active: wakeLock.active });
+            }}
+            className="w-full min-h-[46px] flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/5 text-left text-sm font-semibold transition-colors cursor-pointer"
+          >
+            <span className="flex items-center gap-3">
+              <Sun className={`w-4 h-4 shrink-0 ${wakeLockState.enabled ? 'text-amber-300' : 'club-text-muted'}`} />
+              <span>Schermo Sempre Acceso</span>
+            </span>
+            <span className={`text-[11px] px-2.5 py-0.5 rounded-md font-bold ${
+              wakeLockState.enabled
+                ? 'gold-gradient'
+                : 'club-inset club-text-muted'
+            }`}>
+              {wakeLockState.enabled ? 'Attivo' : 'Spento'}
+            </span>
+          </button>
+
+          {/* Regole Ufficiali */}
+          {onOpenRules && (
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu();
+                onOpenRules();
+              }}
+              className="w-full min-h-[46px] flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-left transition-colors cursor-pointer"
+            >
+              <BookOpen className="w-4 h-4 club-text-gold shrink-0" />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-white">Regole Ufficiali</div>
+                <div className="text-xs club-text-subtle">Punteggi carte, burrachi e chiusure</div>
+              </div>
+            </button>
+          )}
+
+          {/* Condividi Partita su WhatsApp */}
+          {hasActiveGame && onShareGame && (
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu();
+                onShareGame();
+              }}
+              className="w-full min-h-[46px] flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-left transition-colors cursor-pointer"
+            >
+              <Share2 className="w-4 h-4 club-text-muted shrink-0" />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-white">Condividi Punteggio</div>
+                <div className="text-xs club-text-subtle">Invia riepilogo partita su WhatsApp</div>
+              </div>
+            </button>
+          )}
+
+          {/* Aggiornamenti */}
+          <div className="pt-1.5 border-t club-divider">
+            <button
+              type="button"
+              disabled={isCheckingUpdate}
+              onClick={async () => {
+                if (updateInfo.hasUpdate) {
+                  forceAppUpdate();
+                } else {
+                  setIsCheckingUpdate(true);
+                  setUpToDateNotice(false);
+                  const res = await checkForUpdates();
+                  setIsCheckingUpdate(false);
+                  if (res?.hasUpdate) {
+                    setUpdateInfo(res);
+                  } else {
+                    setUpToDateNotice(true);
+                    if (upToDateTimerRef.current) clearTimeout(upToDateTimerRef.current);
+                    upToDateTimerRef.current = setTimeout(() => setUpToDateNotice(false), 3000);
+                  }
+                }
+              }}
+              className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm font-semibold transition-colors cursor-pointer ${
+                updateInfo.hasUpdate
+                  ? 'gold-gradient font-bold'
+                  : upToDateNotice
+                    ? 'bg-emerald-500/15 text-emerald-300'
+                    : 'hover:bg-white/5 club-text-muted'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                {upToDateNotice && !updateInfo.hasUpdate ? (
+                  <Check className="w-4 h-4 text-emerald-300 shrink-0" />
+                ) : (
+                  <RotateCw className={`w-4 h-4 shrink-0 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+                )}
+                <span>
+                  {updateInfo.hasUpdate
+                    ? 'Aggiorna Ora App'
+                    : isCheckingUpdate
+                      ? 'Controllo in corso...'
+                      : upToDateNotice
+                        ? 'App già aggiornata'
+                        : 'Verifica Aggiornamenti'}
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </>,
+      document.body
+    )
+    : null;
+
   return (
-    <header 
-      className="felt-card border-b border-amber-500/20 px-3 sm:px-6 py-2.5 sticky top-0 z-30 shadow-lg w-full transition-all"
+    <header
+      className="club-header-bar px-3 sm:px-6 py-2 sticky top-0 z-30 w-full"
       style={{
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)',
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.45rem)',
         paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 0.75rem)',
         paddingRight: 'calc(env(safe-area-inset-right, 0px) + 0.75rem)',
       }}
     >
-      <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 w-full">
-        
-        {/* Logo & Titolo Luxury */}
-        <div className="flex items-center gap-2.5 shrink-0 select-none">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl gold-gradient flex items-center justify-center shadow-md shadow-amber-950/40 text-emerald-950 font-black text-sm sm:text-base shrink-0">
+      <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 w-full min-h-[44px]">
+        {/* Marchio Club Italiano Elegante */}
+        <div className="flex items-center gap-2.5 min-w-0 select-none">
+          <div className="w-9 h-9 rounded-xl gold-gradient flex items-center justify-center font-display font-bold text-base shrink-0">
             ♠
           </div>
-          <div>
-            <h1 className="text-sm sm:text-base font-black tracking-tight text-white m-0 flex items-center gap-1.5">
+          <div className="min-w-0 leading-tight">
+            <h1 className="text-[15px] sm:text-lg font-bold tracking-tight text-white m-0 flex items-baseline gap-1.5 truncate">
               <span>Burraco</span>
-              <span className="text-amber-400 font-serif">Master Club</span>
+              <span className="font-display italic font-bold text-[16px] sm:text-[19px] club-text-gold">
+                Master Club
+              </span>
             </h1>
-            <p className="text-[10px] sm:text-[11px] text-emerald-300/70 m-0">
-              {hasActiveGame ? 'Partita al tavolo in corso' : 'Tavolo da gioco'} • ♣ ♦ ♥ ♠
-            </p>
           </div>
         </div>
 
-        {/* Strumenti Rapidi di Bordo Tavolo (Zero Ridondanze con la Bottom Bar) */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          
-          {/* 1. Tasto Audio & Jazz */}
+        {/* Azioni Bordo Tavolo (>=44px su mobile) */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Audio & Jazz */}
           <button
             type="button"
             onClick={() => setIsAudioModalOpen(true)}
-            className={`h-9 px-2.5 rounded-xl border transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer active:scale-95 touch-manipulation select-none ${
+            className={`min-h-[42px] min-w-[42px] px-2.5 rounded-xl border transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95 ${
               musicState.isPlaying
-                ? 'bg-amber-400/20 border-amber-400/60 text-amber-300 shadow-sm shadow-amber-950/30'
-                : 'bg-emerald-950/70 hover:bg-emerald-900 border-emerald-700/50 text-emerald-300'
+                ? 'bg-amber-400/18 border-amber-400/55 text-amber-200'
+                : 'club-btn-secondary club-text-muted'
             }`}
-            title="Audio & Musica Jazz"
+            aria-label="Audio e Musica Jazz"
+            title="Audio e Musica Jazz"
           >
-            <Music className={`w-4 h-4 ${musicState.isPlaying ? 'text-amber-400 animate-pulse' : 'text-emerald-400'}`} />
-            <span className="hidden md:inline text-[11px]">
-              {musicState.isPlaying ? 'Jazz ON' : 'Audio'}
+            <Music className={`w-4 h-4 ${musicState.isPlaying ? 'text-amber-300' : ''}`} />
+            <span className="hidden md:inline text-xs">
+              {musicState.isPlaying ? 'Jazz' : 'Audio'}
             </span>
           </button>
 
-          {/* 2. Selettore Panno Feltro */}
+          {/* Selettore Panno */}
           {onOpenThemeSelector && (
             <button
               type="button"
               onClick={onOpenThemeSelector}
-              className="h-9 px-2.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700/50 text-emerald-300 hover:text-amber-300 transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer active:scale-95 select-none"
-              title="Cambia colore del panno di gioco"
+              className="min-h-[42px] min-w-[42px] px-2.5 rounded-xl club-btn-secondary club-text-muted hover:text-amber-200 flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer active:scale-95"
+              aria-label="Cambia colore del panno"
+              title="Cambia panno del tavolo"
             >
-              <Palette className="w-4 h-4 text-amber-400" />
-              <span className="hidden lg:inline text-[11px]">Panno</span>
+              <Palette className="w-4 h-4 club-text-gold" />
+              <span className="hidden lg:inline text-xs">Panno</span>
             </button>
           )}
 
-          {/* 3. Notifiche & Inviti Amici */}
+          {/* Notifiche & Inviti */}
           {onOpenNotifications && (
             <button
               type="button"
               onClick={onOpenNotifications}
-              className={`relative h-9 px-2.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer active:scale-95 select-none ${
+              className={`relative min-h-[42px] min-w-[42px] px-2.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
                 notificationCount > 0
-                  ? 'bg-amber-500/25 border-amber-400 text-amber-200 ring-2 ring-amber-400/40 shadow-md shadow-amber-950/40'
-                  : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border-emerald-700/50'
+                  ? 'bg-amber-400/20 border-amber-400/70 text-amber-200'
+                  : 'club-btn-secondary club-text-muted'
               }`}
-              title={notificationCount > 0 ? `${notificationCount} notifiche non lette` : "Notifiche & Inviti"}
+              aria-label={notificationCount > 0 ? `${notificationCount} notifiche non lette` : 'Notifiche e inviti'}
+              title={notificationCount > 0 ? `${notificationCount} notifiche non lette` : 'Notifiche e Inviti'}
             >
-              <Bell className={`w-4 h-4 ${notificationCount > 0 ? 'text-amber-300 animate-bounce' : 'text-emerald-300'}`} />
+              <Bell className={`w-4 h-4 ${notificationCount > 0 ? 'text-amber-300' : ''}`} />
               {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-amber-400 text-emerald-950 text-[9px] font-black flex items-center justify-center shadow-md border-2 border-emerald-950 animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full gold-gradient text-[10px] font-extrabold tabular-nums flex items-center justify-center shadow-sm">
                   {notificationCount}
                 </span>
               )}
             </button>
           )}
 
-          {/* 4. Menu Strumenti Utilità Tavolo */}
+          {/* Menu Opzioni Tavolo */}
           <div className="relative">
             <button
+              ref={menuButtonRef}
               type="button"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`relative h-9 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1 text-xs font-semibold cursor-pointer active:scale-95 select-none border ${
-                updateInfo.hasUpdate
-                  ? 'bg-amber-500/25 text-amber-200 border-amber-400 ring-2 ring-amber-400/40 shadow-md'
-                  : isMenuOpen
-                  ? 'bg-amber-500/20 text-amber-200 border-amber-400/50'
-                  : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border-emerald-700/50'
+              onClick={handleToggleMenu}
+              aria-expanded={isMenuOpen}
+              aria-haspopup="dialog"
+              className={`relative min-h-[42px] min-w-[42px] px-2.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
+                updateInfo.hasUpdate || isMenuOpen
+                  ? 'bg-amber-400/20 border-amber-400/70 text-amber-200'
+                  : 'club-btn-secondary club-text-muted'
               }`}
+              aria-label="Opzioni tavolo"
               title="Opzioni e impostazioni tavolo"
             >
-              <Settings className={`w-4 h-4 text-amber-300 transition-transform duration-200 ${isMenuOpen ? 'rotate-45' : ''}`} />
+              <Settings className={`w-4 h-4 transition-transform duration-200 ${isMenuOpen ? 'rotate-45 text-amber-300' : ''}`} />
               {updateInfo.hasUpdate && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-emerald-950 animate-ping" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border border-black/40" />
               )}
             </button>
-
-            {/* Menu a tendina Utilità */}
-            {isMenuOpen && (
-              <>
-                <div 
-                  className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px]"
-                  onClick={() => setIsMenuOpen(false)}
-                />
-                
-                <div className="fixed sm:absolute right-3 sm:right-0 top-14 sm:top-full mt-2 w-72 rounded-2xl bg-emerald-950/95 backdrop-blur-md border border-amber-500/40 shadow-2xl p-2.5 z-50 text-white animate-in fade-in zoom-in-95 duration-150 space-y-1.5">
-                  
-                  <div className="px-3 py-1.5 border-b border-emerald-800/60 flex items-center justify-between text-[11px] font-bold text-amber-400 tracking-wider uppercase">
-                    <span className="flex items-center gap-1.5">
-                      <Settings className="w-3.5 h-3.5" />
-                      Opzioni Tavolo
-                    </span>
-                    <span className="text-[10px] text-emerald-400/80 font-mono">
-                      {getFormattedBuildDate()}
-                    </span>
-                  </div>
-
-                  {/* Schermo Sempre Acceso */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      wakeLock.toggle();
-                      setWakeLockState({ enabled: wakeLock.enabled, active: wakeLock.active });
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Sun className={`w-4 h-4 shrink-0 ${wakeLockState.enabled ? 'text-amber-400' : 'text-emerald-400'}`} />
-                      <span>Schermo Sempre Acceso</span>
-                    </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${
-                      wakeLockState.enabled
-                        ? 'bg-amber-400 text-emerald-950'
-                        : 'bg-emerald-900 text-emerald-400 border border-emerald-800'
-                    }`}>
-                      {wakeLockState.enabled ? 'ON' : 'OFF'}
-                    </span>
-                  </button>
-
-                  {/* Regole Ufficiali */}
-                  {onOpenRules && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onOpenRules();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                    >
-                      <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
-                      <div>
-                        <div className="text-white font-bold">Regole Ufficiali</div>
-                        <div className="text-[10px] text-emerald-300/70 font-normal">Punteggi carte, combinazioni e chiusure</div>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Condividi Partita su WhatsApp (se attiva) */}
-                  {hasActiveGame && onShareGame && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onShareGame();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-emerald-900/70 text-left text-xs font-semibold text-emerald-100 transition-colors cursor-pointer"
-                    >
-                      <Share2 className="w-4 h-4 text-emerald-300 shrink-0" />
-                      <div>
-                        <div className="text-white font-bold">Condividi Punteggio</div>
-                        <div className="text-[10px] text-emerald-300/70 font-normal">Invia riepilogo su WhatsApp</div>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Verifica Aggiornamenti */}
-                  <div className="pt-1 border-t border-emerald-800/40">
-                    <button
-                      type="button"
-                      disabled={isCheckingUpdate}
-                      onClick={async () => {
-                        if (updateInfo.hasUpdate) {
-                          forceAppUpdate();
-                        } else {
-                          setIsCheckingUpdate(true);
-                          const res = await checkForUpdates();
-                          setIsCheckingUpdate(false);
-                          if (res?.hasUpdate) {
-                            setUpdateInfo(res);
-                          }
-                        }
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-colors cursor-pointer ${
-                        updateInfo.hasUpdate
-                          ? 'bg-amber-400 text-emerald-950 font-black shadow-md'
-                          : 'hover:bg-emerald-900/70 text-emerald-300'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <RotateCw className={`w-3.5 h-3.5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
-                        <span>{updateInfo.hasUpdate ? 'Aggiorna Ora App!' : isCheckingUpdate ? 'Controllo in corso...' : 'Verifica Aggiornamenti'}</span>
-                      </span>
-                    </button>
-                  </div>
-
-                </div>
-              </>
-            )}
           </div>
-
         </div>
-
       </div>
 
-      {/* Modale Regolazione Audio / Musica Jazz */}
+      {menuPortal}
+
+      {/* Modale Audio / Musica Jazz */}
       <Suspense fallback={null}>
         {isAudioModalOpen && (
           <AudioSettingsModal

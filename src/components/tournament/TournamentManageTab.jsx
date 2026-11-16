@@ -20,7 +20,6 @@ export default function TournamentManageTab({
   const [editPlayer1, setEditPlayer1] = useState('');
   const [editPlayer2, setEditPlayer2] = useState('');
 
-  // Giocatori assegnati nelle altre squadre per evitare duplicati
   const otherAssignedPlayers = useMemo(() => {
     const list = [];
     (teams || []).forEach(t => {
@@ -90,16 +89,15 @@ export default function TournamentManageTab({
 
   return (
     <div className="space-y-4">
-      
-      {/* 1. SCHEDA SQUADRE ISCRITTE CON MODIFICA AL VOLO */}
-      <div className="p-4 rounded-2xl felt-card border border-white/10 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-amber-300 uppercase tracking-wider m-0 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-amber-400" />
+      {/* COPPIE PARTECIPANTI */}
+      <div className="p-4 rounded-2xl club-inset space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-xs font-bold club-text-gold uppercase tracking-wider m-0 flex items-center gap-1.5">
+            <Users className="w-4 h-4" />
             <span>Coppie Partecipanti ({teams.length})</span>
           </h3>
-          <span className="text-[11px] text-white/70">
-            Tocca la matita per modificare nomi o giocatori
+          <span className="text-xs club-text-subtle">
+            Modifica nomi o giocatori in corsa
           </span>
         </div>
 
@@ -108,24 +106,24 @@ export default function TournamentManageTab({
             const isEditing = editingTeamId === team.id;
 
             return (
-              <div 
-                key={team.id} 
+              <div
+                key={team.id}
                 className={`p-3 rounded-xl border transition-all ${
-                  isEditing 
-                    ? 'bg-amber-400/15 border-amber-400 ring-2 ring-amber-400/30' 
-                    : 'bg-black/30 border-white/10'
+                  isEditing
+                    ? 'club-card border-amber-400/75 ring-1 ring-amber-400/30'
+                    : 'bg-black/20 club-divider'
                 }`}
               >
                 {isEditing ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-bold text-amber-300">Coppia #{idx + 1}</span>
+                      <span className="text-xs font-bold club-text-gold">Coppia #{idx + 1}</span>
                       <button
                         type="button"
                         onClick={() => handleSaveEditTeam(team.id)}
-                        className="px-2.5 py-1 rounded-lg gold-gradient text-emerald-950 font-black text-xs flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
+                        className="min-h-[36px] px-3 rounded-xl gold-gradient font-bold text-xs flex items-center gap-1 cursor-pointer active:scale-95"
                       >
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                         <span>Salva</span>
                       </button>
                     </div>
@@ -135,7 +133,7 @@ export default function TournamentManageTab({
                       placeholder="Nome Coppia"
                       value={editTeamName}
                       onChange={(e) => setEditTeamName(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-black/50 border border-white/20 text-xs text-white font-bold focus:outline-none focus:border-amber-400"
+                      className="w-full min-h-[40px] px-3 py-1.5 rounded-xl club-input text-xs font-bold"
                     />
 
                     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
@@ -146,16 +144,16 @@ export default function TournamentManageTab({
                         currentUser={currentUser}
                         friendsList={friendsList}
                         alreadySelected={otherAssignedPlayers}
-                        className="w-full px-2.5 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full min-h-[40px] px-2.5 py-1.5 rounded-xl club-input text-xs"
                       />
 
                       <button
                         type="button"
                         onClick={handleSwapEditPlayers}
-                        className="p-1 rounded-md bg-white/5 hover:bg-white/15 text-white/70 hover:text-amber-300 transition-colors cursor-pointer border border-white/10"
+                        className="min-w-[36px] min-h-[36px] rounded-xl club-btn-secondary flex items-center justify-center club-text-muted hover:text-amber-300 cursor-pointer"
                         title="Inverti Giocatore 1 e 2"
                       >
-                        <ArrowLeftRight className="w-3 h-3" />
+                        <ArrowLeftRight className="w-3.5 h-3.5" />
                       </button>
 
                       <PlayerAutocompleteInput
@@ -165,17 +163,17 @@ export default function TournamentManageTab({
                         currentUser={currentUser}
                         friendsList={friendsList}
                         alreadySelected={otherAssignedPlayers}
-                        className="w-full px-2.5 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full min-h-[40px] px-2.5 py-1.5 rounded-xl club-input text-xs"
                       />
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="font-bold text-white text-xs sm:text-sm block truncate">
+                      <span className="font-bold text-white text-sm block truncate">
                         #{idx + 1} {team.name}
                       </span>
-                      <span className="text-[11px] text-white/70 block truncate">
+                      <span className="text-xs club-text-subtle block truncate">
                         {(team.players && team.players.length > 0) ? team.players.join(' & ') : 'Nessun giocatore inserito'}
                       </span>
                     </div>
@@ -183,10 +181,11 @@ export default function TournamentManageTab({
                     <button
                       type="button"
                       onClick={() => handleStartEditTeam(team)}
-                      className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all cursor-pointer shrink-0"
-                      title="Modifica squadra"
+                      className="min-w-[40px] min-h-[40px] rounded-xl club-btn-secondary flex items-center justify-center cursor-pointer shrink-0"
+                      aria-label={`Modifica ${team.name}`}
+                      title="Modifica coppia"
                     >
-                      <Edit2 className="w-3 h-3 text-amber-300" />
+                      <Edit2 className="w-4 h-4 club-text-gold" />
                     </button>
                   </div>
                 )}
@@ -196,75 +195,74 @@ export default function TournamentManageTab({
         </div>
       </div>
 
-      {/* 2. AZIONI CONCLUSIONE & PREMIAZIONE TORNEO */}
+      {/* CONCLUSIONE & PREMIAZIONE */}
       {activeTournament && (
-        <div className="p-4 rounded-2xl felt-card border border-amber-500/40 space-y-3 shadow-lg">
+        <div className="p-4 rounded-2xl club-card border-amber-400/50 space-y-3">
           <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-amber-400" />
-            <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider m-0">
-              Conclusione & Premiazione Ufficiale
+            <Trophy className="w-5 h-5 club-text-gold" />
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider m-0">
+              Conclusione e Premiazione
             </h3>
           </div>
-          <p className="text-xs text-white/75 m-0">
-            Dichiara concluso il torneo per incoronare i campioni, aggiornare l'Albo d'Oro e archiviare i risultati finali.
+          <p className="text-xs club-text-muted m-0">
+            Proclama i campioni e salva i risultati ufficiali nell&apos;Albo d&apos;Oro.
           </p>
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
             <button
               type="button"
               onClick={onFinishAndCelebrate}
-              className="px-4 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+              className="min-h-[44px] px-4 py-2 rounded-xl gold-gradient font-bold text-xs sm:text-sm active:scale-95 transition-all cursor-pointer flex items-center gap-2"
             >
-              <Trophy className="w-4 h-4 text-emerald-950" />
-              <span>Concludi Torneo & Premiazione 🎊</span>
+              <Trophy className="w-4 h-4" />
+              <span>Concludi e Premia</span>
             </button>
 
             <button
               type="button"
               onClick={onStartNewTournament}
-              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+              className="min-h-[44px] px-4 py-2 rounded-xl club-btn-secondary text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-amber-400" />
+              <Plus className="w-4 h-4 club-text-gold" />
               <span>Avvia Nuovo Torneo</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* 3. ALBO D'ORO: ARCHIVIO TORNEI PASSATI */}
-      <div className="p-4 rounded-2xl felt-card border border-white/10 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-amber-300 uppercase tracking-wider m-0 flex items-center gap-1.5">
-            <Award className="w-4 h-4 text-amber-400" />
-            <span>Albo d'Oro & Tornei Passati ({tournamentsHistory.length})</span>
-          </h3>
-        </div>
+      {/* ALBO D'ORO */}
+      <div className="p-4 rounded-2xl club-inset space-y-3">
+        <h3 className="text-xs font-bold club-text-gold uppercase tracking-wider m-0 flex items-center gap-1.5">
+          <Award className="w-4 h-4" />
+          <span>Albo d&apos;Oro ({tournamentsHistory.length})</span>
+        </h3>
 
         {tournamentsHistory.length === 0 ? (
-          <p className="text-xs text-white/60 m-0 py-2">
-            Nessun torneo archiviato al momento. I tornei conclusi verranno salvati automaticamente qui.
+          <p className="text-xs club-text-subtle m-0 py-1">
+            Nessun torneo archiviato al momento. I tornei conclusi saranno salvati qui.
           </p>
         ) : (
-          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-60 overflow-y-auto pr-0.5">
             {tournamentsHistory.map((t) => {
-              const completedDate = t.completedAt ? new Date(t.completedAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Concluso';
+              const completedDate = t.completedAt
+                ? new Date(t.completedAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
+                : 'Concluso';
               return (
-                <div 
-                  key={t.id} 
-                  className="p-3 rounded-xl bg-black/30 border border-white/10 flex items-center justify-between gap-3 text-xs"
+                <div
+                  key={t.id}
+                  className="p-3 rounded-xl bg-black/20 border club-divider flex items-center justify-between gap-3 text-xs"
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-xs sm:text-sm truncate">{t.name}</span>
-                      <span className="text-[10px] px-2 py-0.2 rounded-full font-black bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                    <div className="font-bold text-white text-sm truncate">{t.name}</div>
+                    <div className="text-[11px] club-text-subtle flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 club-text-gold" /> {completedDate}
+                      </span>
+                      <span>·</span>
+                      <span>{t.teams?.length || 0} coppie</span>
+                      <span>·</span>
+                      <span className="club-text-gold font-semibold">
                         {t.scoringSystem === 'classic' ? 'Classico 3-1-0' : 'FIBUR VP'}
                       </span>
-                    </div>
-                    <div className="text-[11px] text-white/70 flex items-center gap-2 mt-0.5">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3 text-amber-400" /> {completedDate}
-                      </span>
-                      <span>•</span>
-                      <span>{t.teams?.length || 0} coppie</span>
                     </div>
                   </div>
 
@@ -273,10 +271,9 @@ export default function TournamentManageTab({
                       <button
                         type="button"
                         onClick={() => onViewHistoricalStandings(t)}
-                        className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/15 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
-                        title="Visualizza classifica finale completa"
+                        className="min-h-[40px] px-3 rounded-xl club-btn-secondary text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5 text-amber-400" />
+                        <Eye className="w-3.5 h-3.5 club-text-gold" />
                         <span>Classifica</span>
                       </button>
                     )}
@@ -285,10 +282,11 @@ export default function TournamentManageTab({
                       <button
                         type="button"
                         onClick={() => onDeleteHistoricalTournament(t.id)}
-                        className="p-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs cursor-pointer transition-all"
+                        className="min-w-[40px] min-h-[40px] rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/35 flex items-center justify-center cursor-pointer"
+                        aria-label={`Elimina ${t.name}`}
                         title="Elimina torneo dall'archivio"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     )}
                   </div>
@@ -298,7 +296,6 @@ export default function TournamentManageTab({
           </div>
         )}
       </div>
-
     </div>
   );
 }

@@ -1,22 +1,39 @@
+import { rmSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const buildTime = Date.now();
+const buildVersionJson = JSON.stringify({
+  version: buildTime,
+  builtAt: new Date(buildTime).toISOString()
+}, null, 2);
 
-// Plugin per generare dist/version.json a ogni compilazione
+// Plugin per generare dist/version.json, servirlo in dev ed escludere screenshot interni dal bundle
 function versionPlugin() {
   return {
     name: 'generate-version-file',
+    configureServer(server) {
+      server.middlewares.use('/version.json', (_req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.end(buildVersionJson);
+      });
+    },
     generateBundle() {
       this.emitFile({
         type: 'asset',
         fileName: 'version.json',
-        source: JSON.stringify({
-          version: buildTime,
-          builtAt: new Date(buildTime).toISOString()
-        }, null, 2)
+        source: buildVersionJson
       });
+    },
+    closeBundle() {
+      try {
+        rmSync(resolve(process.cwd(), 'dist/assets/aistudio'), { recursive: true, force: true });
+      } catch {
+        // ignore if absent
+      }
     }
   };
 }

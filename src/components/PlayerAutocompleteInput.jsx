@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Sparkles, Check, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 export default function PlayerAutocompleteInput({
   value = '',
@@ -18,7 +18,6 @@ export default function PlayerAutocompleteInput({
   const wrapperRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Chiusura al click esterno
   useEffect(() => {
     const handleOutside = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
@@ -29,30 +28,27 @@ export default function PlayerAutocompleteInput({
     return () => document.removeEventListener('pointerdown', handleOutside);
   }, []);
 
-  // Normalizza gli elementi già selezionati per confronto case-insensitive
   const selectedNormalized = useMemo(() => {
     return (alreadySelected || [])
       .map(s => (s || '').trim().toLowerCase())
       .filter(s => s && s !== value.trim().toLowerCase());
   }, [alreadySelected, value]);
 
-  // Filtra e prepara i suggerimenti disponibili (SOLO Me stesso e Amici Google confermati)
   const suggestions = useMemo(() => {
     const query = (value || '').trim().toLowerCase();
     const results = [];
     const seenNames = new Set();
 
-    // 0. Me stesso (Utente loggato con account Google) - Massima priorità in cima!
     if (currentUser) {
       const myName = (currentUser.displayName || currentUser.email?.split('@')[0] || 'Tu').trim();
       const myEmail = (currentUser.email || '').trim().toLowerCase();
       const isAlreadyPicked = selectedNormalized.includes(myName.toLowerCase());
 
-      const matchesQuery = !query || 
-        myName.toLowerCase().includes(query) || 
-        myEmail.includes(query) || 
-        query === 'tu' || 
-        query === 'io' || 
+      const matchesQuery = !query ||
+        myName.toLowerCase().includes(query) ||
+        myEmail.includes(query) ||
+        query === 'tu' ||
+        query === 'io' ||
         query === 'me';
 
       if (!isAlreadyPicked && matchesQuery) {
@@ -68,17 +64,13 @@ export default function PlayerAutocompleteInput({
       }
     }
 
-    // 1. Amici Google / Club confermati
     (friendsList || []).forEach(f => {
       const name = (f.displayName || '').trim();
       const email = (f.email || '').trim().toLowerCase();
       if (!name && !email) return;
       if (seenNames.has(name.toLowerCase())) return;
-      
-      // Escludi se già selezionato in un altro slot
       if (selectedNormalized.includes(name.toLowerCase())) return;
 
-      // Se vuoto: mostra tutti i disponibili
       const matches = !query || name.toLowerCase().includes(query) || email.includes(query);
       if (matches) {
         results.push({
@@ -126,7 +118,6 @@ export default function PlayerAutocompleteInput({
         autoComplete="off"
       />
 
-      {/* Tasto Cancella Testo */}
       {value && (
         <button
           type="button"
@@ -135,29 +126,25 @@ export default function PlayerAutocompleteInput({
             onChange('');
             inputRef.current?.focus();
           }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-emerald-400/60 hover:text-white transition-colors cursor-pointer"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 club-text-subtle hover:text-white transition-colors cursor-pointer"
           title="Cancella"
         >
           <X className="w-3.5 h-3.5" />
         </button>
       )}
 
-      {/* Menù a tendina dei suggerimenti: SOLO Tu & Amici Google */}
       {isOpen && suggestions.length > 0 && (
-        <div 
+        <div
           onMouseDown={(e) => e.preventDefault()}
-          className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl bg-gradient-to-b from-emerald-950 via-zinc-950 to-emerald-950 border-2 border-amber-400/80 shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+          className="absolute top-full left-0 right-0 mt-1.5 z-50 rounded-2xl club-card-solid border-amber-400/60 overflow-hidden"
         >
-          
-          <div className="px-2.5 py-1.5 bg-emerald-950/90 border-b border-emerald-800/60 flex items-center justify-between text-[10px] text-emerald-300/80 font-bold uppercase tracking-wider">
-            <span>⭐ Amici Selezionabili:</span>
-            <span className="text-amber-400 font-semibold normal-case text-[10px]">
-              {suggestions.length} {suggestions.length === 1 ? 'disponibile' : 'disponibili'}
-            </span>
+          <div className="px-3 py-1.5 border-b club-divider flex items-center justify-between text-[11px] club-text-muted font-semibold">
+            <span>Amici disponibili</span>
+            <span className="font-mono-num club-text-gold">{suggestions.length}</span>
           </div>
 
-          <div 
-            className="max-h-52 overflow-y-auto divide-y divide-emerald-800/40 p-1 touch-pan-y overscroll-contain"
+          <div
+            className="max-h-52 overflow-y-auto divide-y club-divider p-1 touch-pan-y overscroll-contain"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {suggestions.map((item, idx) => {
@@ -167,61 +154,40 @@ export default function PlayerAutocompleteInput({
                   key={`${item.type}_${item.name}_${idx}`}
                   type="button"
                   onClick={() => handleSelect(item)}
-                  className={`w-full p-2 rounded-lg flex items-center justify-between gap-2.5 text-left transition-all cursor-pointer select-none active:scale-[0.98] ${
-                    isSelected 
-                      ? 'bg-amber-400/20 text-white' 
-                      : 'hover:bg-emerald-900/60 text-emerald-100 active:bg-amber-400/10'
+                  className={`w-full min-h-[44px] p-2 rounded-xl flex items-center justify-between gap-2.5 text-left transition-colors cursor-pointer ${
+                    isSelected
+                      ? 'bg-amber-400/15 text-white'
+                      : 'hover:bg-white/5 text-slate-100'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    {item.type === 'me' ? (
-                      item.photoURL ? (
-                        <img
-                          src={item.photoURL}
-                          alt=""
-                          className="w-7 h-7 rounded-full border-2 border-emerald-400 ring-2 ring-emerald-500/40 object-cover shrink-0 shadow-md"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-emerald-400 text-emerald-950 font-black text-xs flex items-center justify-center shrink-0 shadow-md ring-2 ring-emerald-500/40">
-                          {item.name.slice(0, 1).toUpperCase()}
-                        </div>
-                      )
-                    ) : item.photoURL ? (
+                    {item.photoURL ? (
                       <img
                         src={item.photoURL}
                         alt=""
-                        className="w-7 h-7 rounded-full border border-amber-400 object-cover shrink-0 shadow-sm"
+                        className="w-7 h-7 rounded-full border border-amber-400/70 object-cover shrink-0"
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-amber-400 text-emerald-950 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+                      <div className="w-7 h-7 rounded-full gold-gradient font-bold text-xs flex items-center justify-center shrink-0">
                         {item.name.slice(0, 1).toUpperCase()}
                       </div>
                     )}
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-xs text-white truncate max-w-[170px] sm:max-w-[220px]">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-bold text-xs text-white truncate">
                           {item.name}
                         </span>
-                        {item.type === 'me' ? (
-                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 flex items-center gap-0.5 shrink-0">
-                            <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
-                            <span>Tu (Account)</span>
-                          </span>
-                        ) : item.isCloseFriend ? (
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-400/30 to-amber-500/30 text-amber-300 border border-amber-400/70 flex items-center gap-0.5 shrink-0 shadow-xs">
-                            <span>⭐</span>
-                            <span>Amico Stretto</span>
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-800/40 text-emerald-300/80 border border-emerald-700/50 flex items-center gap-0.5 shrink-0">
-                            <span>📩</span>
-                            <span>Richiede invito</span>
-                          </span>
-                        )}
+                        <span className="text-[11px] club-text-gold font-medium shrink-0">
+                          {item.type === 'me'
+                            ? '· Tu'
+                            : item.isCloseFriend
+                              ? '· ★ Stretto'
+                              : ''}
+                        </span>
                       </div>
                       {item.email && (
-                        <div className="text-[10px] text-emerald-400/70 truncate">
+                        <div className="text-[11px] club-text-subtle truncate">
                           {item.email}
                         </div>
                       )}
@@ -229,13 +195,12 @@ export default function PlayerAutocompleteInput({
                   </div>
 
                   {isSelected && (
-                    <Check className="w-4 h-4 text-amber-400 stroke-[3] shrink-0" />
+                    <Check className="w-4 h-4 club-text-gold shrink-0" />
                   )}
                 </button>
               );
             })}
           </div>
-
         </div>
       )}
     </div>

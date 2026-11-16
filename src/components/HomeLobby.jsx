@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  Users, 
-  User, 
-  RotateCcw, 
-  KeyRound, 
-  Sparkles, 
-  Play, 
+import {
+  Users,
+  User,
+  RotateCcw,
+  KeyRound,
   SlidersHorizontal,
   ArrowRight
 } from 'lucide-react';
@@ -23,14 +21,11 @@ export default function HomeLobby({
 }) {
   const customAlert = useAlert();
 
-  // Stato PIN rapido per unirsi al tavolo
   const [pinInput, setPinInput] = useState('');
   const [isSearchingPin, setIsSearchingPin] = useState(false);
 
-  // Ultima partita per rivincita rapida
   const lastGame = gamesHistory && gamesHistory.length > 0 ? gamesHistory[0] : null;
 
-  // Apertura configurazione tavolo con modalità preselezionata
   const handleSelectModeLaunch = (mode) => {
     try {
       sound.playTap();
@@ -42,15 +37,13 @@ export default function HomeLobby({
     }
   };
 
-  // Avvio rapido per modalità specifica (fallback)
   const handleQuickLaunchMode = (mode) => {
     try {
       sound.playCardDeal();
     } catch {}
 
     const myName = currentUser?.displayName || currentUser?.email?.split('@')[0] || storedPlayers[0] || 'Giocatore 1';
-    
-    // Se ci sono giocatori salvati o amici, costruiamo squadre di default pulite
+
     let team1 = { name: 'Coppia 1', players: ['Giocatore 1', 'Giocatore 2'] };
     let team2 = { name: 'Coppia 2', players: ['Giocatore 3', 'Giocatore 4'] };
     let team3 = null;
@@ -64,7 +57,6 @@ export default function HomeLobby({
       team2 = { name: storedPlayers[1] || 'Giocatore 2', players: [storedPlayers[1] || 'Giocatore 2'] };
       team3 = { name: storedPlayers[2] || 'Giocatore 3', players: [storedPlayers[2] || 'Giocatore 3'] };
     } else {
-      // Coppie (2 vs 2)
       const p1 = myName;
       const p2 = storedPlayers[1] || 'Compagno';
       const p3 = storedPlayers[2] || 'Avversario 1';
@@ -90,7 +82,6 @@ export default function HomeLobby({
     onStartGame(newGame);
   };
 
-  // Partecipazione tramite PIN
   const handleJoinByPin = async (e) => {
     e.preventDefault();
     const cleanPin = pinInput.trim();
@@ -127,7 +118,6 @@ export default function HomeLobby({
     }
   };
 
-  // Rivincita immediata ultima partita
   const handleQuickRematch = () => {
     if (!lastGame) return;
     try {
@@ -165,127 +155,126 @@ export default function HomeLobby({
   const playerName = currentUser?.displayName?.split(' ')[0] || (storedPlayers.length > 0 ? storedPlayers[0] : 'Giocatore');
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in duration-200">
-      
-      {/* 1. HERO BANNER BENVENUTO CLUB */}
-      <div className="felt-card p-5 sm:p-6 rounded-3xl border border-amber-500/30 shadow-2xl relative overflow-hidden text-center sm:text-left">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-400/5 blur-3xl pointer-events-none rounded-full" />
-        
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+    <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-5">
+      {/* 1. INTESTAZIONE CIRCOLO */}
+      <section className="club-card p-5 sm:p-6 rounded-2xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-black tracking-wider uppercase">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Tavolo da Gioco</span>
-              <span className="text-amber-400/60">•</span>
-              <span className="text-emerald-300 font-mono">♠ ♥ ♦ ♣</span>
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] club-text-gold flex items-center gap-2">
+              <span>Salotto del Circolo</span>
+              <span className="club-text-subtle">·</span>
+              <span className="club-text-muted tracking-widest">♠ ♥ ♦ ♣</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white">
-              Ciao, {playerName}!
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              Benvenuto, {playerName}
             </h2>
-            <p className="text-xs sm:text-sm text-emerald-300/80 max-w-md">
-              Scegli la modalità per iniziare una nuova partita o unisciti a un tavolo già aperto.
+            <p className="text-xs sm:text-sm club-text-muted max-w-md leading-relaxed">
+              Scegli la formula del tavolo per iniziare la smazzata o entra con il codice PIN.
             </p>
           </div>
 
           <button
             type="button"
             onClick={onOpenNewGameModal}
-            className="px-4 py-2.5 rounded-2xl bg-emerald-950/80 hover:bg-emerald-900 text-amber-300 font-bold text-xs border border-amber-400/40 shadow-md flex items-center gap-2 active:scale-95 transition-all cursor-pointer shrink-0"
+            className="min-h-[44px] px-4 py-2.5 rounded-xl club-btn-secondary font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer shrink-0"
             title="Configura punti personalizzati, nomi o regole speciali"
           >
-            <SlidersHorizontal className="w-4 h-4 text-amber-400" />
-            <span>Configura Partita</span>
+            <SlidersHorizontal className="w-4 h-4 club-text-gold" />
+            <span>Configurazione Avanzata</span>
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* 2. LE 3 MODALITÀ DI GIOCO (BIG CARDS TATTILI) */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-            <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span>Inizia una Nuova Partita</span>
-          </span>
-          <span className="text-[11px] text-emerald-400/70 font-semibold">
-            Obiettivo 2005 pt
+      {/* 2. LE 3 FORMULE DI GIOCO */}
+      <section className="space-y-2.5">
+        <div className="flex items-baseline justify-between px-1">
+          <h3 className="text-xs font-bold uppercase tracking-wider club-text-gold">
+            Nuova Partita
+          </h3>
+          <span className="text-xs club-text-subtle font-medium">
+            Traguardo predefinito 2005 pt
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          
-          {/* Modalità 1: Coppie (2 vs 2) - Più usata */}
+          {/* A Coppie */}
           <button
             type="button"
             onClick={() => handleSelectModeLaunch('pairs')}
-            className="p-4 sm:p-5 rounded-3xl bg-gradient-to-b from-emerald-900/80 to-emerald-950/90 hover:to-emerald-900 border-2 border-amber-400/60 hover:border-amber-400 shadow-xl text-left transition-all cursor-pointer active:scale-95 group flex flex-col justify-between min-h-[140px] relative overflow-hidden"
+            className="club-card p-4 sm:p-5 rounded-2xl border-amber-400/45 hover:border-amber-400/80 text-left transition-all cursor-pointer active:scale-[0.98] group flex sm:flex-col items-center sm:items-stretch justify-between gap-3 sm:min-h-[144px]"
           >
-            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-400 text-emerald-950 font-black text-[9px] uppercase tracking-wider">
-              Classico
-            </div>
-            <div>
-              <div className="w-10 h-10 rounded-2xl gold-gradient text-emerald-950 font-black flex items-center justify-center mb-2.5 shadow-md group-hover:scale-105 transition-transform">
-                <Users className="w-5 h-5 text-emerald-950" />
+            <div className="flex sm:block items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center sm:mb-3 shrink-0 group-hover:scale-105 transition-transform">
+                <Users className="w-5 h-5" />
               </div>
-              <h3 className="font-black text-white text-base">A Coppie</h3>
-              <p className="text-xs text-emerald-300/80 mt-0.5">2 contro 2 con pozzetti</p>
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <h4 className="font-bold text-white text-base">A Coppie</h4>
+                  <span className="text-[11px] font-semibold club-text-gold">Classico</span>
+                </div>
+                <p className="text-xs club-text-muted mt-0.5">2 contro 2 con pozzetti</p>
+              </div>
             </div>
-            <div className="mt-3 flex items-center gap-1 text-xs font-black text-amber-300 group-hover:translate-x-1 transition-transform">
-              <span>Configura Tavolo</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 text-xs font-bold club-text-gold shrink-0 group-hover:translate-x-0.5 transition-transform">
+              <span className="hidden sm:inline">Prepara Tavolo</span>
+              <ArrowRight className="w-4 h-4" />
             </div>
           </button>
 
-          {/* Modalità 2: Singolo (1 vs 1) */}
+          {/* Singolo */}
           <button
             type="button"
             onClick={() => handleSelectModeLaunch('singles')}
-            className="p-4 sm:p-5 rounded-3xl bg-emerald-950/70 hover:bg-emerald-900/60 border border-emerald-600/40 hover:border-amber-400/60 shadow-lg text-left transition-all cursor-pointer active:scale-95 group flex flex-col justify-between min-h-[140px]"
+            className="club-card p-4 sm:p-5 rounded-2xl hover:border-amber-400/50 text-left transition-all cursor-pointer active:scale-[0.98] group flex sm:flex-col items-center sm:items-stretch justify-between gap-3 sm:min-h-[144px]"
           >
-            <div>
-              <div className="w-10 h-10 rounded-2xl bg-emerald-900 text-amber-300 border border-emerald-700/60 font-black flex items-center justify-center mb-2.5 shadow-sm group-hover:scale-105 transition-transform">
-                <User className="w-5 h-5 text-amber-400" />
+            <div className="flex sm:block items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl club-inset club-text-gold flex items-center justify-center sm:mb-3 shrink-0 group-hover:scale-105 transition-transform">
+                <User className="w-5 h-5" />
               </div>
-              <h3 className="font-black text-white text-base">Singolo</h3>
-              <p className="text-xs text-emerald-300/80 mt-0.5">1 contro 1 testa a testa</p>
+              <div>
+                <h4 className="font-bold text-white text-base">Singolo</h4>
+                <p className="text-xs club-text-muted mt-0.5">1 contro 1 testa a testa</p>
+              </div>
             </div>
-            <div className="mt-3 flex items-center gap-1 text-xs font-black text-emerald-300 group-hover:text-amber-300 group-hover:translate-x-1 transition-all">
-              <span>Configura Tavolo</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 text-xs font-semibold club-text-muted group-hover:text-amber-300 shrink-0 group-hover:translate-x-0.5 transition-all">
+              <span className="hidden sm:inline">Prepara Tavolo</span>
+              <ArrowRight className="w-4 h-4" />
             </div>
           </button>
 
-          {/* Modalità 3: A Tre (Trio a rotazione) */}
+          {/* A Tre */}
           <button
             type="button"
             onClick={() => handleSelectModeLaunch('trio')}
-            className="p-4 sm:p-5 rounded-3xl bg-emerald-950/70 hover:bg-emerald-900/60 border border-emerald-600/40 hover:border-amber-400/60 shadow-lg text-left transition-all cursor-pointer active:scale-95 group flex flex-col justify-between min-h-[140px]"
+            className="club-card p-4 sm:p-5 rounded-2xl hover:border-amber-400/50 text-left transition-all cursor-pointer active:scale-[0.98] group flex sm:flex-col items-center sm:items-stretch justify-between gap-3 sm:min-h-[144px]"
           >
-            <div>
-              <div className="w-10 h-10 rounded-2xl bg-emerald-900 text-amber-300 border border-emerald-700/60 font-black flex items-center justify-center mb-2.5 shadow-sm group-hover:scale-105 transition-transform">
-                <span className="text-base font-black font-mono">3P</span>
+            <div className="flex sm:block items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl club-inset club-text-gold flex items-center justify-center sm:mb-3 shrink-0 group-hover:scale-105 transition-transform">
+                <span className="text-sm font-bold font-mono-num">3P</span>
               </div>
-              <h3 className="font-black text-white text-base">A Tre</h3>
-              <p className="text-xs text-emerald-300/80 mt-0.5">Trio a rotazione</p>
+              <div>
+                <h4 className="font-bold text-white text-base">A Tre</h4>
+                <p className="text-xs club-text-muted mt-0.5">Rotazione con pozzetto 18</p>
+              </div>
             </div>
-            <div className="mt-3 flex items-center gap-1 text-xs font-black text-emerald-300 group-hover:text-amber-300 group-hover:translate-x-1 transition-all">
-              <span>Configura Tavolo</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 text-xs font-semibold club-text-muted group-hover:text-amber-300 shrink-0 group-hover:translate-x-0.5 transition-all">
+              <span className="hidden sm:inline">Prepara Tavolo</span>
+              <ArrowRight className="w-4 h-4" />
             </div>
           </button>
-
         </div>
-      </div>
+      </section>
 
-      {/* 3. PARTECIPAZIONE TAVOLO CON PIN */}
-      <div className="felt-card p-4 sm:p-5 rounded-3xl border border-emerald-500/30 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3.5">
-        <div className="flex items-center gap-3 text-center sm:text-left">
-          <span className="p-2.5 rounded-2xl bg-emerald-900/80 text-amber-400 border border-emerald-700/60 shrink-0">
-            <KeyRound className="w-5 h-5 text-amber-400" />
+      {/* 3. UNISCITI CON PIN TAVOLO */}
+      <section className="club-card p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl club-inset club-text-gold flex items-center justify-center shrink-0">
+            <KeyRound className="w-5 h-5" />
           </span>
           <div>
-            <h3 className="text-sm font-black text-white">Unisciti con PIN Tavolo</h3>
-            <p className="text-xs text-emerald-300/70">
-              Inserisci il codice mostrato sul telefono dell'organizzatore:
+            <h3 className="text-sm font-bold text-white">Entra in un Tavolo con PIN</h3>
+            <p className="text-xs club-text-subtle">
+              Inserisci il codice a 6 cifre mostrato sul dispositivo del tavolo
             </p>
           </div>
         </div>
@@ -297,31 +286,32 @@ export default function HomeLobby({
             onChange={(e) => setPinInput(e.target.value.toUpperCase())}
             placeholder="PIN (es. 684210)"
             maxLength={10}
-            className="flex-1 sm:w-36 px-3.5 py-2.5 rounded-xl bg-emerald-950 border border-emerald-500/50 text-white placeholder-emerald-400/40 text-xs font-mono font-black tracking-wider text-center focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+            className="flex-1 sm:w-40 min-h-[44px] px-3.5 py-2 rounded-xl club-input text-sm font-mono-num font-bold tracking-wider text-center"
           />
           <button
             type="submit"
             disabled={isSearchingPin || pinInput.trim().length < 4}
-            className="px-4 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all shrink-0"
+            className="min-h-[44px] px-5 py-2 rounded-xl gold-gradient font-bold text-sm active:scale-95 disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer transition-all shrink-0"
           >
             {isSearchingPin ? 'Cerca...' : 'Entra'}
           </button>
         </form>
-      </div>
+      </section>
 
-      {/* 4. RIVINCITA IMMEDIATA DALL'ULTIMA PARTITA (se presente) */}
+      {/* 4. RIVINCITA RAPIDA ULTIMA PARTITA */}
       {lastGame && (
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 shadow-md">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="p-2 rounded-xl bg-amber-400/20 text-amber-400 shrink-0">
+        <section className="club-card p-4 rounded-2xl flex items-center justify-between gap-3 border-amber-400/30">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-xl club-inset club-text-gold flex items-center justify-center shrink-0">
               <RotateCcw className="w-4 h-4" />
             </span>
             <div className="min-w-0">
-              <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider block">
-                Ultima Partita Giocata
+              <span className="text-[11px] font-bold uppercase tracking-wider club-text-gold block">
+                Ripeti ultima formazione
               </span>
-              <p className="text-xs font-bold text-white truncate">
+              <p className="text-sm font-semibold text-white truncate">
                 {lastGame.team1?.name} vs {lastGame.team2?.name}
+                {lastGame.mode === 'trio' && lastGame.team3?.name ? ` vs ${lastGame.team3.name}` : ''}
               </p>
             </div>
           </div>
@@ -329,14 +319,13 @@ export default function HomeLobby({
           <button
             type="button"
             onClick={handleQuickRematch}
-            className="px-3.5 py-2 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md hover:brightness-110 active:scale-95 cursor-pointer shrink-0 transition-transform flex items-center gap-1.5"
+            className="min-h-[44px] px-4 py-2 rounded-xl gold-gradient font-bold text-xs sm:text-sm active:scale-95 cursor-pointer shrink-0 transition-transform flex items-center gap-1.5"
           >
             <span>Rivincita</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-4 h-4" />
           </button>
-        </div>
+        </section>
       )}
-
     </div>
   );
 }

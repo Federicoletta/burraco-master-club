@@ -19,6 +19,7 @@ import {
   isPermissionOrQuotaError,
   isIndexMissingError,
 } from './firebase';
+import { fetchPublicProfilesBatch } from './profilesService';
 
 /**
  * Invia una richiesta di amicizia a un utente tramite UID, Email o Nome Giocatore (case-insensitive)
@@ -377,7 +378,8 @@ export function getFriendOnlineStatus(lastSeen) {
 }
 
 /**
- * Ascolta in tempo reale la lista degli amici confermati per l'utente, arricchita con stato presenza dal profilo pubblico
+ * Ascolta in tempo reale la lista degli amici confermati per l'utente, arricchita con cache TTL dal profilo pubblico
+ * (senza aprire N listener onSnapshot permanenti quando la sezione Profilo è chiusa).
  */
 export function subscribeToMyFriends(currentUser, onFriendsChange) {
   if (!db || !currentUser?.uid) return () => {};
@@ -388,11 +390,12 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
     where('users', 'array-contains', currentUser.uid)
   );
 
-  const userUnsubs = {};
+  let unsubscribed = false;
   let friendsBase = [];
-  const userProfiles = {};
+  let userProfiles = {};
 
   const notify = () => {
+    if (unsubscribed) return;
     const enriched = friendsBase.map(f => {
       const live = f?.uid ? userProfiles[f.uid] : null;
       return {
@@ -405,7 +408,7 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
 
   const unsubFriends = onSnapshot(q, (snapshot) => {
     friendsBase = [];
-    const activeUids = new Set();
+    const activeUids = [];
 
     snapshot.docs.forEach(docSnap => {
       const data = docSnap.data();
@@ -418,38 +421,27 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
       }
       if (other) {
         friendsBase.push(other);
-        if (other.uid) activeUids.add(other.uid);
-      }
-    });
-
-    // Rimuovi listener per amici non più presenti
-    Object.keys(userUnsubs).forEach(uid => {
-      if (!activeUids.has(uid)) {
-        if (typeof userUnsubs[uid] === 'function') userUnsubs[uid]();
-        delete userUnsubs[uid];
-        delete userProfiles[uid];
-      }
-    });
-
-    // Iscriviti ai profili pubblici live per lastSeen, careerStats e avatar in tempo reale
-    activeUids.forEach(uid => {
-      if (!userUnsubs[uid]) {
-        const pubRef = doc(db, 'burraco_public_profiles', uid);
-        userUnsubs[uid] = onSnapshot(pubRef, (uSnap) => {
-          if (uSnap.exists()) {
-            userProfiles[uid] = uSnap.data();
-            notify();
-          }
-        }, (err) => {
-          if (isPermissionOrQuotaError(err)) {
-            handleFirestoreError(err, OperationType.GET, `burraco_public_profiles/${uid}`);
-          }
-          console.warn('Avviso ascolto presenza amico:', err.message);
-        });
+        if (other.uid) activeUids.push(other.uid);
       }
     });
 
     notify();
+
+    if (activeUids.length > 0) {
+      fetchPublicProfilesBatch(activeUids)
+        .then((profilesMap) => {
+          if (unsubscribed || !profilesMap) return;
+          const nextProfiles = {};
+          profilesMap.forEach((profile, uid) => {
+            nextProfiles[uid] = profile;
+          });
+          userProfiles = nextProfiles;
+          notify();
+        })
+        .catch((err) => {
+          console.warn('Avviso arricchimento profili amici:', err?.message || err);
+        });
+    }
   }, (err) => {
     if (isPermissionOrQuotaError(err)) {
       handleFirestoreError(err, OperationType.LIST, 'burraco_friends');
@@ -458,9 +450,49 @@ export function subscribeToMyFriends(currentUser, onFriendsChange) {
   });
 
   return () => {
+    unsubscribed = true;
     unsubFriends();
-    Object.values(userUnsubs).forEach(unsub => {
-      if (typeof unsub === 'function') unsub();
+  };
+}
+
+/**
+ * Ascolta in tempo reale presenza e statistiche degli amici solo su richiesta (es. Profilo/Classifica aperti)
+ */
+export function subscribeToFriendsPresence(friendUids = [], onProfilesMap) {
+  if (!db || !Array.isArray(friendUids) || friendUids.length === 0) return () => {};
+
+  const uniqueUids = [...new Set(friendUids.filter(Boolean))].slice(0, 30);
+  if (uniqueUids.length === 0) return () => {};
+
+  let unsubscribed = false;
+  const profilesMap = {};
+  const unsubs = [];
+
+  uniqueUids.forEach((uid) => {
+    const pubRef = doc(db, 'burraco_public_profiles', uid);
+    const unsub = onSnapshot(
+      pubRef,
+      (uSnap) => {
+        if (unsubscribed) return;
+        if (uSnap.exists()) {
+          profilesMap[uid] = uSnap.data();
+          onProfilesMap({ ...profilesMap });
+        }
+      },
+      (err) => {
+        if (isPermissionOrQuotaError(err)) {
+          handleFirestoreError(err, OperationType.GET, `burraco_public_profiles/${uid}`);
+        }
+        console.warn('Avviso ascolto presenza amico:', err.message);
+      }
+    );
+    unsubs.push(unsub);
+  });
+
+  return () => {
+    unsubscribed = true;
+    unsubs.forEach(fn => {
+      if (typeof fn === 'function') fn();
     });
   };
 }

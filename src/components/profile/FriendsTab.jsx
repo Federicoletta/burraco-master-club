@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Bell, UserPlus, Check, Trash2, Search, Send } from 'lucide-react';
+import { Users, Bell, UserPlus, Check, Trash2, Search, Send, Star } from 'lucide-react';
 import { getFriendOnlineStatus } from '../../services/social';
 import { useConfirm } from '../../context/confirmContextStore';
 import DeveloperBadge from '../DeveloperBadge';
@@ -30,49 +30,47 @@ export default function FriendsTab({
   const confirm = useConfirm();
 
   return (
-    <div className="space-y-3.5 animate-in fade-in duration-150">
-      
+    <div className="space-y-4">
       {/* RICHIESTE DI AMICIZIA IN ARRIVO */}
       {incomingFriendRequests.length > 0 && (
-        <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-950/90 to-emerald-950/90 border border-amber-400/80 shadow-lg space-y-2.5 animate-in slide-in-from-top-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-black text-amber-300 uppercase tracking-wider">
-              <Bell className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
-              <span>Richieste di Amicizia in Arrivo ({incomingFriendRequests.length})</span>
-            </div>
+        <div className="p-3.5 rounded-2xl club-inset border border-[var(--accent-gold)] space-y-2.5">
+          <div className="flex items-center gap-2 text-xs font-extrabold club-text-gold uppercase tracking-wider">
+            <Bell className="w-4 h-4 shrink-0" />
+            <span>Richieste in Arrivo ({incomingFriendRequests.length})</span>
           </div>
 
           <div className="space-y-2">
             {incomingFriendRequests.map(notif => (
-              <div 
+              <div
                 key={notif.id}
-                className="p-2.5 rounded-xl bg-emerald-950/90 border border-amber-400/40 flex items-center justify-between gap-2 text-xs"
+                className="p-3 rounded-xl club-card border club-divider flex items-center justify-between gap-2.5"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="font-bold text-white truncate flex items-center gap-1.5 flex-wrap">
+                  <div className="font-bold text-sm text-white truncate flex items-center gap-1.5 flex-wrap">
                     <span>{notif.fromName || 'Giocatore'}</span>
                     {isDeveloperAccount(notif.fromEmail || notif.fromUid || notif.fromName) && (
                       <DeveloperBadge size="xs" />
                     )}
                   </div>
-                  <div className="text-[10px] text-emerald-300/70 truncate">{notif.fromEmail}</div>
+                  <div className="text-xs club-text-subtle truncate">{notif.fromEmail}</div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={() => onAcceptFriendRequest && onAcceptFriendRequest(notif)}
-                    className="px-2.5 py-1 rounded-lg gold-gradient text-emerald-950 font-black text-[11px] shadow hover:brightness-110 active:scale-95 cursor-pointer flex items-center gap-1"
+                    className="min-h-[42px] px-3.5 rounded-xl gold-gradient font-bold text-xs active:scale-95 cursor-pointer flex items-center gap-1.5"
                   >
-                    <Check className="w-3 h-3 text-emerald-950 stroke-[3]" />
+                    <Check className="w-4 h-4 stroke-[2.5]" />
                     <span>Accetta</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => onDeclineFriendRequest && onDeclineFriendRequest(notif)}
-                    className="p-1 rounded-lg bg-emerald-900/60 hover:bg-rose-950/80 text-emerald-400 hover:text-rose-300 border border-emerald-700/40 transition-colors cursor-pointer"
+                    className="w-[42px] h-[42px] rounded-xl club-btn-secondary hover:text-rose-300 flex items-center justify-center cursor-pointer"
                     title="Rifiuta richiesta"
+                    aria-label="Rifiuta richiesta"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -82,145 +80,176 @@ export default function FriendsTab({
       )}
 
       {/* RUBRICA AMICI CONFERMATI */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-xs font-extrabold club-text-gold uppercase tracking-wider flex items-center gap-1.5">
+            <Users className="w-4 h-4" />
             <span>I Tuoi Amici ({friendsList.length})</span>
           </span>
           {onlineCount > 0 && (
-            <span className="text-[10px] font-bold text-emerald-300 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>{onlineCount} online adesso</span>
+            <span className="text-xs font-semibold text-emerald-300 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>{onlineCount} online</span>
             </span>
           )}
         </div>
 
-        {/* Banner Spiegazione Amici Stretti ⭐ */}
         {friendsList.length > 0 && (
-          <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-[11px] text-amber-200/90 flex items-center gap-2">
-            <span className="text-sm">⭐</span>
+          <div className="p-3 rounded-xl club-inset border club-divider text-xs club-text-muted flex items-start gap-2.5 leading-relaxed">
+            <Star className="w-4 h-4 club-text-gold shrink-0 mt-0.5 fill-current" />
             <span>
-              <strong>Amici Stretti:</strong> tocca la stella per promuovere un amico. Gli amici stretti possono essere inseriti al tavolo subito <em>senza attendere che accettino l'invito</em>.
+              <strong className="text-white">Amici Stretti:</strong> tocca la stella per inserire un amico al tavolo subito senza attendere risposta all'invito.
             </span>
           </div>
         )}
 
         {friendsList.length === 0 ? (
-          <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800/40 text-center space-y-1.5">
-            <p className="text-xs text-emerald-300/80 m-0">
-              Non hai ancora amici nella tua rubrica di gioco.
+          <div className="p-5 rounded-2xl club-inset border club-divider text-center space-y-1.5">
+            <p className="text-sm font-semibold text-white m-0">
+              Rubrica ancora vuota
             </p>
-            <p className="text-[11px] text-emerald-400/60 m-0">
-              Usa il modulo sottostante per cercare e aggiungere altri giocatori tramite la loro email Google!
+            <p className="text-xs club-text-subtle m-0">
+              Cerca i tuoi compagni qui sotto tramite nome o email Google per inviare l'amicizia.
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {friendsList.map(friend => {
               const status = getFriendOnlineStatus(friend.lastSeen);
+              const isAtTable = tablePlayers.some(
+                p => (friend.uid && p.uid === friend.uid) || (friend.email && p.email?.toLowerCase() === friend.email?.toLowerCase())
+              );
+              const isInvited = invitedFriendUids[friend.uid || friend.email];
+              const isInviting = invitingFriendUids[friend.uid || friend.email];
+
               return (
-                <div 
+                <div
                   key={friend.uid || friend.email}
-                  className="p-2.5 rounded-xl bg-emerald-950/75 border border-emerald-700/40 hover:border-amber-400/40 transition-all flex items-center justify-between gap-2.5 shadow-sm"
+                  className="p-3 rounded-2xl club-inset border club-divider space-y-2.5"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="relative shrink-0">
-                      {friend.photoURL ? (
-                        <img 
-                          src={friend.photoURL} 
-                          alt="" 
-                          className="w-9 h-9 rounded-full border-2 border-amber-400 object-cover" 
+                  {/* Riga superiore: Identità amico + tasto Stella & Elimina */}
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="relative shrink-0">
+                        {friend.photoURL ? (
+                          <img
+                            src={friend.photoURL}
+                            alt=""
+                            className="w-10 h-10 rounded-full border border-[var(--accent-gold)] object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full gold-gradient font-bold text-sm flex items-center justify-center">
+                            {(friend.displayName || friend.email || 'U').slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                        <span
+                          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[var(--surface-card-solid)] ${
+                            status.color === 'emerald'
+                              ? 'bg-emerald-400'
+                              : status.color === 'amber'
+                              ? 'bg-amber-400'
+                              : 'bg-zinc-500'
+                          }`}
+                          title={status.label}
                         />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-emerald-900 border-2 border-amber-400 text-amber-300 font-bold text-xs flex items-center justify-center">
-                          {(friend.displayName || friend.email || 'U').slice(0, 1).toUpperCase()}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-sm text-white truncate">
+                            {friend.displayName || 'Giocatore'}
+                          </span>
+                          {isDeveloperAccount(friend) && (
+                            <DeveloperBadge size="xs" />
+                          )}
+                          {friend.isCloseFriend && (
+                            <span className="text-[10px] club-text-gold font-bold">
+                              ★ Stretto
+                            </span>
+                          )}
                         </div>
-                      )}
-                      <span 
-                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-emerald-950 ${
-                          status.color === 'emerald'
-                            ? 'bg-emerald-400 shadow-sm shadow-emerald-400'
-                            : status.color === 'amber'
-                            ? 'bg-amber-400'
-                            : 'bg-zinc-500'
-                        }`}
-                        title={status.label}
-                      />
+                        <div className="text-xs club-text-subtle truncate">
+                          {friend.email}
+                        </div>
+                        <div className="text-[11px] font-medium mt-0.5 flex items-center gap-1.5">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              status.color === 'emerald' ? 'bg-emerald-400' : status.color === 'amber' ? 'bg-amber-400' : 'bg-zinc-500'
+                            }`}
+                          />
+                          <span className={status.color === 'emerald' ? 'text-emerald-300 font-semibold' : status.color === 'amber' ? 'club-text-gold' : 'club-text-subtle'}>
+                            {status.label}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-xs sm:text-sm text-white truncate">
-                          {friend.displayName || 'Giocatore'}
-                        </span>
-                        {isDeveloperAccount(friend) && (
-                          <DeveloperBadge size="xs" />
-                        )}
-                        {friend.isCloseFriend && (
-                          <span className="text-[10px] text-amber-300 font-bold bg-amber-400/20 px-1.5 py-0.5 rounded-full border border-amber-400/40 flex items-center gap-0.5">
-                            ⭐ Stretto
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-emerald-300/70 truncate">
-                        {friend.email}
-                      </div>
-                      <div className="text-[9px] font-medium mt-0.5 flex items-center gap-1">
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          status.color === 'emerald' ? 'bg-emerald-400 animate-pulse' : status.color === 'amber' ? 'bg-amber-400' : 'bg-zinc-500'
-                        }`} />
-                        <span className={status.color === 'emerald' ? 'text-emerald-300 font-bold' : status.color === 'amber' ? 'text-amber-300/90' : 'text-zinc-400'}>
-                          {status.label}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {onToggleCloseFriend && (
+                        <button
+                          type="button"
+                          onClick={() => onToggleCloseFriend(friend)}
+                          className={`w-10 h-10 rounded-xl border transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
+                            friend.isCloseFriend
+                              ? 'bg-[var(--accent-ring)] border-[var(--accent-gold)] club-text-gold'
+                              : 'club-btn-secondary club-text-subtle'
+                          }`}
+                          title={
+                            friend.isCloseFriend
+                              ? 'Amico Stretto (entra subito senza invito). Tocca per rimuovere.'
+                              : 'Promuovi ad Amico Stretto'
+                          }
+                          aria-label="Imposta come Amico Stretto"
+                        >
+                          <Star className={`w-4 h-4 ${friend.isCloseFriend ? 'fill-current' : ''}`} />
+                        </button>
+                      )}
+
+                      {onRemoveFriend && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: 'Rimuovi Amico',
+                              message: `Vuoi rimuovere ${friend.displayName || friend.email} dai tuoi amici?`,
+                              confirmText: 'Rimuovi',
+                              variant: 'danger'
+                            });
+                            if (ok) {
+                              onRemoveFriend(friend);
+                            }
+                          }}
+                          className="w-10 h-10 rounded-xl club-btn-secondary club-text-subtle hover:text-rose-300 flex items-center justify-center cursor-pointer"
+                          title="Rimuovi amico"
+                          aria-label="Rimuovi amico"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  {/* Tasti Azione */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Tasto Amico Stretto ⭐ */}
-                    {onToggleCloseFriend && (
-                      <button
-                        type="button"
-                        onClick={() => onToggleCloseFriend(friend)}
-                        className={`p-1.5 rounded-lg border text-xs transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
-                          friend.isCloseFriend
-                            ? 'bg-amber-400/25 border-amber-400 text-amber-300 shadow-sm shadow-amber-950/40'
-                            : 'bg-emerald-900/40 border-emerald-700/50 text-emerald-400/60 hover:text-amber-300 hover:border-amber-400/40'
-                        }`}
-                        title={
-                          friend.isCloseFriend
-                            ? 'Amico Stretto (entra subito senza invito). Tocca per toglierlo dagli amici stretti.'
-                            : 'Tocca per rendere Amico Stretto (potrai aggiungerlo subito al tavolo senza attesa invito)'
-                        }
-                      >
-                        <span className={friend.isCloseFriend ? 'text-amber-400 text-sm' : 'opacity-60 text-sm'}>
-                          {friend.isCloseFriend ? '⭐' : '☆'}
-                        </span>
-                      </button>
-                    )}
-
+                  {/* Riga Azioni Tavolo (>=42px target comodi anche su schermo stretto) */}
+                  <div className="flex items-center gap-2 pt-2 border-t club-divider">
                     {activeGame && activeGame.id && handleInviteToActiveGame && (
-                      tablePlayers.some(p => (friend.uid && p.uid === friend.uid) || (friend.email && p.email?.toLowerCase() === friend.email?.toLowerCase())) ? (
-                        <span className="px-2 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-400/40">
-                          Al Tavolo 🟢
+                      isAtTable ? (
+                        <span className="flex-1 min-h-[40px] px-3 rounded-xl bg-emerald-500/15 text-emerald-300 font-bold text-xs border border-emerald-400/35 flex items-center justify-center">
+                          Già al Tavolo
                         </span>
-                      ) : invitedFriendUids[friend.uid || friend.email] ? (
-                        <span className="px-2 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-400/40 flex items-center gap-1">
-                          <Check className="w-3 h-3 text-emerald-400" />
-                          <span>Invitato!</span>
+                      ) : isInvited ? (
+                        <span className="flex-1 min-h-[40px] px-3 rounded-xl bg-emerald-500/15 text-emerald-300 font-bold text-xs border border-emerald-400/35 flex items-center justify-center gap-1.5">
+                          <Check className="w-4 h-4" />
+                          <span>Invitato</span>
                         </span>
                       ) : (
                         <button
                           type="button"
-                          disabled={invitingFriendUids[friend.uid || friend.email]}
+                          disabled={isInviting}
                           onClick={() => handleInviteToActiveGame(friend)}
-                          className="px-2.5 py-1 rounded-xl gold-gradient text-emerald-950 font-black text-[10px] shadow-sm hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
-                          title="Invita al tavolo attivo di oggi"
+                          className="flex-1 min-h-[40px] px-3 rounded-xl gold-gradient font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          title="Invita al tavolo attivo"
                         >
-                          <span>🎯</span>
-                          <span>{invitingFriendUids[friend.uid || friend.email] ? 'Invio...' : 'Invita al Tavolo'}</span>
+                          <span>{isInviting ? 'Invio...' : 'Invita al Tavolo'}</span>
                         </button>
                       )
                     )}
@@ -228,32 +257,11 @@ export default function FriendsTab({
                     <button
                       type="button"
                       onClick={() => handleChallenge(friend)}
-                      className="px-2 py-1 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 font-bold text-[10px] transition-all cursor-pointer"
+                      className="flex-1 min-h-[40px] px-3 rounded-xl club-btn-secondary font-bold text-xs active:scale-95 transition-all cursor-pointer"
                       title="Avvia una nuova partita con questo amico"
                     >
-                      Sfida
+                      Nuova Sfida
                     </button>
-
-                    {onRemoveFriend && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const ok = await confirm({
-                            title: 'Rimuovi Amico',
-                            message: `Vuoi rimuovere ${friend.displayName || friend.email} dai tuoi amici?`,
-                            confirmText: 'Rimuovi',
-                            variant: 'danger'
-                          });
-                          if (ok) {
-                            onRemoveFriend(friend);
-                          }
-                        }}
-                        className="p-1 rounded-lg text-emerald-400/60 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                        title="Rimuovi amico"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
                   </div>
                 </div>
               );
@@ -263,49 +271,50 @@ export default function FriendsTab({
       </div>
 
       {/* AGGIUNGI AMICO TRAMITE EMAIL */}
-      <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-800/60 space-y-2.5">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider">
-          <UserPlus className="w-3.5 h-3.5 text-amber-400" />
+      <div className="p-3.5 rounded-2xl club-inset border club-divider space-y-3">
+        <div className="flex items-center gap-2 text-xs font-extrabold club-text-gold uppercase tracking-wider">
+          <UserPlus className="w-4 h-4" />
           <span>Aggiungi Nuovo Amico</span>
         </div>
 
         <form onSubmit={handleFormSubmit} className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-emerald-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 club-text-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={friendSearchInput}
               onChange={(e) => setFriendSearchInput(e.target.value)}
-              placeholder="Digita email o nome compagno..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-emerald-900/60 border border-emerald-700/50 text-white placeholder-emerald-400/50 text-xs focus:outline-hidden focus:border-amber-400 transition-colors"
+              placeholder="Nome o email compagno..."
+              className="w-full min-h-[44px] pl-10 pr-3 rounded-xl club-input text-sm"
             />
           </div>
           <button
             type="submit"
             disabled={isSendingFriend || !friendSearchInput.trim()}
-            className="px-3.5 py-2 rounded-xl gold-gradient text-emerald-950 font-bold text-xs shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+            className="min-h-[44px] px-4 rounded-xl gold-gradient font-bold text-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
           >
-            <Send className="w-3.5 h-3.5 text-emerald-950" />
+            <Send className="w-4 h-4" />
             <span>{isSendingFriend ? 'Invio...' : 'Invia'}</span>
           </button>
         </form>
 
         {filteredSuggestions.length > 0 && (
-          <div className="space-y-1 pt-1 border-t border-emerald-800/40">
-            <span className="text-[10px] text-emerald-400/80 font-bold uppercase tracking-wider">
-              Membri Club suggeriti:
+          <div className="space-y-1.5 pt-2 border-t club-divider">
+            <span className="text-[11px] club-text-subtle font-bold uppercase tracking-wider block">
+              Membri del Club trovati:
             </span>
             {filteredSuggestions.map(sug => (
-              <div
+              <button
+                type="button"
                 key={sug.uid || sug.email}
                 onClick={() => handleSendFriend(sug)}
-                className="p-2 rounded-lg bg-emerald-950/60 hover:bg-emerald-800/80 flex items-center justify-between cursor-pointer transition-colors"
+                className="w-full min-h-[48px] p-2.5 rounded-xl club-btn-secondary flex items-center justify-between gap-2 text-left cursor-pointer"
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
                   {sug.photoURL ? (
-                    <img src={sug.photoURL} alt="" className="w-6 h-6 rounded-full border border-amber-400 object-cover shrink-0" />
+                    <img src={sug.photoURL} alt="" className="w-8 h-8 rounded-full border border-[var(--accent-gold)] object-cover shrink-0" />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-emerald-800 text-amber-300 font-bold text-[10px] flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-full gold-gradient font-bold text-xs flex items-center justify-center shrink-0">
                       {(sug.displayName || 'U').slice(0, 1).toUpperCase()}
                     </div>
                   )}
@@ -314,26 +323,27 @@ export default function FriendsTab({
                       <span className="text-xs font-bold text-white truncate">{sug.displayName}</span>
                       {isDeveloperAccount(sug) && <DeveloperBadge size="xs" />}
                     </div>
-                    <span className="text-[10px] text-emerald-300/70 truncate block">{sug.email}</span>
+                    <span className="text-[11px] club-text-subtle truncate block">{sug.email}</span>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-amber-300 shrink-0">➕ Invia Richiesta</span>
-              </div>
+                <span className="text-xs font-bold club-text-gold shrink-0">+ Invia</span>
+              </button>
             ))}
           </div>
         )}
 
         {friendFeedback && (
-          <div className={`p-2 rounded-lg text-xs font-medium ${
-            friendFeedback.type === 'success'
-              ? 'bg-emerald-900/80 text-emerald-200 border border-emerald-600/60'
-              : 'bg-rose-950/80 text-rose-200 border border-rose-700/60'
-          }`}>
+          <div
+            className={`p-3 rounded-xl text-xs font-semibold border ${
+              friendFeedback.type === 'success'
+                ? 'bg-emerald-500/15 text-emerald-200 border-emerald-400/40'
+                : 'bg-rose-950/75 text-rose-200 border-rose-500/40'
+            }`}
+          >
             {friendFeedback.text}
           </div>
         )}
       </div>
-
     </div>
   );
 }

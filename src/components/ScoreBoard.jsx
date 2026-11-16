@@ -1,9 +1,8 @@
 import React, { useMemo, memo } from 'react';
-import { Trophy, Plus, Sparkles } from 'lucide-react';
+import { Trophy, Plus, RotateCcw } from 'lucide-react';
 import { getGamesHistory, calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 
-// Sotto-componenti modulari del tabellone segnapunti
 import TablePlayersBar from './scoreboard/TablePlayersBar';
 import TeamScoreCards from './scoreboard/TeamScoreCards';
 import ScoreBoardToolbar from './scoreboard/ScoreBoardToolbar';
@@ -33,7 +32,6 @@ function ScoreBoard({
 }) {
   const isTrio = activeGame?.mode === 'trio';
 
-  // Calcola titoli dei giocatori della partita
   const titlesMap = useMemo(() => {
     if (!activeGame) return {};
     const allPlayersInGame = [
@@ -51,7 +49,6 @@ function ScoreBoard({
     return map;
   }, [activeGame, gamesHistory, currentUser]);
 
-  // Calcola totali progressivi in modo immutabile
   const { roundsWithProgressive, totalTeam1, totalTeam2, totalTeam3 } = useMemo(() => {
     let runningT1 = 0;
     let runningT2 = 0;
@@ -80,7 +77,9 @@ function ScoreBoard({
 
   const pendingGame = useMemo(() => {
     if (!activeGame || (activeGame.rounds && activeGame.rounds.length > 0)) return null;
-    return (gamesHistory || []).find(g => g && g.id !== activeGame?.id && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0) || null;
+    return (gamesHistory || []).find(
+      g => g && g.id !== activeGame?.id && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0
+    ) || null;
   }, [activeGame, gamesHistory]);
 
   if (!activeGame) return null;
@@ -123,94 +122,103 @@ function ScoreBoard({
     : Math.max(totalTeam1, totalTeam2);
 
   return (
-    <div className="space-y-3 pb-8 animate-in fade-in duration-150">
-      
-      {/* AVVISO VITTORIA O TRAGUARDO RAGGIUNTO */}
+    <div className="space-y-3 sm:space-y-4">
+      {/* AVVISO TRAGUARDO RAGGIUNTO */}
       {isTargetReached && !activeGame.isFinished && (
-        <div className="p-4 rounded-2xl bg-amber-500/20 border-2 border-amber-400 text-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl animate-bounce-subtle">
-          <div className="flex items-center gap-3 text-center sm:text-left">
-            <Trophy className="w-8 h-8 text-amber-400 shrink-0" />
+        <div className="p-4 rounded-2xl club-card border-amber-400/75 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
+              <Trophy className="w-5 h-5" />
+            </span>
             <div>
-              <h3 className="text-base font-bold text-white m-0">
-                Traguardo di {targetScore} punti raggiunto!
+              <h3 className="text-sm sm:text-base font-bold text-white">
+                Traguardo di {targetScore} pt raggiunto
               </h3>
-              <p className="text-xs text-amber-300/90 m-0">
-                {winningTeam?.name} ha vinto la partita con {winningScore} punti!
+              <p className="text-xs club-text-gold font-medium">
+                {winningTeam?.name} conduce con {winningScore.toLocaleString('it-IT')} punti
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onEndGame}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-md cursor-pointer hover:brightness-110 active:scale-95"
+            className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl gold-gradient font-bold text-sm cursor-pointer active:scale-[0.98]"
           >
-            Festeggia & Termina Partita
+            Festeggia e Termina
           </button>
         </div>
       )}
 
       {/* BANNER RIPRESA PARTITA IN SOSPESO */}
       {pendingGame && onResumeGame && (
-        <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-emerald-950/90 to-amber-500/20 border-2 border-amber-400/70 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-3 text-left">
-            <div className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 shrink-0 shadow-md font-black text-xl">
-              ⏳
-            </div>
-            <div>
-              <div className="text-xs sm:text-sm font-black text-amber-300 flex items-center gap-1.5 flex-wrap">
-                <span>Partita in sospeso trovata:</span>
-                <span className="text-white">{pendingGame.team1?.name} vs {pendingGame.team2?.name}</span>
+        <div className="p-3.5 sm:p-4 rounded-2xl club-card border-amber-400/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-xl club-inset club-text-gold flex items-center justify-center shrink-0">
+              <RotateCcw className="w-4 h-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-bold text-white truncate">
+                Partita in sospeso: {pendingGame.team1?.name} vs {pendingGame.team2?.name}
               </div>
-              <div className="text-[11px] text-emerald-200/90 mt-0.5">
-                {pendingGame.rounds?.length || 0} {pendingGame.rounds?.length === 1 ? 'mano registrata' : 'mani registrate'} • Punteggio: {(pendingGame.rounds || []).reduce((a,r)=>a+(r.team1Score||0),0)} a {(pendingGame.rounds || []).reduce((a,r)=>a+(r.team2Score||0),0)} pt
+              <div className="text-xs club-text-muted mt-0.5 tabular-nums-club">
+                {pendingGame.rounds?.length || 0} {pendingGame.rounds?.length === 1 ? 'mano' : 'mani'} · {(pendingGame.rounds || []).reduce((a, r) => a + (r.team1Score || 0), 0)} a {(pendingGame.rounds || []).reduce((a, r) => a + (r.team2Score || 0), 0)} pt
               </div>
             </div>
           </div>
           <button
+            type="button"
             onClick={() => onResumeGame(pendingGame)}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-md hover:brightness-110 active:scale-95 cursor-pointer shrink-0 transition-all flex items-center justify-center gap-1.5"
+            className="w-full sm:w-auto min-h-[44px] px-4 py-2 rounded-xl gold-gradient font-bold text-xs sm:text-sm active:scale-95 cursor-pointer shrink-0"
           >
-            <span>Riprendi Partita al Tavolo ▶</span>
+            Riprendi Partita
           </button>
         </div>
       )}
 
-      {/* HEADER TAVOLO IN TEMPO REALE (PIN, STATO, TRAGUARDO) */}
-      <div className="p-2.5 sm:p-3 rounded-2xl felt-card border border-emerald-500/30 flex flex-wrap items-center justify-between gap-2 shadow-md">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-bold text-white flex items-center gap-1.5">
-            <span>Tavolo Live</span>
-            {activeGame.pin && (
-              <span className="px-2 py-0.5 rounded-lg bg-emerald-900 border border-emerald-600/50 font-mono text-amber-300 text-[11px]">
-                PIN: {activeGame.pin}
+      {/* INTESTAZIONE COMPATTA DEL TAVOLO */}
+      <div className="px-3.5 py-2.5 rounded-2xl club-card flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              syncStatus === 'syncing'
+                ? 'bg-amber-400 animate-pulse'
+                : syncStatus === 'offline'
+                  ? 'bg-rose-400'
+                  : 'bg-emerald-400'
+            }`}
+          />
+          <span className="font-semibold text-white">Tavolo Live</span>
+          {activeGame.pin && (
+            <>
+              <span className="club-text-subtle">·</span>
+              <span className="font-mono-num font-bold club-text-gold">
+                PIN {activeGame.pin}
               </span>
-            )}
-          </span>
+            </>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="px-2.5 py-1 rounded-xl bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-semibold text-[11px]">
-            Traguardo: <strong className="text-amber-300">{targetScore} pt</strong>
+        <div className="flex items-center gap-2.5 text-xs">
+          <span className="club-text-muted">
+            Obiettivo <strong className="font-mono-num text-white">{targetScore} pt</strong>
           </span>
-          <span className={`px-2 py-0.5 rounded-xl text-[10px] font-bold border ${
+          <span className="club-text-subtle">·</span>
+          <span className={`font-semibold ${
             syncStatus === 'syncing'
-              ? 'bg-amber-500/20 text-amber-300 border-amber-400/40'
+              ? 'text-amber-300'
               : syncStatus === 'offline'
-              ? 'bg-rose-500/20 text-rose-300 border-rose-400/40'
-              : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                ? 'text-rose-300'
+                : 'text-emerald-300'
           }`}>
-            {syncStatus === 'syncing' ? 'Sync Cloud...' : syncStatus === 'offline' ? 'Offline' : 'In Tempo Reale'}
+            {syncStatus === 'syncing' ? 'Sync Cloud...' : syncStatus === 'offline' ? 'Offline' : 'Sincronizzato'}
           </span>
         </div>
       </div>
 
-      {/* LAYOUT RESPONSIVE: TABLET LANDSCAPE (SPLIT-VIEW) VS MOBILE VERTICALE */}
+      {/* GRIGLIA TAVOLO: TABLET/DESKTOP SPLIT VIEW, MOBILE VERTICALE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
-        
-        {/* COLONNA SINISTRA: TABELLONE SQUADRE & PULSANTONE REGISTRA MANO */}
+        {/* COLONNA PRINCIPALE: PUNTEGGI + AZIONI */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-3">
-          
-          {/* 1. Schede Punteggio Squadre */}
           <TeamScoreCards
             activeGame={activeGame}
             isTrio={isTrio}
@@ -227,20 +235,27 @@ function ScoreBoard({
             onOpenEditTeams={onOpenEditTeams}
           />
 
-          {/* 2. PULSANTONE PRINCIPALE GIGANTE "REGISTRA SMAZZATA" (ERGO CTA) */}
+          {/* Pulsante Desktop inline */}
           {onAddRound && (
             <button
               type="button"
               onClick={onAddRound}
-              className="w-full py-3.5 sm:py-4 px-5 rounded-2xl gold-gradient text-emerald-950 font-black text-sm sm:text-base shadow-xl shadow-amber-400/20 hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all flex items-center justify-center gap-2 border border-amber-300/40"
+              className="hidden lg:flex w-full min-h-[52px] py-3.5 px-6 rounded-2xl gold-gradient font-bold text-base cursor-pointer active:scale-[0.99] transition-transform items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5 stroke-[2.5px]" />
-              <span>🃏 Registra Nuova Smazzata</span>
-              <Sparkles className="w-4 h-4 text-emerald-900" />
+              <span>Registra Nuova Smazzata</span>
             </button>
           )}
 
-          {/* 3. Barra Giocatori Live & Amicizia */}
+          <ScoreBoardToolbar
+            roundsCount={activeGame.rounds?.length || 0}
+            syncStatus={syncStatus}
+            onEndGame={onEndGame}
+            onDeleteLastRound={onDeleteLastRound}
+            onCloseTable={onCloseTable}
+            onSaveGame={onSaveGame}
+          />
+
           <TablePlayersBar
             activeGame={activeGame}
             tablePlayers={tablePlayers}
@@ -252,21 +267,10 @@ function ScoreBoard({
             onSendFriendRequest={onSendFriendRequest}
             onOpenLogin={onOpenLogin}
           />
-
-          {/* 4. Toolbar Azioni Rapide Partita (Salva, Chiudi, Termina, Annulla) */}
-          <ScoreBoardToolbar
-            roundsCount={activeGame.rounds?.length || 0}
-            syncStatus={syncStatus}
-            onEndGame={onEndGame}
-            onDeleteLastRound={onDeleteLastRound}
-            onCloseTable={onCloseTable}
-            onSaveGame={onSaveGame}
-            onAddRound={null} // Già presente come pulsantone sopra
-          />
         </div>
 
-        {/* COLONNA DESTRA: REGISTRO MANI (Sempre visibile a lato su iPad/Desktop) */}
-        <div className="lg:col-span-5 xl:col-span-4 space-y-3">
+        {/* COLONNA DESTRA: FOGLIO SEGNAPUNTI MANI */}
+        <div className="lg:col-span-5 xl:col-span-4">
           <RoundsHistoryList
             activeGame={activeGame}
             isTrio={isTrio}
@@ -277,9 +281,26 @@ function ScoreBoard({
             onDeleteRound={onDeleteRound}
           />
         </div>
-
       </div>
 
+      {/* ZONA POLLICE MOBILE (< lg): CTA "+ Registra Smazzata" ancorata sopra la BottomNavBar */}
+      {onAddRound && (
+        <div
+          className="lg:hidden fixed left-1/2 -translate-x-1/2 z-30 w-[calc(100%-1.25rem)] max-w-md pointer-events-none"
+          style={{
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.25rem)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={onAddRound}
+            className="pointer-events-auto w-full min-h-[50px] py-3 px-5 rounded-2xl gold-gradient font-bold text-[15px] shadow-2xl cursor-pointer active:scale-[0.98] transition-transform flex items-center justify-center gap-2 border border-amber-200/40"
+          >
+            <Plus className="w-5 h-5 stroke-[2.5px]" />
+            <span>Registra Smazzata</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

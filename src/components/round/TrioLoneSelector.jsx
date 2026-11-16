@@ -9,13 +9,14 @@ export default function TrioLoneSelector({
   pairSplitScore
 }) {
   return (
-    <div className="p-3 rounded-xl bg-emerald-950/90 border border-amber-400/50 shadow-md">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-          <span>👤</span> Chi ha preso il Pozzetto da 18 carte (Solitario)?
+    <div className="p-3.5 rounded-2xl club-inset space-y-2.5">
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="font-bold club-text-gold uppercase tracking-wider text-[11px]">
+          Solitario (Pozzetto da 18)
         </span>
-        <span className="text-[10px] text-emerald-400 font-medium">Regola Ufficiale FIBUR</span>
+        <span className="text-[11px] club-text-subtle">Regola FIBUR</span>
       </div>
+
       <div className="grid grid-cols-3 gap-2">
         {[
           { key: 'team1', icon: '♦' },
@@ -29,26 +30,27 @@ export default function TrioLoneSelector({
               key={key}
               type="button"
               onClick={() => setLonePlayer(key)}
-              className={`py-2 px-2 rounded-xl border text-center transition-all cursor-pointer font-bold text-xs flex flex-col items-center justify-center gap-0.5 ${
+              className={`min-h-[48px] py-2 px-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                 isSelected
-                  ? 'gold-gradient text-emerald-950 font-black shadow-md ring-2 ring-amber-300/60 scale-[1.02]'
-                  : 'bg-emerald-900/60 border-emerald-700/60 text-emerald-200 hover:text-white hover:bg-emerald-800/60'
+                  ? 'gold-gradient font-bold border-amber-300'
+                  : 'club-card club-text-muted hover:text-white'
               }`}
             >
-              <span className="text-xs truncate max-w-full">{icon} {team?.name}</span>
-              <span className={`text-[10px] ${isSelected ? 'text-emerald-950 font-extrabold' : 'text-emerald-400'}`}>
-                {isSelected ? '★ Solitario' : 'In Coppia'}
+              <span className="text-xs font-bold truncate max-w-full">{icon} {team?.name}</span>
+              <span className={`text-[10px] ${isSelected ? 'opacity-85 font-semibold' : 'club-text-subtle'}`}>
+                {isSelected ? 'Solitario' : 'In Coppia'}
               </span>
             </button>
           );
         })}
       </div>
-      <div className="mt-2 text-[11px] text-emerald-300/90 flex flex-wrap items-center justify-between gap-1 border-t border-emerald-800/50 pt-1.5">
+
+      <div className="text-xs club-text-muted flex flex-wrap items-center justify-between gap-1 border-t club-divider pt-2">
         <span>
-          👥 <strong>Coppia di questa mano:</strong> {pairNames}
+          Coppia: <strong className="text-white">{pairNames}</strong>
         </span>
-        <span className="text-amber-300 font-semibold text-[10px]">
-          Punti coppia divisi al 50% ({pairRawScore} pt ÷ 2 = {pairSplitScore} pt cad.)
+        <span className="font-mono-num club-text-gold text-[11px] font-semibold">
+          {pairRawScore} ÷ 2 = {pairSplitScore} pt cad.
         </span>
       </div>
     </div>

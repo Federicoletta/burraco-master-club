@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2 } from 'lucide-react';
+import { Edit2, Crown } from 'lucide-react';
 
 export default function TeamScoreCards({
   activeGame,
@@ -18,257 +18,145 @@ export default function TeamScoreCards({
 }) {
   if (!activeGame) return null;
 
+  const teams = [
+    {
+      key: 'team1',
+      team: activeGame.team1,
+      fallbackName: 'Squadra 1',
+      total: totalTeam1,
+      percent: t1Percent,
+      suit: '♦',
+      accentText: 'text-amber-300',
+      barClass: 'bg-gradient-to-r from-amber-500 to-amber-300',
+      activeRing: 'border-amber-400/75 ring-1 ring-amber-400/25',
+      defaultBorder: 'hover:border-amber-400/45',
+    },
+    {
+      key: 'team2',
+      team: activeGame.team2,
+      fallbackName: 'Squadra 2',
+      total: totalTeam2,
+      percent: t2Percent,
+      suit: '♠',
+      accentText: 'text-sky-300',
+      barClass: 'bg-gradient-to-r from-sky-500 to-sky-300',
+      activeRing: 'border-sky-400/75 ring-1 ring-sky-400/25',
+      defaultBorder: 'hover:border-sky-400/45',
+    },
+    ...(isTrio
+      ? [
+          {
+            key: 'team3',
+            team: activeGame.team3,
+            fallbackName: 'Giocatore 3',
+            total: totalTeam3,
+            percent: t3Percent,
+            suit: '♥',
+            accentText: 'text-rose-300',
+            barClass: 'bg-gradient-to-r from-rose-500 to-rose-300',
+            activeRing: 'border-rose-400/75 ring-1 ring-rose-400/25',
+            defaultBorder: 'hover:border-rose-400/45',
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'md:grid-cols-2'} gap-2.5 sm:gap-3.5`}>
-      
-      {/* CARD SQUADRA 1 (TEMA ORO / AMBRA) */}
-      <div className={`relative flex flex-col justify-between min-w-0 overflow-hidden p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-amber-400 felt-card transition-all duration-300 ${
-        leader === 'team1' 
-          ? 'border-amber-400/80 ring-2 ring-amber-400/30 shadow-xl shadow-amber-950/30' 
-          : 'hover:border-amber-500/40 shadow-md'
-      }`}>
-        <div className="flex items-start justify-between gap-2 mb-1.5 min-w-0">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start gap-1.5 min-w-0">
-              <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-start gap-1.5 min-w-0 break-words">
-                <span className="text-sm text-amber-300 shrink-0 leading-none mt-0.5">♦</span>
-                <span className="min-w-0 break-words">{activeGame.team1?.name || 'Squadra 1'}</span>
-              </span>
-              {onOpenEditTeams && (
-                <button
-                  type="button"
-                  onClick={onOpenEditTeams}
-                  className="p-1 rounded-md text-emerald-400/70 hover:text-amber-300 hover:bg-emerald-900/60 transition-colors cursor-pointer shrink-0"
-                  title="Modifica squadra e giocatori"
-                >
-                  <Edit2 className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-            {activeGame.team1?.players && activeGame.team1.players.length > 0 && (
-              <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1">
-                {activeGame.team1.players.map((p) => {
-                  const tInfo = titlesMap[p];
-                  return (
-                    <span 
-                      key={p} 
-                      className="inline-flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded-md border border-white/15 text-[11px] shadow-sm"
-                      title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
+    <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
+      {teams.map((item) => {
+        const isLeading = leader === item.key && diff !== 0;
+        const remaining = targetScore - item.total;
+        const players = item.team?.players || [];
+
+        return (
+          <div
+            key={item.key}
+            className={`club-card relative flex flex-col justify-between min-w-0 p-4 rounded-2xl transition-all ${
+              isLeading ? item.activeRing : item.defaultBorder
+            }`}
+          >
+            {/* Intestazione Squadra */}
+            <div className="flex items-start justify-between gap-2 min-w-0">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className={`text-sm shrink-0 ${item.accentText}`}>{item.suit}</span>
+                  <h3 className={`text-xs sm:text-sm font-bold uppercase tracking-wider truncate ${item.accentText}`}>
+                    {item.team?.name || item.fallbackName}
+                  </h3>
+                  {onOpenEditTeams && (
+                    <button
+                      type="button"
+                      onClick={onOpenEditTeams}
+                      className="min-w-[38px] min-h-[38px] -my-2 -mr-1 rounded-xl flex items-center justify-center club-text-subtle hover:text-amber-300 hover:bg-white/5 transition-colors cursor-pointer shrink-0"
+                      aria-label={`Modifica nomi ${item.team?.name || item.fallbackName}`}
+                      title="Modifica squadra e giocatori"
                     >
-                      {tInfo && <span>{tInfo.icon}</span>}
-                      <span className="font-semibold text-emerald-100">{p}</span>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
 
-          {/* Badge Leader Integrato nella Card */}
-          {leader === 'team1' && diff !== 0 && (
-            <div className="px-2.5 py-1 rounded-full gold-gradient text-emerald-950 text-[10px] sm:text-[11px] font-black tracking-wide uppercase shadow-md flex items-center gap-1 border border-amber-200/50 shrink-0 animate-in fade-in">
-              <span>👑</span>
-              <span>In Vantaggio</span>
-              <span className="bg-emerald-950/20 px-1.5 py-0.2 rounded-full font-black text-[9px] sm:text-[10px]">(+{diff} pt)</span>
-            </div>
-          )}
-        </div>
-
-        {/* Punteggio Gigante */}
-        <div className="my-2 flex items-baseline justify-between">
-          <div className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-white drop-shadow-md">
-            {totalTeam1.toLocaleString('it-IT')}
-            <span className="text-sm font-normal text-amber-300/80 ml-1.5">pt</span>
-          </div>
-          <div className="text-right">
-            <span className="text-[11px] text-white/70 block">Traguardo: {targetScore}</span>
-            <span className="text-xs font-bold text-amber-300">
-              {targetScore - totalTeam1 > 0 
-                ? `Mancano ${targetScore - totalTeam1} pt` 
-                : 'Raggiunto! 🎉'}
-            </span>
-          </div>
-        </div>
-
-        {/* Barra di Progresso */}
-        <div className="w-full bg-black/40 rounded-full h-2.5 p-0.5 border border-white/10 overflow-hidden shadow-inner">
-          <div 
-            className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-200 h-full rounded-full transition-all duration-500 shadow-sm"
-            style={{ width: `${t1Percent}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[10px] sm:text-[11px] text-white/70 mt-1 font-medium">
-          <span>Progresso vittoria</span>
-          <span className="font-bold text-amber-300">{t1Percent}%</span>
-        </div>
-      </div>
-
-      {/* CARD SQUADRA 2 (TEMA BLU NOTTE / ZAFFIRO) */}
-      <div className={`relative flex flex-col justify-between min-w-0 overflow-hidden p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-blue-400 felt-card transition-all duration-300 ${
-        leader === 'team2' 
-          ? 'border-blue-400/80 ring-2 ring-blue-400/30 shadow-xl shadow-blue-950/30' 
-          : 'hover:border-blue-500/40 shadow-md'
-      }`}>
-        <div className="flex items-start justify-between gap-2 mb-1.5 min-w-0">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start gap-1.5 min-w-0">
-              <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-start gap-1.5 min-w-0 break-words">
-                <span className="text-sm text-blue-400 shrink-0 leading-none mt-0.5">♠</span>
-                <span className="min-w-0 break-words">{activeGame.team2?.name || 'Squadra 2'}</span>
-              </span>
-              {onOpenEditTeams && (
-                <button
-                  type="button"
-                  onClick={onOpenEditTeams}
-                  className="p-1 rounded-md text-emerald-400/70 hover:text-blue-300 hover:bg-emerald-900/60 transition-colors cursor-pointer shrink-0"
-                  title="Modifica squadra e giocatori"
-                >
-                  <Edit2 className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-            {activeGame.team2?.players && activeGame.team2.players.length > 0 && (
-              <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1">
-                {activeGame.team2.players.map((p) => {
-                  const tInfo = titlesMap[p];
-                  return (
-                    <span 
-                      key={p} 
-                      className="inline-flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded-md border border-white/15 text-[11px] shadow-sm"
-                      title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
-                    >
-                      {tInfo && <span>{tInfo.icon}</span>}
-                      <span className="font-semibold text-emerald-100">{p}</span>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Badge Leader Integrato nella Card */}
-          {leader === 'team2' && diff !== 0 && (
-            <div className="px-2.5 py-1 rounded-full bg-gradient-to-r from-blue-400 via-sky-400 to-indigo-400 text-slate-950 text-[10px] sm:text-[11px] font-black tracking-wide uppercase shadow-md flex items-center gap-1 border border-blue-200/50 shrink-0 animate-in fade-in">
-              <span>👑</span>
-              <span>In Vantaggio</span>
-              <span className="bg-slate-950/20 px-1.5 py-0.2 rounded-full font-black text-[9px] sm:text-[10px]">(+{Math.abs(diff)} pt)</span>
-            </div>
-          )}
-        </div>
-
-        {/* Punteggio Gigante */}
-        <div className="my-2 flex items-baseline justify-between">
-          <div className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-white drop-shadow-md">
-            {totalTeam2.toLocaleString('it-IT')}
-            <span className="text-sm font-normal text-blue-300/80 ml-1.5">pt</span>
-          </div>
-          <div className="text-right">
-            <span className="text-[11px] text-white/70 block">Traguardo: {targetScore}</span>
-            <span className="text-xs font-bold text-blue-300">
-              {targetScore - totalTeam2 > 0 
-                ? `Mancano ${targetScore - totalTeam2} pt` 
-                : 'Raggiunto! 🎉'}
-            </span>
-          </div>
-        </div>
-
-        {/* Barra di Progresso */}
-        <div className="w-full bg-black/40 rounded-full h-2.5 p-0.5 border border-white/10 overflow-hidden shadow-inner">
-          <div 
-            className="bg-gradient-to-r from-blue-500 via-sky-400 to-indigo-300 h-full rounded-full transition-all duration-500 shadow-sm"
-            style={{ width: `${t2Percent}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[10px] sm:text-[11px] text-white/70 mt-1 font-medium">
-          <span>Progresso vittoria</span>
-          <span className="font-bold text-blue-300">{t2Percent}%</span>
-        </div>
-      </div>
-
-      {/* CARD SQUADRA 3 (TEMA RUBINO / ROSA - SOLO SE A 3) */}
-      {isTrio && (
-        <div className={`relative flex flex-col justify-between min-w-0 overflow-hidden p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-rose-400 felt-card transition-all duration-300 ${
-          leader === 'team3' 
-            ? 'border-rose-400/80 ring-2 ring-rose-400/30 shadow-xl shadow-rose-950/30' 
-            : 'hover:border-rose-500/40 shadow-md'
-        }`}>
-          <div className="flex items-start justify-between gap-2 mb-1.5 min-w-0">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start gap-1.5 min-w-0">
-                <span className="text-xs font-black text-rose-300 uppercase tracking-wider flex items-start gap-1.5 min-w-0 break-words">
-                  <span className="text-sm text-rose-400 shrink-0 leading-none mt-0.5">♥</span>
-                  <span className="min-w-0 break-words">{activeGame.team3?.name || 'Giocatore 3'}</span>
-                </span>
-                {onOpenEditTeams && (
-                  <button
-                    type="button"
-                    onClick={onOpenEditTeams}
-                    className="p-1 rounded-md text-emerald-400/70 hover:text-rose-300 hover:bg-emerald-900/60 transition-colors cursor-pointer shrink-0"
-                    title="Modifica squadra e giocatori"
-                  >
-                    <Edit2 className="w-3 h-3" />
-                  </button>
+                {players.length > 0 && (
+                  <p className="text-xs club-text-muted mt-1 truncate">
+                    {players.map((p, idx) => {
+                      const tInfo = titlesMap[p];
+                      return (
+                        <span key={p} title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}>
+                          {idx > 0 && <span className="club-text-subtle mx-1.5">·</span>}
+                          {tInfo ? `${tInfo.icon} ` : ''}
+                          {p}
+                        </span>
+                      );
+                    })}
+                  </p>
                 )}
               </div>
-              {activeGame.team3?.players && activeGame.team3.players.length > 0 && (
-                <div className="text-xs text-emerald-300 font-medium mt-1 flex flex-wrap gap-1">
-                  {activeGame.team3.players.map((p) => {
-                    const tInfo = titlesMap[p];
-                    return (
-                      <span 
-                        key={p} 
-                        className="inline-flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded-md border border-white/15 text-[11px] shadow-sm"
-                        title={tInfo ? `${tInfo.title} (${tInfo.rank})` : p}
-                      >
-                        {tInfo && <span>{tInfo.icon}</span>}
-                        <span className="font-semibold text-emerald-100">{p}</span>
-                      </span>
-                    );
-                  })}
+
+              {isLeading && (
+                <div className={`shrink-0 flex items-center gap-1 text-xs font-bold font-mono-num ${item.accentText}`}>
+                  <Crown className="w-3.5 h-3.5 shrink-0" />
+                  <span>+{Math.abs(diff)}</span>
                 </div>
               )}
             </div>
 
-            {/* Badge Leader Integrato nella Card */}
-            {leader === 'team3' && diff !== 0 && (
-              <div className="px-2.5 py-1 rounded-full bg-gradient-to-r from-rose-400 via-pink-400 to-purple-400 text-slate-950 text-[10px] sm:text-[11px] font-black tracking-wide uppercase shadow-md flex items-center gap-1 border border-rose-200/50 shrink-0 animate-in fade-in">
-                <span>👑</span>
-                <span>In Vantaggio</span>
-                <span className="bg-slate-950/20 px-1.5 py-0.2 rounded-full font-black text-[9px] sm:text-[10px]">(+{Math.abs(diff)} pt)</span>
+            {/* Punteggio Tabulare Grande */}
+            <div className="my-3 flex items-baseline justify-between gap-2">
+              <div className="font-mono-num text-4xl sm:text-5xl font-bold tracking-tight text-white">
+                {item.total.toLocaleString('it-IT')}
+                <span className={`text-xs sm:text-sm font-sans font-semibold ml-1.5 ${item.accentText}`}>
+                  pt
+                </span>
               </div>
-            )}
-          </div>
 
-          {/* Punteggio Gigante */}
-          <div className="my-2 flex items-baseline justify-between">
-            <div className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-white drop-shadow-md">
-              {totalTeam3.toLocaleString('it-IT')}
-              <span className="text-sm font-normal text-rose-300/80 ml-1.5">pt</span>
+              <div className="text-right shrink-0">
+                <span className="text-[11px] club-text-subtle block">
+                  {remaining > 0 ? 'Mancano' : 'Traguardo'}
+                </span>
+                <span className={`text-xs font-mono-num font-bold ${item.accentText}`}>
+                  {remaining > 0 ? `${remaining.toLocaleString('it-IT')} pt` : 'Raggiunto'}
+                </span>
+              </div>
             </div>
-            <div className="text-right">
-              <span className="text-[11px] text-white/70 block">Traguardo: {targetScore}</span>
-              <span className="text-xs font-bold text-rose-300">
-                {targetScore - totalTeam3 > 0 
-                  ? `Mancano ${targetScore - totalTeam3} pt` 
-                  : 'Raggiunto! 🎉'}
-              </span>
+
+            {/* Barra Progresso Pulita */}
+            <div className="space-y-1">
+              <div className="w-full club-inset rounded-full h-2 overflow-hidden">
+                <div
+                  className={`${item.barClass} h-full rounded-full transition-all duration-500`}
+                  style={{ width: `${item.percent}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[11px] club-text-subtle">
+                <span>Obiettivo {targetScore}</span>
+                <span className={`font-mono-num font-semibold ${item.accentText}`}>
+                  {item.percent}%
+                </span>
+              </div>
             </div>
           </div>
-
-          {/* Barra di Progresso */}
-          <div className="w-full bg-black/40 rounded-full h-2.5 p-0.5 border border-white/10 overflow-hidden shadow-inner">
-            <div 
-              className="bg-gradient-to-r from-rose-500 via-pink-400 to-rose-300 h-full rounded-full transition-all duration-500 shadow-sm"
-              style={{ width: `${t3Percent}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-[10px] sm:text-[11px] text-white/70 mt-1 font-medium">
-            <span>Progresso vittoria</span>
-            <span className="font-bold text-rose-300">{t3Percent}%</span>
-          </div>
-        </div>
-      )}
-
+        );
+      })}
     </div>
   );
 }

@@ -12,7 +12,6 @@ export default function NotificationToast({
   useEffect(() => {
     if (!notification) return;
 
-    // Timer per barra di progresso di 9 secondi
     const duration = 9000;
     const intervalTime = 50;
     const decrement = (intervalTime / duration) * 100;
@@ -36,45 +35,36 @@ export default function NotificationToast({
   const isInvite = notification.type === 'game_invite';
 
   return (
-    <aside 
+    <aside
       aria-label="Notifica in arrivo"
-      className="fixed top-4 right-4 z-[70] max-w-sm w-full mx-auto p-0 animate-in fade-in slide-in-from-top-4 duration-300 shadow-2xl rounded-2xl overflow-hidden border border-amber-400 bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-950 text-white backdrop-blur-md"
+      className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 z-[70] sm:max-w-sm shadow-2xl rounded-2xl overflow-hidden border border-[var(--accent-gold)] club-card-solid text-white"
     >
-      {/* Barra di progresso superiore */}
-      <div 
-        className="h-1 bg-gradient-to-r from-amber-400 to-emerald-400 transition-all ease-linear"
+      <div
+        className="h-1 gold-gradient transition-all ease-linear"
         style={{ width: `${progress}%` }}
       />
 
       <div className="p-4">
         <div className="flex items-start gap-3">
-          {/* Icona o Avatar mittente */}
           <div className="relative shrink-0">
             {notification.fromPhoto ? (
-              <img 
-                src={notification.fromPhoto} 
-                alt={notification.fromName || 'Mittente'} 
-                className="w-11 h-11 rounded-full object-cover border-2 border-amber-400/80 shadow-md"
+              <img
+                src={notification.fromPhoto}
+                alt={notification.fromName || 'Mittente'}
+                className="w-11 h-11 rounded-full object-cover border-2 border-[var(--accent-gold)]"
               />
             ) : (
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-slate-950 font-bold shadow-md">
-                {isInvite ? <Trophy className="w-6 h-6 text-slate-950" /> : <UserCheck className="w-6 h-6 text-slate-950" />}
+              <div className="w-11 h-11 rounded-full gold-gradient flex items-center justify-center font-bold">
+                {isInvite ? <Trophy className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
               </div>
             )}
-            <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500 items-center justify-center text-[9px] font-black text-slate-950">
-                !
-              </span>
-            </span>
           </div>
 
-          {/* Dettagli notifica */}
-          <div className="flex-1 min-w-0 pr-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-400">
+          <div className="flex-1 min-w-0 pr-1">
+            <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider club-text-gold">
               {isInvite ? (
                 <>
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <Sparkles className="w-3.5 h-3.5" />
                   <span>Invito al Tavolo</span>
                 </>
               ) : (
@@ -85,46 +75,48 @@ export default function NotificationToast({
               )}
             </div>
 
-            <p className="font-bold text-sm text-slate-100 truncate mt-0.5">
+            <p className="font-bold text-sm text-white truncate mt-0.5 m-0">
               {notification.fromName || notification.fromEmail}
             </p>
 
-            <p className="text-xs text-slate-300 mt-0.5 line-clamp-2">
-              {isInvite 
-                ? `Ti ha invitato a giocare nella squadra "${notification.teamName || 'In Partita'}"!`
-                : `Vuole diventare tuo amico per giocare online.`}
+            <p className="text-xs club-text-muted mt-0.5 line-clamp-2 m-0">
+              {isInvite
+                ? `Ti ha invitato in "${notification.teamName || 'Al Tavolo'}"`
+                : 'Vuole aggiungerti agli amici del Club.'}
             </p>
           </div>
 
-          {/* Chiudi toast */}
           <button
+            type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition"
+            className="w-9 h-9 rounded-lg club-btn-secondary flex items-center justify-center cursor-pointer shrink-0"
             title="Chiudi"
+            aria-label="Chiudi notifica"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Pulsanti Azione Rapida */}
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-800/80">
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t club-divider">
           <button
+            type="button"
             onClick={() => {
               onClose?.();
               onAccept?.(notification);
             }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
+            className="flex-1 min-h-[42px] flex items-center justify-center gap-1.5 px-3 rounded-xl gold-gradient font-bold text-xs transition active:scale-95 cursor-pointer"
           >
-            <Check className="w-3.5 h-3.5" />
-            <span>{isInvite ? 'Accetta ed Entra' : 'Accetta Amicizia'}</span>
+            <Check className="w-4 h-4 stroke-[2.5]" />
+            <span>{isInvite ? 'Accetta & Entra' : 'Accetta'}</span>
           </button>
 
           <button
+            type="button"
             onClick={() => {
               onClose?.();
               onDecline?.(notification);
             }}
-            className="py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-red-950/60 text-slate-300 hover:text-red-400 font-medium text-xs border border-slate-700 hover:border-red-500/40 transition active:scale-95 cursor-pointer"
+            className="min-h-[42px] px-4 rounded-xl club-btn-secondary hover:text-rose-300 font-semibold text-xs transition active:scale-95 cursor-pointer"
           >
             Rifiuta
           </button>

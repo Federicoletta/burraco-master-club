@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Sparkles, RotateCcw, Home, Share2, X, Calendar } from 'lucide-react';
+import { Trophy, RotateCcw, Home, Share2, X, Calendar } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { calculateFiburVictoryPoints } from '../utils/tournament';
 import { useModalEscape } from '../hooks/useModalEscape';
@@ -19,12 +19,9 @@ export default function VictoryModal({
   useEffect(() => {
     if (isOpen) {
       sound.playVictoryFanfare();
-      // Spara i coriandoli!
       try {
         const count = 200;
-        const defaults = {
-          origin: { y: 0.7 }
-        };
+        const defaults = { origin: { y: 0.7 } };
 
         function fire(particleRatio, opts) {
           confetti({
@@ -34,28 +31,11 @@ export default function VictoryModal({
           });
         }
 
-        fire(0.25, {
-          spread: 26,
-          startVelocity: 55,
-        });
-        fire(0.2, {
-          spread: 60,
-        });
-        fire(0.35, {
-          spread: 100,
-          decay: 0.91,
-          scalar: 0.8
-        });
-        fire(0.1, {
-          spread: 120,
-          startVelocity: 25,
-          decay: 0.92,
-          scalar: 1.2
-        });
-        fire(0.1, {
-          spread: 120,
-          startVelocity: 45,
-        });
+        fire(0.25, { spread: 26, startVelocity: 55 });
+        fire(0.2, { spread: 60 });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+        fire(0.1, { spread: 120, startVelocity: 45 });
       } catch (err) {
         console.error('Confetti error', err);
       }
@@ -75,8 +55,8 @@ export default function VictoryModal({
 
   if (isTrio) {
     rankedTeams = [
-      { team: activeGame.team1, score: t1Total, icon: '♦', color: 'text-amber-300' },
-      { team: activeGame.team2, score: t2Total, icon: '♠', color: 'text-blue-300' },
+      { team: activeGame.team1, score: t1Total, icon: '♦', color: 'club-text-gold' },
+      { team: activeGame.team2, score: t2Total, icon: '♠', color: 'text-sky-300' },
       { team: activeGame.team3, score: t3Total, icon: '♥', color: 'text-rose-300' },
     ].sort((a, b) => b.score - a.score);
     winnerTeam = rankedTeams[0].team;
@@ -88,8 +68,8 @@ export default function VictoryModal({
     const loserTeam = isT1Winner ? activeGame.team2 : activeGame.team1;
     const loserScore = isT1Winner ? t2Total : t1Total;
     rankedTeams = [
-      { team: winnerTeam, score: winnerScore, icon: isT1Winner ? '♦' : '♠', color: isT1Winner ? 'text-amber-300' : 'text-blue-300' },
-      { team: loserTeam, score: loserScore, icon: isT1Winner ? '♠' : '♦', color: 'text-slate-300' },
+      { team: winnerTeam, score: winnerScore, icon: isT1Winner ? '♦' : '♠', color: isT1Winner ? 'club-text-gold' : 'text-sky-300' },
+      { team: loserTeam, score: loserScore, icon: isT1Winner ? '♠' : '♦', color: 'club-text-muted' },
     ];
   }
 
@@ -128,105 +108,110 @@ export default function VictoryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label="Partita conclusa"
     >
       <div
-        className="relative w-full max-w-md felt-card rounded-3xl border-2 border-amber-400 p-6 my-4 shadow-2xl text-center animate-in zoom-in-90 duration-300"
+        className="relative w-full max-w-md club-card-solid rounded-t-3xl sm:rounded-3xl border-2 border-[var(--accent-gold)] p-6 text-center max-h-[92dvh] overflow-y-auto club-sheet-enter"
         onClick={(e) => e.stopPropagation()}
       >
-        
         {onClose && (
-          <button 
+          <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer"
+            className="absolute top-4 right-4 w-10 h-10 rounded-xl club-btn-secondary flex items-center justify-center cursor-pointer"
             title="Chiudi e torna al tabellone"
+            aria-label="Chiudi vittoria"
           >
             <X className="w-5 h-5" />
           </button>
         )}
 
-        {/* Trofeo Fluttuante */}
-        <div className="relative inline-block my-2">
-          <div className="w-20 h-20 rounded-3xl gold-gradient flex items-center justify-center mx-auto shadow-2xl shadow-amber-500/50">
-            <Trophy className="w-10 h-10 text-emerald-950" />
-          </div>
-          <Sparkles className="w-6 h-6 text-amber-300 absolute -top-2 -right-2 animate-pulse" />
+        <div className="w-16 h-16 rounded-2xl gold-gradient flex items-center justify-center mx-auto my-2 shadow-xl">
+          <Trophy className="w-9 h-9" />
         </div>
 
-        {/* Badge Specifico per Incontro di Torneo */}
         {isTournamentMatch && (
-          <div className="mb-2 px-3 py-1.5 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
-            <Trophy className="w-3.5 h-3.5 text-amber-400 animate-pulse shrink-0" />
-            <div className="truncate">
-              <span className="font-black text-amber-300">{activeGame.tournamentName || 'Torneo'}:</span>{' '}
-              <span className="text-white font-medium">
-                Giornata {activeGame.tournamentRoundNumber || 1} • Tavolo {activeGame.tournamentTableNumber || 1}
-              </span>
-            </div>
+          <div className="mb-2 px-3 py-1.5 rounded-xl club-inset border border-[var(--accent-gold)]/45 club-text-gold text-xs font-bold inline-flex items-center gap-1.5">
+            <Trophy className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">
+              {activeGame.tournamentName || 'Torneo'} · Giornata {activeGame.tournamentRoundNumber || 1} · Tav. {activeGame.tournamentTableNumber || 1}
+            </span>
           </div>
         )}
 
-        <span className="text-xs font-black uppercase tracking-widest text-amber-400 block mt-1">
-          Partita Conclusa!
+        <span className="text-[11px] font-bold uppercase tracking-widest club-text-gold block mt-1">
+          Partita Conclusa
         </span>
-        <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 mb-0">
-          Vittoria per {winnerTeam.name}!
+        <h2 className="font-display text-2xl sm:text-3xl font-bold text-white mt-1 mb-0">
+          Vittoria per {winnerTeam.name}
         </h2>
 
-        <div className="my-2 text-sm text-emerald-200 font-medium">
-          Complimenti a <strong className="text-amber-300">{(winnerTeam.players || []).join(' & ')}</strong>
-        </div>
+        <p className="my-2 text-sm club-text-muted">
+          Complimenti a <strong className="club-text-gold">{(winnerTeam.players || []).join(' & ')}</strong>
+        </p>
 
-        {/* Box Punteggio Finale */}
-        <div className="my-4 p-4 rounded-2xl bg-emerald-950/90 border border-amber-400/40 shadow-inner">
+        {/* Punteggio Finale */}
+        <div className="my-4 p-4 rounded-2xl club-inset border club-border">
           {isTrio ? (
             <div className="grid grid-cols-3 gap-2 text-center">
               {rankedTeams.map((item, idx) => (
-                <div key={idx} className={`p-2 rounded-xl ${idx === 0 ? 'bg-amber-400/20 border border-amber-400/50' : 'bg-emerald-900/40 border border-emerald-800/40'}`}>
-                  <span className={`text-[11px] font-bold ${item.color} block truncate`}>
+                <div
+                  key={idx}
+                  className={`p-2.5 rounded-xl border ${
+                    idx === 0 ? 'club-card border-[var(--accent-gold)]' : 'bg-black/20 border-[var(--border-subtle)]'
+                  }`}
+                >
+                  <span className={`text-xs font-bold ${item.color} block truncate`}>
                     {item.icon} {item.team.name}
                   </span>
-                  <span className="text-xl sm:text-2xl font-black text-white block my-0.5">
+                  <span className="font-mono-num text-xl sm:text-2xl font-bold text-white block my-0.5">
                     {item.score.toLocaleString('it-IT')}
                   </span>
-                  <span className={`text-[9px] font-bold block ${idx === 0 ? 'text-amber-400 font-black' : 'text-slate-400'}`}>
-                    {idx === 0 ? '👑 1° POSTO' : `${idx + 1}° POSTO`}
+                  <span className={`text-[10px] font-bold block uppercase ${idx === 0 ? 'club-text-gold' : 'club-text-subtle'}`}>
+                    {idx === 0 ? '1° Posto' : `${idx + 1}° Posto`}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center gap-4 text-center">
+            <div className="flex items-center justify-center gap-5 text-center">
               <div>
-                <span className="text-xs font-bold text-amber-300 block">{winnerTeam.name}</span>
-                <span className="text-3xl font-black text-white">{winnerScore.toLocaleString('it-IT')}</span>
-                {fiburVp ? (
-                  <span className="text-[11px] font-black text-amber-300 bg-amber-400/25 px-2 py-0.5 rounded-md border border-amber-400/40 inline-block my-1 shadow-xs">
+                <span className="text-xs font-bold club-text-gold block">{winnerTeam.name}</span>
+                <span className="font-mono-num text-3xl font-bold text-white block">
+                  {winnerScore.toLocaleString('it-IT')}
+                </span>
+                {fiburVp && (
+                  <span className="font-mono-num text-xs font-bold club-text-gold block mt-0.5">
                     {winnerTeam === activeGame.team1 ? fiburVp.team1Vp : fiburVp.team2Vp} VP
                   </span>
-                ) : null}
-                <span className="text-[10px] text-amber-400 font-bold block">VINCITORE</span>
+                )}
+                <span className="text-[10px] club-text-gold font-bold uppercase tracking-wider block mt-1">
+                  Vincitore
+                </span>
               </div>
-              <div className="text-emerald-500 font-bold text-xl">-</div>
+              <div className="club-text-subtle font-display text-xl">-</div>
               <div>
-                <span className="text-xs font-bold text-slate-300 block">{rankedTeams[1].team.name}</span>
-                <span className="text-3xl font-black text-slate-300">{rankedTeams[1].score.toLocaleString('it-IT')}</span>
-                {fiburVp ? (
-                  <span className="text-[11px] font-black text-slate-300 bg-black/40 px-2 py-0.5 rounded-md border border-white/10 inline-block my-1 shadow-xs">
+                <span className="text-xs font-bold club-text-muted block">{rankedTeams[1].team.name}</span>
+                <span className="font-mono-num text-3xl font-bold club-text-muted block">
+                  {rankedTeams[1].score.toLocaleString('it-IT')}
+                </span>
+                {fiburVp && (
+                  <span className="font-mono-num text-xs font-bold club-text-subtle block mt-0.5">
                     {rankedTeams[1].team === activeGame.team1 ? fiburVp.team1Vp : fiburVp.team2Vp} VP
                   </span>
-                ) : null}
-                <span className="text-[10px] text-slate-400 block">Distacco: -{winnerScore - rankedTeams[1].score} pt</span>
+                )}
+                <span className="font-mono-num text-[10px] club-text-subtle block mt-1">
+                  -{winnerScore - rankedTeams[1].score} pt
+                </span>
               </div>
             </div>
           )}
-          <div className="mt-3 pt-2.5 border-t border-emerald-800/50 text-xs text-emerald-400/80">
-            Obiettivo {activeGame.targetScore} pt raggiunto in {activeGame.rounds.length} mani
+          <div className="mt-3 pt-2.5 border-t club-divider text-xs club-text-subtle font-mono-num">
+            Obiettivo {activeGame.targetScore} pt · {activeGame.rounds.length} mani
           </div>
         </div>
 
@@ -234,32 +219,31 @@ export default function VictoryModal({
         <div className="space-y-2.5">
           {isTournamentMatch ? (
             <>
-              {/* Azione Torneo Principale: Rimanda al Calendario & Classifica */}
               <button
                 type="button"
                 onClick={() => onOpenTournament('schedule', activeGame.tournamentRoundNumber)}
-                className="w-full py-3.5 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-sm shadow-lg shadow-amber-900/40 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                className="w-full min-h-[48px] rounded-xl gold-gradient font-bold text-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
-                <Calendar className="w-4 h-4 text-emerald-950" />
-                <span>Calendario & Classifica Torneo 🏆</span>
+                <Calendar className="w-4 h-4" />
+                <span>Calendario & Classifica Torneo</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleShare}
-                className="w-full py-2.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700/80 text-emerald-100 font-bold text-xs sm:text-sm border border-emerald-600/40 flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                className="w-full min-h-[44px] rounded-xl club-btn-secondary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Share2 className="w-4 h-4 text-emerald-300" />
-                <span>{copiedToast ? 'Resoconto Copiato!' : 'Condividi Risultato Torneo'}</span>
+                <Share2 className="w-4 h-4 club-text-gold" />
+                <span>{copiedToast ? 'Resoconto Copiato!' : 'Condividi Risultato'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={onArchiveAndNew}
-                className="w-full py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold text-xs border border-emerald-700/50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                className="w-full min-h-[44px] rounded-xl club-btn-secondary club-text-muted font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Home className="w-4 h-4" />
-                <span>Esci dal Tavolo e Torna all'Atrio</span>
+                <span>Esci dal Tavolo</span>
               </button>
             </>
           ) : (
@@ -267,25 +251,25 @@ export default function VictoryModal({
               <button
                 type="button"
                 onClick={onRematch}
-                className="w-full py-3 rounded-xl gold-gradient hover:brightness-110 text-emerald-950 font-black text-sm shadow-lg shadow-amber-900/40 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                className="w-full min-h-[48px] rounded-xl gold-gradient font-bold text-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
-                <RotateCcw className="w-4 h-4 text-emerald-950" />
+                <RotateCcw className="w-4 h-4" />
                 <span>Rivincita (Stessi Giocatori)</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleShare}
-                className="w-full py-2.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700/80 text-emerald-100 font-bold text-xs sm:text-sm border border-emerald-600/40 flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                className="w-full min-h-[44px] rounded-xl club-btn-secondary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Share2 className="w-4 h-4 text-emerald-300" />
+                <Share2 className="w-4 h-4 club-text-gold" />
                 <span>{copiedToast ? 'Resoconto Copiato!' : 'Condividi Vittoria'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={onArchiveAndNew}
-                className="w-full py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold text-xs border border-emerald-700/50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                className="w-full min-h-[44px] rounded-xl club-btn-secondary club-text-muted font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Home className="w-4 h-4" />
                 <span>Archivia & Nuova Partita</span>
@@ -293,7 +277,6 @@ export default function VictoryModal({
             </>
           )}
         </div>
-
       </div>
     </div>
   );

@@ -23,12 +23,11 @@ function NewGameModalContent({
   const [team1Name, setTeam1Name] = useState(() => initialSetup?.team1Name || '');
   const [team2Name, setTeam2Name] = useState(() => initialSetup?.team2Name || '');
 
-  // Posti dei giocatori al tavolo
-  const [p1A, setP1A] = useState(() => initialSetup?.p1A || ''); // Sud (Tu / Caposquadra Coppia 1)
-  const [p1B, setP1B] = useState(() => initialSetup?.p1B || ''); // Nord (Compagno Coppia 1)
-  const [p2A, setP2A] = useState(() => initialSetup?.p2A || ''); // Ovest (Avversario 1 Coppia 2)
-  const [p2B, setP2B] = useState(() => initialSetup?.p2B || ''); // Est (Avversario 2 Coppia 2)
-  const [p3A, setP3A] = useState(() => initialSetup?.p3A || ''); // G3 (per trio)
+  const [p1A, setP1A] = useState(() => initialSetup?.p1A || '');
+  const [p1B, setP1B] = useState(() => initialSetup?.p1B || '');
+  const [p2A, setP2A] = useState(() => initialSetup?.p2A || '');
+  const [p2B, setP2B] = useState(() => initialSetup?.p2B || '');
+  const [p3A, setP3A] = useState(() => initialSetup?.p3A || '');
 
   const [activeSlot, setActiveSlot] = useState('p1A');
   const [showTeamNamesEdit, setShowTeamNamesEdit] = useState(false);
@@ -48,7 +47,6 @@ function NewGameModalContent({
     setActiveSlot(prev => (validSlots.includes(prev) ? prev : 'p1A'));
   }, []);
 
-  // Avanza automaticamente allo slot successivo libero
   const handleAdvanceSlot = useCallback((currentSlot) => {
     const slots = mode === 'pairs'
       ? ['p1A', 'p1B', 'p2A', 'p2B']
@@ -59,7 +57,6 @@ function NewGameModalContent({
     const values = { p1A, p1B, p2A, p2B, p3A };
     const currentIndex = slots.indexOf(currentSlot);
 
-    // Cerca il prossimo slot vuoto partendo dal successivo
     for (let i = 1; i <= slots.length; i++) {
       const nextKey = slots[(currentIndex + i) % slots.length];
       if (!values[nextKey]?.trim()) {
@@ -67,11 +64,9 @@ function NewGameModalContent({
         return;
       }
     }
-    // Se sono tutti occupati, avanza comunque al prossimo slot in senso orario
     setActiveSlot(slots[(currentIndex + 1) % slots.length]);
   }, [mode, p1A, p1B, p2A, p2B, p3A]);
 
-  // Ripeti formazione dell'ultima partita giocata
   const handleUseLastGameFormation = useCallback(() => {
     if (!lastGame) return;
     try { sound.playCardDeal(); } catch {}
@@ -90,7 +85,6 @@ function NewGameModalContent({
     setAllowSemipulito(lastGame.allowSemipulito ?? true);
   }, [lastGame, handleModeChange]);
 
-  // Calcolo nomi ed etichette dinamiche
   const t1Players = mode === 'pairs'
     ? [p1A.trim(), p1B.trim()].filter(Boolean)
     : [p1A.trim()].filter(Boolean);
@@ -165,233 +159,221 @@ function NewGameModalContent({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label="Nuova partita di Burraco"
     >
       <div
-        className="relative w-full max-w-6xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[94vh] overflow-y-auto"
+        className="relative w-full max-w-6xl club-card-solid rounded-t-3xl sm:rounded-3xl max-h-[94dvh] flex flex-col overflow-hidden club-sheet-enter"
         onClick={(e) => e.stopPropagation()}
       >
-        
-        {/* Header Modal */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-emerald-700/50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md text-base">
+        {/* Handle mobile */}
+        <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
+          <span className="w-10 h-1 rounded-full bg-white/25" />
+        </div>
+
+        {/* Header */}
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b club-divider flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center font-display font-bold text-lg shrink-0">
               ♣
             </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-white m-0 tracking-tight">
-                Nuova Partita di Burraco
+            <div className="min-w-0">
+              <h2 className="font-display text-lg sm:text-xl font-bold text-white m-0 truncate">
+                Nuova Partita
               </h2>
-              <p className="text-[11px] sm:text-xs text-emerald-300/80 m-0">
-                Disponi il tavolo, assegna le coppie e imposta l'obiettivo punti
+              <p className="text-xs club-text-subtle m-0 truncate">
+                Disponi i posti al tavolo e imposta il traguardo
               </p>
             </div>
           </div>
-          
-          <button 
+
+          <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer"
+            className="w-11 h-11 rounded-xl club-btn-secondary flex items-center justify-center cursor-pointer shrink-0"
             title="Chiudi"
+            aria-label="Chiudi nuova partita"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Avviso Partita in Corso */}
-        {hasActiveGame && (
-          <div className="my-3 p-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Nota: Iniziando una nuova partita, quella in corso verrà archiviata automaticamente nello storico.</span>
-          </div>
-        )}
-
-        {/* Banner Ripeti Formazione Ultima Partita */}
-        {lastGame && !initialSetup && (
-          <div className="my-2.5 p-2 sm:p-2.5 rounded-2xl bg-emerald-950/80 border border-amber-400/50 flex items-center justify-between gap-2 text-xs">
-            <div className="truncate min-w-0">
-              <span className="text-amber-300 font-bold">⚡ Ultima partita: </span>
-              <span className="text-white truncate">
-                {lastGame.team1?.name} vs {lastGame.team2?.name} ({lastGame.targetScore || 2005} pt)
-              </span>
+        {/* Scrollable body */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+          {hasActiveGame && (
+            <div className="p-3 rounded-2xl club-inset border border-[var(--accent-gold)] text-xs club-text-gold flex items-center gap-2">
+              <Sparkles className="w-4 h-4 shrink-0" />
+              <span>La partita attualmente aperta verrà salvata automaticamente nello storico.</span>
             </div>
-            <button
-              type="button"
-              onClick={handleUseLastGameFormation}
-              className="px-3 py-1.5 rounded-xl gold-gradient text-emerald-950 font-black text-xs shadow-sm hover:brightness-110 active:scale-95 cursor-pointer shrink-0 transition-transform"
-            >
-              Usa Formazione
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* Selettore Modalità di Gioco in alto */}
-        <div className="mt-3.5 mb-4">
-          <GameModeSelector mode={mode} setMode={handleModeChange} />
-        </div>
-
-        <form onSubmit={handleStart} className="space-y-4">
-          
-          {/* GRIGLIA PRINCIPALE: TAVOLO VIRTUALE A SINISTRA + IMPOSTAZIONI A DESTRA */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
-            
-            {/* COLONNA SINISTRA: IL TAVOLO DA GIOCO & ASSEGNAZIONE POSTI */}
-            <div className="lg:col-span-7 space-y-3">
-              
-              {/* Tavolo da Gioco Virtuale */}
-              <BurracoTableFormation
-                mode={mode}
-                p1A={p1A}
-                setP1A={setP1A}
-                p1B={p1B}
-                setP1B={setP1B}
-                p2A={p2A}
-                setP2A={setP2A}
-                p2B={p2B}
-                setP2B={setP2B}
-                p3A={p3A}
-                setP3A={setP3A}
-                team1Name={team1Name}
-                setTeam1Name={setTeam1Name}
-                team2Name={team2Name}
-                setTeam2Name={setTeam2Name}
-                currentUser={currentUser}
-                activeSlot={activeSlot}
-                onSelectSlot={(slot) => setActiveSlot(slot)}
-              />
-
-              {/* Barra Digitazione Veloce & Amici del Club */}
-              <TableSeatAssignmentTray
-                activeSlot={activeSlot}
-                mode={mode}
-                p1A={p1A}
-                setP1A={setP1A}
-                p1B={p1B}
-                setP1B={setP1B}
-                p2A={p2A}
-                setP2A={setP2A}
-                p2B={p2B}
-                setP2B={setP2B}
-                p3A={p3A}
-                setP3A={setP3A}
-                currentUser={currentUser}
-                friendsList={friendsList}
-                storedPlayers={storedPlayers}
-                onAdvanceSlot={handleAdvanceSlot}
-              />
-
-            </div>
-
-            {/* COLONNA DESTRA: NOMI SQUADRE, OBIETTIVO PUNTI E AVVIO */}
-            <div className="lg:col-span-5 space-y-4">
-              
-              {/* Personalizzazione Nomi Squadre (Opzionale / Espandibile) */}
-              <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-700/50 space-y-2.5">
-                <button
-                  type="button"
-                  onClick={() => setShowTeamNamesEdit(!showTeamNamesEdit)}
-                  className="w-full flex items-center justify-between text-left cursor-pointer"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="text-xs font-bold text-white">Nomi Squadre Personalizzati</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-[11px] text-emerald-400/80">
-                    <span>{showTeamNamesEdit ? 'Chiudi' : 'Modifica'}</span>
-                    {showTeamNamesEdit ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  </div>
-                </button>
-
-                {showTeamNamesEdit && (
-                  <div className="space-y-2 pt-1 border-t border-emerald-800/40">
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-amber-300 block mb-1">
-                        Nome {mode === 'pairs' ? 'Coppia 1' : 'Giocatore 1'}
-                      </label>
-                      <input
-                        type="text"
-                        placeholder={defaultT1Name}
-                        value={team1Name}
-                        onChange={(e) => setTeam1Name(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-xl bg-emerald-900/60 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-blue-300 block mb-1">
-                        Nome {mode === 'pairs' ? 'Coppia 2' : 'Giocatore 2'}
-                      </label>
-                      <input
-                        type="text"
-                        placeholder={defaultT2Name}
-                        value={team2Name}
-                        onChange={(e) => setTeam2Name(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-xl bg-emerald-900/60 border border-emerald-700/50 text-white text-xs placeholder-emerald-400/40 focus:outline-none focus:border-blue-400"
-                      />
-                    </div>
-                  </div>
-                )}
+          {lastGame && !initialSetup && (
+            <div className="p-3 rounded-2xl club-inset border club-border flex items-center justify-between gap-3 text-xs">
+              <div className="truncate min-w-0">
+                <span className="club-text-gold font-bold">Ultima formazione: </span>
+                <span className="text-white truncate">
+                  {lastGame.team1?.name} vs {lastGame.team2?.name} ({lastGame.targetScore || 2005} pt)
+                </span>
               </div>
+              <button
+                type="button"
+                onClick={handleUseLastGameFormation}
+                className="min-h-[40px] px-3.5 rounded-xl gold-gradient font-bold text-xs active:scale-95 cursor-pointer shrink-0"
+              >
+                Ripeti
+              </button>
+            </div>
+          )}
 
-              {/* Obiettivo Punti */}
-              <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-700/50">
-                <TargetScoreSelector
-                  targetScore={targetScore}
-                  setTargetScore={setTargetScore}
-                  customTarget={customTarget}
-                  setCustomTarget={setCustomTarget}
+          <GameModeSelector mode={mode} setMode={handleModeChange} />
+
+          <form onSubmit={handleStart} className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
+              {/* TAVOLO + TRAY */}
+              <div className="lg:col-span-7 space-y-3.5">
+                <BurracoTableFormation
+                  mode={mode}
+                  p1A={p1A}
+                  setP1A={setP1A}
+                  p1B={p1B}
+                  setP1B={setP1B}
+                  p2A={p2A}
+                  setP2A={setP2A}
+                  p2B={p2B}
+                  setP2B={setP2B}
+                  p3A={p3A}
+                  setP3A={setP3A}
+                  team1Name={team1Name}
+                  setTeam1Name={setTeam1Name}
+                  team2Name={team2Name}
+                  setTeam2Name={setTeam2Name}
+                  currentUser={currentUser}
+                  activeSlot={activeSlot}
+                  onSelectSlot={(slot) => setActiveSlot(slot)}
+                />
+
+                <TableSeatAssignmentTray
+                  activeSlot={activeSlot}
+                  mode={mode}
+                  p1A={p1A}
+                  setP1A={setP1A}
+                  p1B={p1B}
+                  setP1B={setP1B}
+                  p2A={p2A}
+                  setP2A={setP2A}
+                  p2B={p2B}
+                  setP2B={setP2B}
+                  p3A={p3A}
+                  setP3A={setP3A}
+                  currentUser={currentUser}
+                  friendsList={friendsList}
+                  storedPlayers={storedPlayers}
+                  onAdvanceSlot={handleAdvanceSlot}
                 />
               </div>
 
-              {/* Burraco Semipulito */}
-              <SemipulitoToggle
-                allowSemipulito={allowSemipulito}
-                setAllowSemipulito={setAllowSemipulito}
-              />
+              {/* IMPOSTAZIONI DESTRA */}
+              <div className="lg:col-span-5 space-y-3.5">
+                {/* Personalizzazione Nomi Squadre */}
+                <div className="p-3.5 rounded-2xl club-inset border club-divider space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowTeamNamesEdit(!showTeamNamesEdit)}
+                    className="w-full min-h-[36px] flex items-center justify-between text-left cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Edit3 className="w-4 h-4 club-text-gold" />
+                      <span className="text-xs font-bold text-white">Nomi Squadre Personalizzati</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs club-text-subtle">
+                      <span>{showTeamNamesEdit ? 'Chiudi' : 'Opzionale'}</span>
+                      {showTeamNamesEdit ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </div>
+                  </button>
 
-              {/* Card Riepilogo Partita In Tempo Reale */}
-              <div className="p-3.5 rounded-2xl bg-black/50 border border-amber-500/30 space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400/90 block">
-                  Riepilogo Sfida
-                </span>
-                <div className="flex items-center justify-between text-xs font-bold text-white">
-                  <span className="text-amber-300 truncate max-w-[45%]">
-                    {finalTeam1Name}
-                  </span>
-                  <span className="text-white/60 font-serif italic text-xs">vs</span>
-                  <span className="text-blue-300 truncate max-w-[45%] text-right">
-                    {finalTeam2Name}
-                  </span>
+                  {showTeamNamesEdit && (
+                    <div className="space-y-2.5 pt-2 border-t club-divider">
+                      <div>
+                        <label className="text-[11px] uppercase font-bold club-text-gold block mb-1">
+                          Nome {mode === 'pairs' ? 'Coppia 1' : 'Giocatore 1'}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={defaultT1Name}
+                          value={team1Name}
+                          onChange={(e) => setTeam1Name(e.target.value)}
+                          className="w-full min-h-[42px] px-3 rounded-xl club-input text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] uppercase font-bold text-sky-300 block mb-1">
+                          Nome {mode === 'pairs' ? 'Coppia 2' : 'Giocatore 2'}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={defaultT2Name}
+                          value={team2Name}
+                          onChange={(e) => setTeam2Name(e.target.value)}
+                          className="w-full min-h-[42px] px-3 rounded-xl club-input text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-[11px] text-emerald-400/80 flex items-center justify-between pt-1 border-t border-emerald-900/60">
-                  <span>Traguardo: <strong className="text-white">{customTarget || targetScore} pt</strong></span>
-                  <span>Semipulito: <strong className="text-white">{allowSemipulito ? '150 pt (Sì)' : 'No'}</strong></span>
-                </div>
-              </div>
 
-              {/* Pulsante Avvio Partita */}
-              <div className="pt-2">
+                {/* Obiettivo Punti */}
+                <div className="p-3.5 rounded-2xl club-inset border club-divider">
+                  <TargetScoreSelector
+                    targetScore={targetScore}
+                    setTargetScore={setTargetScore}
+                    customTarget={customTarget}
+                    setCustomTarget={setCustomTarget}
+                  />
+                </div>
+
+                {/* Burraco Semipulito */}
+                <SemipulitoToggle
+                  allowSemipulito={allowSemipulito}
+                  setAllowSemipulito={setAllowSemipulito}
+                />
+
+                {/* Riepilogo Partita */}
+                <div className="p-3.5 rounded-2xl bg-black/30 border club-border space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider club-text-gold block">
+                    Riepilogo Tavolo
+                  </span>
+                  <div className="flex items-center justify-between text-sm font-bold text-white gap-2">
+                    <span className="club-text-gold truncate max-w-[44%]">
+                      {finalTeam1Name}
+                    </span>
+                    <span className="club-text-subtle font-display italic text-xs shrink-0">vs</span>
+                    <span className="text-sky-300 truncate max-w-[44%] text-right">
+                      {finalTeam2Name}
+                    </span>
+                  </div>
+                  <div className="text-xs club-text-subtle flex items-center justify-between pt-2 border-t club-divider font-mono-num">
+                    <span>Traguardo: <strong className="text-white">{customTarget || targetScore} pt</strong></span>
+                    <span>Semipulito: <strong className="text-white">{allowSemipulito ? '150 pt' : 'No'}</strong></span>
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full py-3.5 px-4 rounded-2xl gold-gradient text-emerald-950 font-black text-sm sm:text-base shadow-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`w-full min-h-[50px] px-4 rounded-2xl gold-gradient font-bold text-base shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
                   }`}
                 >
-                  <Play className="w-5 h-5 fill-emerald-950" />
-                  <span>{isSubmitting ? 'Preparazione Tavolo...' : 'Inizia Partita'}</span>
+                  <Play className="w-5 h-5 fill-current" />
+                  <span>{isSubmitting ? 'Preparazione...' : 'Inizia Partita'}</span>
                 </button>
               </div>
-
             </div>
-
-          </div>
-
-        </form>
-
+          </form>
+        </div>
       </div>
     </div>,
     document.body

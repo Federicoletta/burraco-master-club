@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  X, 
-  LogOut, 
-  User, 
-  Trophy, 
-  Users 
+import {
+  X,
+  LogOut,
+  User,
+  Trophy,
+  Users
 } from 'lucide-react';
 import { getFriendOnlineStatus } from '../services/social';
 import { computeUserCareerStats } from '../utils/storage';
@@ -52,19 +52,16 @@ export default function UserProfileModal({
 
   useModalEscape(!isPage && isOpen, onClose);
 
-  // Calcola statistiche collegate all'utente autenticato
   const userDisplayName = currentUser?.displayName || 'Giocatore Burraco';
   const userPhoto = currentUser?.photoURL;
   const userEmail = currentUser?.email;
 
-  // Richieste di amicizia in arrivo
   const incomingFriendRequests = useMemo(() => {
     return (notifications || []).filter(
       n => n && n.type === 'friend_request' && n.status === 'pending'
     );
   }, [notifications]);
 
-  // Calcola statistiche carriera
   const career = useMemo(() => {
     return currentUser ? computeUserCareerStats(currentUser, gamesHistory, activeGame) : null;
   }, [currentUser, gamesHistory, activeGame]);
@@ -88,7 +85,6 @@ export default function UserProfileModal({
   }, [friendsList]);
   const onlineCount = onlineFriends.length;
 
-  // Costruzione classifica Amici Club (Cloud Live)
   const sortedFriendsStats = useMemo(() => {
     const list = [];
     if (currentUser) {
@@ -173,7 +169,6 @@ export default function UserProfileModal({
     return Math.max(...sortedFriendsStats.map(s => s.totalPoints), 1);
   }, [sortedFriendsStats, sortBy]);
 
-  // Trofei personali dell'utente corrente
   const myTrophiesData = useMemo(() => {
     const myPlayerStats = {
       name: userDisplayName,
@@ -200,7 +195,6 @@ export default function UserProfileModal({
     return calculatePlayerTrophies(myPlayerStats, allGames);
   }, [userDisplayName, totalScore, gamesCount, wonCount, winRate, cleanBurrachi, semiCleanBurrachi, dirtyBurrachi, totalBurrachi, closures, bestHandScore, avgPointsPerHand, gamesHistory, activeGame]);
 
-  // Suggerimenti membri del club non ancora amici
   const filteredSuggestions = useMemo(() => {
     if (friendSearchInput.trim().length < 2) return [];
     const term = friendSearchInput.toLowerCase().trim();
@@ -209,8 +203,8 @@ export default function UserProfileModal({
       if (!u) return false;
       if (u.uid && currentUser?.uid && u.uid === currentUser.uid) return false;
       if (u.email && currentUser?.email && u.email.toLowerCase() === currentUser.email.toLowerCase()) return false;
-      
-      const alreadyFriend = (friendsList || []).some(f => 
+
+      const alreadyFriend = (friendsList || []).some(f =>
         (f.uid && u.uid && f.uid === u.uid) ||
         (f.email && u.email && f.email.toLowerCase() === u.email.toLowerCase()) ||
         (f.displayName && u.displayName && f.displayName.toLowerCase() === u.displayName.toLowerCase())
@@ -229,7 +223,7 @@ export default function UserProfileModal({
     setFriendFeedback(null);
     try {
       await onSendFriendRequest(target);
-      setFriendFeedback({ type: 'success', text: `Richiesta di amicizia inviata con successo!` });
+      setFriendFeedback({ type: 'success', text: 'Richiesta di amicizia inviata con successo!' });
       setFriendSearchInput('');
     } catch (err) {
       setFriendFeedback({ type: 'error', text: err.message || 'Errore durante l\'invio della richiesta' });
@@ -268,215 +262,214 @@ export default function UserProfileModal({
 
   if (!isOpen) return null;
 
+  const headerTitle = activeTab === 'ranking'
+    ? 'Classifica & Club'
+    : activeTab === 'friends'
+    ? 'Amici & Club'
+    : (currentUser ? userDisplayName : 'Profilo Giocatore');
+
+  const headerSubtitle = activeTab === 'ranking'
+    ? 'Podio live e rendimento giocatori'
+    : activeTab === 'friends'
+    ? 'Rubrica compagni e inviti rapidi'
+    : 'Carriera, trofei e andamento';
+
   const cardContent = (
     <div
-      className={`relative w-full ${isPage ? 'max-w-3xl mx-auto my-0' : 'max-w-xl sm:max-w-2xl my-auto max-h-[92vh] sm:max-h-[88vh]'} felt-card rounded-3xl border border-amber-500/40 shadow-2xl flex flex-col overflow-hidden animate-in fade-in duration-200`}
+      className={`relative w-full ${
+        isPage
+          ? 'max-w-3xl mx-auto club-card rounded-3xl'
+          : 'max-w-xl sm:max-w-2xl club-card-solid rounded-t-3xl sm:rounded-3xl max-h-[92dvh] sm:max-h-[88dvh] club-sheet-enter'
+      } flex flex-col overflow-hidden`}
       onClick={!isPage ? (e) => e.stopPropagation() : undefined}
     >
-        
-        {/* HEADER FISSO */}
-        <div className="p-3 sm:p-4 pb-2.5 border-b border-emerald-700/50 flex items-center justify-between shrink-0 bg-emerald-950/90">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl gold-gradient flex items-center justify-center text-emerald-950 font-black shadow-md shrink-0">
-              {activeTab === 'ranking' ? (
-                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-950" />
-              ) : activeTab === 'friends' ? (
-                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-950" />
-              ) : (
-                <User className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-950" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-sm sm:text-lg font-black text-white m-0 truncate">
-                {activeTab === 'ranking' 
-                  ? 'Classifica & Club' 
-                  : activeTab === 'friends' 
-                  ? 'I Miei Amici & Club' 
-                  : (currentUser ? userDisplayName : 'Profilo Giocatore')}
-              </h2>
-              <p className="text-[10px] sm:text-xs text-emerald-300/80 m-0 truncate">
-                {activeTab === 'ranking' 
-                  ? 'Podio live e rendimento giocatori' 
-                  : activeTab === 'friends' 
-                  ? 'Rubrica compagni di gioco e inviti' 
-                  : 'Carriera, bacheca trofei e statistiche'}
-              </p>
-            </div>
-          </div>
+      {!isPage && (
+        <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
+          <span className="w-10 h-1 rounded-full bg-white/25" />
+        </div>
+      )}
 
-          {!isPage && onClose && (
-            <button 
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors cursor-pointer shrink-0 ml-2"
-              title="Chiudi"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
+      {/* Header */}
+      <div className="px-4 sm:px-5 py-3 sm:py-4 border-b club-divider flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
+            {activeTab === 'ranking' ? (
+              <Trophy className="w-5 h-5" />
+            ) : activeTab === 'friends' ? (
+              <Users className="w-5 h-5" />
+            ) : (
+              <User className="w-5 h-5" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-display text-lg sm:text-xl font-bold text-white m-0 truncate leading-tight">
+              {headerTitle}
+            </h2>
+            <p className="text-xs club-text-subtle m-0 truncate">
+              {headerSubtitle}
+            </p>
+          </div>
         </div>
 
-        {/* Contenuto Utente Autenticato vs Non Autenticato */}
-        {currentUser ? (
-          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            
-            {/* NAVIGAZIONE FISSA TRA LE 3 SCHEDE */}
-            <div className="px-3 sm:px-4 pt-2.5 pb-1.5 shrink-0 bg-emerald-950/60">
-              <div className="grid grid-cols-3 gap-1 sm:gap-1.5 p-1 rounded-xl bg-emerald-950/80 border border-emerald-800/60 shadow-inner">
-                
-                {/* 1. Il Mio Profilo & Trofei */}
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('profile')}
-                  className={`py-2 px-1.5 sm:px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
-                    activeTab === 'profile'
-                      ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                      : 'text-emerald-300 hover:text-white hover:bg-emerald-900/40'
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Profilo & Trofei</span>
-                </button>
+        {!isPage && onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-11 h-11 rounded-xl club-btn-secondary flex items-center justify-center cursor-pointer shrink-0 ml-2"
+            aria-label="Chiudi profilo"
+            title="Chiudi"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+      </div>
 
-                {/* 2. Classifica Club */}
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('ranking')}
-                  className={`py-2 px-1.5 sm:px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
-                    activeTab === 'ranking'
-                      ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                      : 'text-emerald-300 hover:text-white hover:bg-emerald-900/40'
-                  }`}
-                >
-                  <Trophy className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Classifica</span>
-                </button>
+      {currentUser ? (
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Segmented Tabs */}
+          <div className="px-4 sm:px-5 pt-3 pb-2 shrink-0">
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl club-tab-bar">
+              <button
+                type="button"
+                onClick={() => setActiveTab('profile')}
+                className={`min-h-[42px] px-2 sm:px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === 'profile'
+                    ? 'gold-gradient shadow-sm'
+                    : 'club-text-muted hover:bg-white/5'
+                }`}
+              >
+                <User className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Profilo</span>
+              </button>
 
-                {/* 3. I Miei Amici */}
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('friends')}
-                  className={`relative py-2 px-1.5 sm:px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
-                    activeTab === 'friends'
-                      ? 'bg-amber-400 text-emerald-950 shadow-md font-black'
-                      : 'text-emerald-300 hover:text-white hover:bg-emerald-900/40'
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Amici</span>
-                  {incomingFriendRequests.length > 0 ? (
-                    <span className="px-1 py-0.2 rounded-full text-[9px] font-black bg-rose-500 text-white animate-pulse">
-                      {incomingFriendRequests.length}
-                    </span>
-                  ) : onlineCount > 0 ? (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title={`${onlineCount} online`} />
-                  ) : null}
-                </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('ranking')}
+                className={`min-h-[42px] px-2 sm:px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === 'ranking'
+                    ? 'gold-gradient shadow-sm'
+                    : 'club-text-muted hover:bg-white/5'
+                }`}
+              >
+                <Trophy className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Classifica</span>
+              </button>
 
-              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('friends')}
+                className={`min-h-[42px] px-2 sm:px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === 'friends'
+                    ? 'gold-gradient shadow-sm'
+                    : 'club-text-muted hover:bg-white/5'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Amici</span>
+                {incomingFriendRequests.length > 0 ? (
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black bg-rose-500 text-white inline-flex items-center justify-center tabular-nums">
+                    {incomingFriendRequests.length}
+                  </span>
+                ) : onlineCount > 0 ? (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title={`${onlineCount} online`} />
+                ) : null}
+              </button>
             </div>
+          </div>
 
-            {/* BODY */}
-            <div className={`p-3 sm:p-4 ${isPage ? '' : 'overflow-y-auto'} flex-1 min-h-0 space-y-3.5`}>
-              
-              {/* SCHEDA 1: PROFILO & BACHECA TROFEI PERSONALI */}
-              {activeTab === 'profile' && (
-                <ProfileTab
-                  currentUser={currentUser}
-                  userDisplayName={userDisplayName}
-                  userEmail={userEmail}
-                  userPhoto={userPhoto}
-                  onlineCount={onlineCount}
-                  myTrophiesData={myTrophiesData}
-                  gamesCount={gamesCount}
-                  wonCount={wonCount}
-                  winRate={winRate}
-                  totalScore={totalScore}
-                  totalBurrachi={totalBurrachi}
-                  cleanBurrachi={cleanBurrachi}
-                  semiCleanBurrachi={semiCleanBurrachi}
-                  dirtyBurrachi={dirtyBurrachi}
-                  closures={closures}
-                  bestHandScore={bestHandScore}
-                  avgPointsPerHand={avgPointsPerHand}
-                  scoresHistory={career?.scoresHistory || []}
-                />
-              )}
-
-              {/* SCHEDA 2: CLASSIFICA CLUB & PARTECIPANTI */}
-              {activeTab === 'ranking' && (
-                <LeaderboardTab
-                  sortBy={sortBy}
-                  setSortBy={setSortBy}
-                  sortedFriendsStats={sortedFriendsStats}
-                  maxFriendsVal={maxFriendsVal}
-                  currentUser={currentUser}
-                />
-              )}
-
-              {/* SCHEDA 3: I MIEI AMICI ONLINE & RUBRICA CLUB */}
-              {activeTab === 'friends' && (
-                <FriendsTab
-                  incomingFriendRequests={incomingFriendRequests}
-                  friendsList={friendsList}
-                  onlineCount={onlineCount}
-                  activeGame={activeGame}
-                  tablePlayers={tablePlayers}
-                  invitingFriendUids={invitingFriendUids}
-                  invitedFriendUids={invitedFriendUids}
-                  onAcceptFriendRequest={onAcceptFriendRequest}
-                  onDeclineFriendRequest={onDeclineFriendRequest}
-                  handleInviteToActiveGame={handleInviteToActiveGame}
-                  handleChallenge={handleChallenge}
-                  onRemoveFriend={onRemoveFriend}
-                  onToggleCloseFriend={onToggleCloseFriend}
-                  friendSearchInput={friendSearchInput}
-                  setFriendSearchInput={setFriendSearchInput}
-                  handleFormSubmit={handleFormSubmit}
-                  handleSendFriend={handleSendFriend}
-                  isSendingFriend={isSendingFriend}
-                  filteredSuggestions={filteredSuggestions}
-                  friendFeedback={friendFeedback}
-                />
-              )}
-
-            </div>
-
-            {/* FOOTER FISSO (Solo logout se su pagina, tasto chiudi solo se modale) */}
-            {(activeTab === 'profile' || (!isPage && onClose)) && (
-              <div className="p-2.5 sm:p-3 border-t border-emerald-700/50 flex justify-between items-center shrink-0 bg-emerald-950/90">
-                {activeTab === 'profile' ? (
-                  <button
-                    type="button"
-                    onClick={onLogout}
-                    className="px-3.5 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Esci dall'Account</span>
-                  </button>
-                ) : (
-                  <div />
-                )}
-
-                {!isPage && onClose && (
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-4 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 text-xs font-bold cursor-pointer transition-all active:scale-95"
-                  >
-                    Chiudi
-                  </button>
-                )}
-              </div>
+          {/* Body */}
+          <div className={`px-4 sm:px-5 py-3 ${isPage ? '' : 'overflow-y-auto'} flex-1 min-h-0 space-y-4`}>
+            {activeTab === 'profile' && (
+              <ProfileTab
+                currentUser={currentUser}
+                userDisplayName={userDisplayName}
+                userEmail={userEmail}
+                userPhoto={userPhoto}
+                onlineCount={onlineCount}
+                myTrophiesData={myTrophiesData}
+                gamesCount={gamesCount}
+                wonCount={wonCount}
+                winRate={winRate}
+                totalScore={totalScore}
+                totalBurrachi={totalBurrachi}
+                cleanBurrachi={cleanBurrachi}
+                semiCleanBurrachi={semiCleanBurrachi}
+                dirtyBurrachi={dirtyBurrachi}
+                closures={closures}
+                bestHandScore={bestHandScore}
+                avgPointsPerHand={avgPointsPerHand}
+                scoresHistory={career?.scoresHistory || []}
+              />
             )}
 
-          </div>
-        ) : (
-          /* Stato Utente Non Autenticato */
-          <GuestProfileView onLogin={onLogin} onClose={isPage ? null : onClose} />
-        )}
+            {activeTab === 'ranking' && (
+              <LeaderboardTab
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                sortedFriendsStats={sortedFriendsStats}
+                maxFriendsVal={maxFriendsVal}
+                currentUser={currentUser}
+              />
+            )}
 
-      </div>
+            {activeTab === 'friends' && (
+              <FriendsTab
+                incomingFriendRequests={incomingFriendRequests}
+                friendsList={friendsList}
+                onlineCount={onlineCount}
+                activeGame={activeGame}
+                tablePlayers={tablePlayers}
+                invitingFriendUids={invitingFriendUids}
+                invitedFriendUids={invitedFriendUids}
+                onAcceptFriendRequest={onAcceptFriendRequest}
+                onDeclineFriendRequest={onDeclineFriendRequest}
+                handleInviteToActiveGame={handleInviteToActiveGame}
+                handleChallenge={handleChallenge}
+                onRemoveFriend={onRemoveFriend}
+                onToggleCloseFriend={onToggleCloseFriend}
+                friendSearchInput={friendSearchInput}
+                setFriendSearchInput={setFriendSearchInput}
+                handleFormSubmit={handleFormSubmit}
+                handleSendFriend={handleSendFriend}
+                isSendingFriend={isSendingFriend}
+                filteredSuggestions={filteredSuggestions}
+                friendFeedback={friendFeedback}
+              />
+            )}
+          </div>
+
+          {/* Footer */}
+          {(activeTab === 'profile' || (!isPage && onClose)) && (
+            <div className="px-4 sm:px-5 py-3 border-t club-divider flex justify-between items-center gap-3 shrink-0">
+              {activeTab === 'profile' ? (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="min-h-[42px] px-4 rounded-xl bg-rose-950/75 hover:bg-rose-900/90 text-rose-200 border border-rose-500/40 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Esci dall'Account</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
+              {!isPage && onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="min-h-[42px] px-5 rounded-xl club-btn-secondary text-xs font-bold cursor-pointer active:scale-95"
+                >
+                  Chiudi
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <GuestProfileView onLogin={onLogin} onClose={isPage ? null : onClose} />
+      )}
+    </div>
   );
 
   if (isPage) {
@@ -485,7 +478,7 @@ export default function UserProfileModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md overflow-hidden"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

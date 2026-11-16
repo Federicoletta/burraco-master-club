@@ -29,7 +29,6 @@ export default function BurracoTableFormation({
   const hasAnyPlayer = Boolean(p1A || p1B || p2A || p2B || p3A);
   const occupiedCount = [p1A, p1B, p2A, p2B, p3A].filter(Boolean).length;
 
-  // Scambia i compagni delle due coppie (P1B <-> P2A)
   const handleSwapPartners = () => {
     try { sound.playTap(); } catch {}
     const temp = p1B;
@@ -37,7 +36,6 @@ export default function BurracoTableFormation({
     setP2A(temp);
   };
 
-  // Inverti le due squadre (Squadra 1 <-> Squadra 2)
   const handleSwapTeams = () => {
     try { sound.playTap(); } catch {}
     const tA = p1A;
@@ -51,7 +49,6 @@ export default function BurracoTableFormation({
     setTeam2Name(tName);
   };
 
-  // Sorteggia posti a caso tra i giocatori inseriti
   const handleShuffle = () => {
     try { sound.playCardDeal(); } catch {}
     const all = [p1A, p1B, p2A, p2B, p3A].filter(Boolean);
@@ -75,7 +72,6 @@ export default function BurracoTableFormation({
     }
   };
 
-  // Svuota tutti i posti del tavolo
   const handleClearAll = () => {
     try { sound.playTap(); } catch {}
     setP1A('');
@@ -85,7 +81,6 @@ export default function BurracoTableFormation({
     setP3A('');
   };
 
-  // Helper per renderizzare un singolo posto a sedere (Poltrona)
   const renderSeat = (slotKey, playerName, setPlayerName, teamLabel, positionLabel, teamType) => {
     const isOccupied = Boolean(playerName?.trim());
     const isMe = currentUser && playerName && (
@@ -94,67 +89,64 @@ export default function BurracoTableFormation({
     );
     const isSelected = activeSlot === slotKey;
 
-    // Palette colori differenziata per Coppia 1 (Oro/Ambra) e Coppia 2 (Sky/Azzurro)
-    let cardBg = 'bg-[#082216]/95 border-emerald-600/50 text-white';
-    let teamBadgeClass = 'bg-emerald-800 text-emerald-200 border border-emerald-600';
-    let avatarClass = 'bg-emerald-900/80 text-emerald-300 border border-emerald-700';
+    let cardClasses = 'bg-black/25 border-[var(--border-subtle)] text-white';
+    let badgeTextClass = 'club-text-gold';
+    let avatarClass = 'bg-black/35 club-text-muted border club-divider';
 
     if (teamType === 'team1') {
-      teamBadgeClass = 'bg-amber-400 text-emerald-950 font-black border border-amber-300 shadow-xs';
-      if (isOccupied) {
-        cardBg = 'bg-gradient-to-br from-[#1b2b18] to-[#122313] border-amber-400/80 text-white shadow-amber-500/10 shadow-lg';
-        avatarClass = 'gold-gradient text-emerald-950 shadow-md font-black';
-      } else {
-        cardBg = 'bg-[#102417]/90 border-dashed border-amber-400/60 text-amber-200 hover:border-amber-400 hover:bg-[#162f1e]';
-        avatarClass = 'bg-amber-950/60 text-amber-300 border border-amber-500/50';
-      }
+      badgeTextClass = 'club-text-gold';
+      cardClasses = isOccupied
+        ? 'club-card border-[var(--accent-gold)] text-white'
+        : 'bg-black/20 border-dashed border-[var(--accent-gold)]/55 text-white hover:bg-black/30';
+      avatarClass = isOccupied ? 'gold-gradient font-bold' : 'bg-black/30 club-text-gold border border-[var(--accent-gold)]/45';
     } else if (teamType === 'team2') {
-      teamBadgeClass = 'bg-sky-400 text-slate-950 font-black border border-sky-300 shadow-xs';
-      if (isOccupied) {
-        cardBg = 'bg-gradient-to-br from-[#10293a] to-[#0c1e2b] border-sky-400/80 text-white shadow-sky-500/10 shadow-lg';
-        avatarClass = 'bg-sky-500 text-slate-950 shadow-md font-black';
-      } else {
-        cardBg = 'bg-[#0d2230]/90 border-dashed border-sky-400/60 text-sky-200 hover:border-sky-400 hover:bg-[#122e42]';
-        avatarClass = 'bg-sky-950/60 text-sky-300 border border-sky-500/50';
-      }
+      badgeTextClass = 'text-sky-300';
+      cardClasses = isOccupied
+        ? 'club-card border-sky-400/75 text-white'
+        : 'bg-black/20 border-dashed border-sky-400/50 text-white hover:bg-black/30';
+      avatarClass = isOccupied ? 'bg-sky-400 text-slate-950 font-bold' : 'bg-black/30 text-sky-300 border border-sky-400/45';
     } else if (teamType === 'team3') {
-      teamBadgeClass = 'bg-rose-400 text-slate-950 font-black border border-rose-300 shadow-xs';
-      if (isOccupied) {
-        cardBg = 'bg-gradient-to-br from-[#2a131b] to-[#1e0d13] border-rose-400/80 text-white shadow-rose-500/10 shadow-lg';
-        avatarClass = 'bg-rose-500 text-slate-950 shadow-md font-black';
-      } else {
-        cardBg = 'bg-[#220d15]/90 border-dashed border-rose-400/60 text-rose-200 hover:border-rose-400';
-        avatarClass = 'bg-rose-950/60 text-rose-300 border border-rose-500/50';
-      }
+      badgeTextClass = 'text-rose-300';
+      cardClasses = isOccupied
+        ? 'club-card border-rose-400/75 text-white'
+        : 'bg-black/20 border-dashed border-rose-400/50 text-white hover:bg-black/30';
+      avatarClass = isOccupied ? 'bg-rose-400 text-slate-950 font-bold' : 'bg-black/30 text-rose-300 border border-rose-400/45';
     }
 
     if (isSelected) {
-      cardBg += ' ring-4 ring-amber-300 ring-offset-2 ring-offset-emerald-950 shadow-[0_0_25px_rgba(251,191,36,0.6)] scale-[1.02] border-amber-300';
+      cardClasses += ' ring-2 ring-[var(--accent-gold)] ring-offset-2 ring-offset-black/40 shadow-lg';
     }
 
     return (
-      <div 
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => {
           try { sound.playTap(); } catch {}
           if (onSelectSlot) onSelectSlot(slotKey);
         }}
-        className={`p-2.5 sm:p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between shadow-md active:scale-95 touch-manipulation min-h-[82px] sm:min-h-[88px] ${cardBg}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (onSelectSlot) onSelectSlot(slotKey);
+          }
+        }}
+        className={`p-3 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between active:scale-[0.98] min-h-[84px] ${cardClasses}`}
       >
-        {/* Intestazione Posto (Badge Squadra + Posizione) */}
         <div className="flex items-center justify-between gap-1 mb-1.5">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className={`text-[10px] sm:text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-lg whitespace-nowrap shrink-0 ${teamBadgeClass}`}>
+            <span className={`text-[11px] font-extrabold uppercase tracking-wider truncate ${badgeTextClass}`}>
               {teamLabel}
             </span>
-            <span className="text-[11px] font-bold text-white/90 truncate">
-              {positionLabel}
+            <span className="text-[11px] club-text-subtle truncate hidden sm:inline">
+              · {positionLabel}
             </span>
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
             {isSelected && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-400 text-emerald-950 font-black text-[9px] uppercase tracking-wider animate-pulse">
-                ★ Attivo
+              <span className="px-1.5 py-0.5 rounded bg-[var(--accent-gold)] text-[var(--accent-gold-ink)] font-black text-[9px] uppercase tracking-wider">
+                Attivo
               </span>
             )}
             {isOccupied && (
@@ -165,8 +157,9 @@ export default function BurracoTableFormation({
                   try { sound.playTap(); } catch {}
                   setPlayerName('');
                 }}
-                className="text-white/60 hover:text-rose-300 hover:bg-rose-500/20 rounded-full p-1 transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-full hover:bg-rose-500/20 text-white/60 hover:text-rose-300 flex items-center justify-center transition-colors cursor-pointer"
                 title="Libera questo posto"
+                aria-label="Libera posto"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -174,33 +167,26 @@ export default function BurracoTableFormation({
           </div>
         </div>
 
-        {/* Contenuto Posto: Avatar + Nome Giocatore */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shrink-0 ${avatarClass}`}>
-            {isOccupied ? (
-              playerName.slice(0, 1).toUpperCase()
-            ) : (
-              <Plus className="w-4 h-4 text-emerald-300" />
-            )}
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 ${avatarClass}`}>
+            {isOccupied ? playerName.slice(0, 1).toUpperCase() : <Plus className="w-4 h-4" />}
           </div>
 
           <div className="min-w-0 flex-1">
             {isOccupied ? (
-              <div className="font-black text-sm sm:text-base text-white truncate flex items-center gap-1.5">
+              <div className="font-bold text-sm text-white truncate flex items-center gap-1.5">
                 <span className="truncate">{playerName}</span>
                 {isMe && (
-                  <span className="text-[10px] text-amber-300 font-extrabold px-1.5 py-0.2 rounded bg-amber-400/20 border border-amber-400/50 shrink-0">
-                    Tu
-                  </span>
+                  <span className="text-[10px] club-text-gold font-extrabold shrink-0">(Tu)</span>
                 )}
               </div>
             ) : (
               <div className="text-left">
-                <span className="text-xs font-bold text-emerald-200 block truncate">
-                  + Assegna Posto
+                <span className="text-xs font-semibold text-white/85 block truncate">
+                  Assegna posto
                 </span>
-                <span className="text-[10px] text-emerald-400/80 block truncate">
-                  Tocca o scegli in basso
+                <span className="text-[10px] club-text-subtle block truncate">
+                  {positionLabel}
                 </span>
               </div>
             )}
@@ -212,145 +198,129 @@ export default function BurracoTableFormation({
 
   return (
     <div className="space-y-2.5">
-      
-      {/* TAVOLO DA BURRACO IN PANNO VERDE CON BORDO IN LEGNO E CUCITURE DORATE */}
-      <div className="p-3 sm:p-5 rounded-[32px] sm:rounded-[36px] bg-gradient-to-b from-[#134e32] via-[#0d3b25] to-[#072517] border-4 border-amber-500/70 shadow-[0_15px_40px_rgba(0,0,0,0.8),inset_0_0_35px_rgba(0,0,0,0.6)] relative overflow-hidden">
-        
-        {/* Bordo interno di feltro cucito (stile tavolo reale da casinò/club) */}
-        <div className="absolute inset-2 sm:inset-3 border border-emerald-400/25 rounded-[24px] sm:rounded-[28px] pointer-events-none" />
+      {/* TAVOLO VIRTUALE ADATTIVO AI 4 TEMI DEL PANNO */}
+      <div
+        className="p-3.5 sm:p-5 rounded-3xl border-2 border-[var(--accent-gold)]/60 shadow-xl relative overflow-hidden"
+        style={{
+          backgroundColor: 'var(--surface-canvas)',
+          backgroundImage: 'var(--surface-radial)'
+        }}
+      >
+        <div className="absolute inset-2.5 sm:inset-3 border border-[var(--border-hairline)] rounded-2xl pointer-events-none" />
 
-        {/* Glow luminoso soffuso centrale tipo lampada da tavolo */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl" />
-        </div>
-
-        {/* 1. MODALITÀ A COPPIE (2 vs 2 - 4 GIOCATORI): TAVOLO COMPLETO */}
+        {/* 1. A COPPIE */}
         {isPairs && (
           <div className="relative z-10 space-y-2.5 sm:space-y-3">
-            
-            {/* POSTO NORD (In alto: Compagno Coppia 1) */}
             <div className="max-w-xs sm:max-w-sm mx-auto w-full">
-              {renderSeat('p1B', p1B, setP1B, 'Coppia 1', 'Nord • Compagno', 'team1')}
+              {renderSeat('p1B', p1B, setP1B, 'Coppia 1', 'Nord · Compagno', 'team1')}
             </div>
 
-            {/* ZONA CENTRALE: OVEST vs HUB CENTRALE vs EST */}
             <div className="flex items-center gap-2 sm:gap-3">
-              
-              {/* Posto Ovest (Avversario Sinistra) */}
               <div className="flex-1 min-w-0">
-                {renderSeat('p2A', p2A, setP2A, 'Coppia 2', 'Ovest • Avversario', 'team2')}
+                {renderSeat('p2A', p2A, setP2A, 'Coppia 2', 'Ovest', 'team2')}
               </div>
 
-              {/* Centro Tavolo: Medaglione Club & Pulsanti Rapidi */}
-              <div className="w-16 sm:w-20 shrink-0 flex flex-col items-center justify-center gap-1.5 py-1">
-                
-                {/* Stemmino Medaglione Centro Feltro */}
-                <div className="w-8 h-8 rounded-full bg-emerald-950 border border-amber-400/50 shadow-md flex items-center justify-center text-amber-300 font-serif font-black text-xs select-none">
+              <div className="w-12 sm:w-16 shrink-0 flex flex-col items-center justify-center gap-2 py-1">
+                <div className="w-8 h-8 rounded-full club-inset border club-border flex items-center justify-center club-text-gold font-display font-bold text-xs select-none">
                   ♣
                 </div>
 
-                {/* Tasto Sorteggia */}
                 <button
                   type="button"
                   onClick={handleShuffle}
                   disabled={occupiedCount < 2}
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90 shadow-md ${
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${
                     occupiedCount >= 2
-                      ? 'gold-gradient text-emerald-950 cursor-pointer hover:brightness-110'
-                      : 'bg-emerald-950/80 text-emerald-500/40 border border-emerald-800/40 cursor-not-allowed'
+                      ? 'gold-gradient cursor-pointer'
+                      : 'club-inset club-text-subtle opacity-45 cursor-not-allowed'
                   }`}
-                  title="Sorteggia casualmente i posti tra i giocatori presenti"
+                  title="Sorteggia casualmente i posti"
+                  aria-label="Sorteggia posti"
                 >
                   <Shuffle className="w-4 h-4" />
                 </button>
 
-                {/* Tasto Scambia Partner */}
                 <button
                   type="button"
                   onClick={handleSwapPartners}
-                  className="w-9 h-9 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-200 flex items-center justify-center active:scale-90 transition-all cursor-pointer shadow-md"
-                  title="Scambia i partner tra le due coppie"
+                  className="w-10 h-10 rounded-xl club-btn-secondary flex items-center justify-center active:scale-95 cursor-pointer"
+                  title="Scambia i partner tra le coppie"
+                  aria-label="Scambia partner"
                 >
-                  <ArrowLeftRight className="w-4 h-4 text-emerald-300" />
+                  <ArrowLeftRight className="w-4 h-4" />
                 </button>
-
               </div>
 
-              {/* Posto Est (Avversario Destra) */}
               <div className="flex-1 min-w-0">
-                {renderSeat('p2B', p2B, setP2B, 'Coppia 2', 'Est • Avversario', 'team2')}
+                {renderSeat('p2B', p2B, setP2B, 'Coppia 2', 'Est', 'team2')}
               </div>
-
             </div>
 
-            {/* POSTO SUD (In basso: Tu / Caposquadra Coppia 1) */}
             <div className="max-w-xs sm:max-w-sm mx-auto w-full">
-              {renderSeat('p1A', p1A, setP1A, 'Coppia 1', 'Sud • Tu / Caposquadra', 'team1')}
+              {renderSeat('p1A', p1A, setP1A, 'Coppia 1', 'Sud · Caposquadra', 'team1')}
             </div>
 
-            {/* Barra Azioni Veloci Sotto il Tavolo */}
             <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
               <button
                 type="button"
                 onClick={handleSwapTeams}
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-200 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-sm"
+                className="min-h-[40px] px-3.5 rounded-xl club-btn-secondary text-xs font-bold flex items-center gap-1.5 active:scale-95 cursor-pointer"
               >
-                <ArrowLeftRight className="w-3.5 h-3.5 text-amber-400" />
-                <span>Inverti Coppia 1 ⇄ Coppia 2</span>
+                <ArrowLeftRight className="w-3.5 h-3.5 club-text-gold" />
+                <span>Inverti Coppie</span>
               </button>
 
               {hasAnyPlayer && (
                 <button
                   type="button"
                   onClick={handleClearAll}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-rose-950/70 border border-emerald-800/60 text-emerald-400/80 hover:text-rose-300 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-xs"
-                  title="Svuota tutti i posti"
+                  className="min-h-[40px] px-3.5 rounded-xl club-btn-secondary club-text-subtle hover:text-rose-300 text-xs font-semibold flex items-center gap-1.5 active:scale-95 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Svuota Tavolo</span>
+                  <span>Svuota</span>
                 </button>
               )}
             </div>
-
           </div>
         )}
 
-        {/* 2. MODALITÀ SINGOLO (1 vs 1) */}
+        {/* 2. SINGOLO */}
         {isSingles && (
           <div className="relative z-10 space-y-3 max-w-sm mx-auto">
-            {renderSeat('p2A', p2A, setP2A, 'Giocatore 2', 'Nord • Avversario', 'team2')}
-            
-            <div className="flex items-center justify-center gap-2 py-1">
+            {renderSeat('p2A', p2A, setP2A, 'Giocatore 2', 'Nord · Avversario', 'team2')}
+
+            <div className="flex items-center justify-center gap-2 py-0.5">
               <button
                 type="button"
                 onClick={handleSwapTeams}
-                className="px-4 py-1.5 rounded-xl gold-gradient text-emerald-950 shadow-md flex items-center gap-1.5 text-xs font-black cursor-pointer active:scale-95 hover:brightness-110"
+                className="min-h-[42px] px-4 rounded-xl gold-gradient flex items-center gap-1.5 text-xs font-bold cursor-pointer active:scale-95"
               >
-                <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-950" />
-                <span>Inverti Ordine Gioco</span>
+                <ArrowLeftRight className="w-4 h-4" />
+                <span>Inverti Ordine</span>
               </button>
 
               {hasAnyPlayer && (
                 <button
                   type="button"
                   onClick={handleClearAll}
-                  className="p-1.5 rounded-xl bg-emerald-950/80 hover:bg-rose-950/70 text-emerald-400 hover:text-rose-300 border border-emerald-800/60 shadow-xs cursor-pointer"
+                  className="w-[42px] h-[42px] rounded-xl club-btn-secondary club-text-subtle hover:text-rose-300 flex items-center justify-center cursor-pointer"
                   title="Svuota posti"
+                  aria-label="Svuota posti"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
             </div>
 
-            {renderSeat('p1A', p1A, setP1A, 'Giocatore 1', 'Sud • Tu / Primo a Giocare', 'team1')}
+            {renderSeat('p1A', p1A, setP1A, 'Giocatore 1', 'Sud · Tu / Primo', 'team1')}
           </div>
         )}
 
-        {/* 3. MODALITÀ A TRE (TRIO) */}
+        {/* 3. A TRE */}
         {isTrio && (
           <div className="relative z-10 space-y-3 max-w-md mx-auto">
             <div className="max-w-xs mx-auto">
-              {renderSeat('p1A', p1A, setP1A, 'Giocatore 1', 'Nord • Capotavola', 'team1')}
+              {renderSeat('p1A', p1A, setP1A, 'Giocatore 1', 'Nord · Capotavola', 'team1')}
             </div>
 
             <div className="flex items-center justify-center gap-2 py-0.5">
@@ -358,17 +328,18 @@ export default function BurracoTableFormation({
                 type="button"
                 onClick={handleShuffle}
                 disabled={occupiedCount < 2}
-                className="px-3.5 py-1.5 rounded-xl gold-gradient text-emerald-950 shadow-xs flex items-center gap-1.5 text-xs font-black cursor-pointer active:scale-95"
+                className="min-h-[42px] px-4 rounded-xl gold-gradient flex items-center gap-1.5 text-xs font-bold cursor-pointer active:scale-95 disabled:opacity-45"
               >
-                <Shuffle className="w-3.5 h-3.5 text-emerald-950" />
+                <Shuffle className="w-4 h-4" />
                 <span>Sorteggia Ordine</span>
               </button>
               {hasAnyPlayer && (
                 <button
                   type="button"
                   onClick={handleClearAll}
-                  className="p-1.5 rounded-xl bg-emerald-950/80 hover:bg-rose-950/70 text-emerald-400 hover:text-rose-300 border border-emerald-800/60 shadow-xs cursor-pointer"
+                  className="w-[42px] h-[42px] rounded-xl club-btn-secondary club-text-subtle hover:text-rose-300 flex items-center justify-center cursor-pointer"
                   title="Svuota posti"
+                  aria-label="Svuota posti"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -381,9 +352,7 @@ export default function BurracoTableFormation({
             </div>
           </div>
         )}
-
       </div>
-
     </div>
   );
 }

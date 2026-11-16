@@ -7,106 +7,28 @@ import {
   getHistoryKey,
   archiveCurrentGame,
   deleteGameFromHistory,
-  computeUserCareerStats,
   safeSetItem,
-  addToOutboxQueue,
-  getOutboxQueue,
   removeFromOutboxQueue
 } from '../utils/storage';
-import { decodeGameFromUrlToken } from '../utils/statelessGame';
 import {
   syncGameToCloud,
   findGameByPinOrId,
-  subscribeToCloudGame,
-  subscribeToCloudGamesHistory,
-  deleteGameFromCloud,
-  joinCloudGame,
-  fetchTablePlayers,
-  updateUserCareerStats
+  deleteGameFromCloud
 } from '../services/firebase';
 import { sendGameInvite } from '../services/social';
 import { computeGameTelemetry } from '../utils/telemetry';
 import {
-  appendBlock,
-  mergeChainsCRDT,
   migrateLegacyGameToLedger,
-  reconstructGameStateFromChain,
   EVENT_TYPES
 } from '../utils/ledger';
-
-function computeTeamTotalsAndWinner(rounds, mode, targetScore = 2505, forceWinner = false) {
-  const isTrio = mode === 'trio';
-  let t1Total = 0;
-  let t2Total = 0;
-  let t3Total = 0;
-
-  (rounds || []).forEach(r => {
-    t1Total += Number(r?.team1Score) || 0;
-    t2Total += Number(r?.team2Score) || 0;
-    t3Total += Number(r?.team3Score) || 0;
-  });
-
-  const target = Number(targetScore) || 2505;
-  const isTargetReached = isTrio
-    ? (t1Total >= target || t2Total >= target || t3Total >= target)
-    : (t1Total >= target || t2Total >= target);
-
-  let winner = null;
-  if (isTargetReached || forceWinner) {
-    if (isTrio) {
-      if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
-      else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
-      else winner = 'team3';
-    } else {
-      winner = t1Total >= t2Total ? 'team1' : 'team2';
-    }
-  }
-
-  return { t1Total, t2Total, t3Total, isTargetReached, winner };
-}
-
-function appendLedgerEvent(game, eventType, payload, author) {
-  let chain = null;
-  try {
-    chain = migrateLegacyGameToLedger(game, author);
-    if (chain) {
-      chain = appendBlock(chain, eventType, payload, author);
-    }
-  } catch (chainErr) {
-    console.warn(`Avviso registrazione blocco ledger (${eventType}):`, chainErr);
-  }
-  return {
-    ledgerChain: chain || game?.ledgerChain || null,
-    ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (game?.ledgerLastHash || null),
-  };
-}
-
-function upsertHistoryGame(userKey, game, setGamesHistory) {
-  try {
-    const history = getGamesHistory(userKey);
-    const hIndex = history.findIndex(g => g?.id === game.id);
-    if (hIndex >= 0) {
-      const newHistory = [...history];
-      newHistory[hIndex] = game;
-      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
-      setGamesHistory(newHistory);
-      return newHistory;
-    }
-  } catch (histErr) {
-    console.warn('Errore salvataggio storico locale:', histErr);
-  }
-  return null;
-}
-
-function updateCareerStatsInBackground(user, updatedHistory, targetGame) {
-  if (!user?.uid) return;
-  const stats = computeUserCareerStats(user, updatedHistory, targetGame);
-  if (stats) {
-    updateUserCareerStats(user.uid, stats).catch(err => {
-      console.warn('Avviso aggiornamento careerStats cloud:', err);
-    });
-  }
-}
+import {
+  computeTeamTotalsAndWinner,
+  appendLedgerEvent,
+  upsertHistoryGame,
+  updateCareerStatsInBackground
+} from '../utils/gameHelpers';
+import { useGameOutbox } from './useGameOutbox';
+import { useGameCloudListeners } from './useGameCloudListeners';
 
 export function useBurracoGame({
   currentUser,
@@ -134,11 +56,6 @@ export function useBurracoGame({
   );
   const [tablePlayers, setTablePlayers] = useState([]);
   const [newGameInitialSetup, setNewGameInitialSetup] = useState(null);
-  const [syncStatus, setSyncStatus] = useState(() => (typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced'));
-
-  const lastFetchedRosterKeyRef = useRef('');
-  const offlineEventsCountRef = useRef(0);
-  const pendingSyncIdsRef = useRef(new Set());
 
   const currentUserRef = useRef(currentUser);
   const friendsListRef = useRef(friendsList);
@@ -169,73 +86,29 @@ export function useBurracoGame({
   const currentUid = currentUser?.uid || null;
   const currentEmail = (currentUser?.email || '').trim().toLowerCase();
 
-  const flushOutboxQueue = useCallback(async () => {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-    await Promise.resolve();
-    const queue = getOutboxQueue();
-    if (!queue || queue.length === 0) return;
-    setSyncStatus('syncing');
-    for (const item of queue) {
-      try {
-        const ok = await syncGameToCloud(item, currentUserRef.current, true);
-        if (ok) {
-          removeFromOutboxQueue(item.id);
-        }
-      } catch (err) {
-        console.warn('[Outbox] Errore sincronizzazione elemento accodato:', err);
-      }
-    }
-    const remaining = getOutboxQueue();
-    setSyncStatus(remaining.length === 0 ? 'synced' : 'offline');
-  }, []);
+  const {
+    syncStatus,
+    setSyncStatus,
+    offlineEventsCountRef,
+    pendingSyncIdsRef,
+    syncWithStatus,
+  } = useGameOutbox(currentUserRef);
 
-  useEffect(() => {
-    const handleOnline = () => {
-      setSyncStatus('synced');
-      flushOutboxQueue();
-    };
-    const handleOffline = () => {
-      offlineEventsCountRef.current += 1;
-      setSyncStatus('offline');
-    };
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    let flushTimer = null;
-    if (typeof navigator !== 'undefined' && navigator.onLine) {
-      flushTimer = setTimeout(() => {
-        flushOutboxQueue();
-      }, 0);
-    }
-
-    return () => {
-      if (flushTimer) clearTimeout(flushTimer);
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [flushOutboxQueue]);
-
-  const syncWithStatus = useCallback(async (gameToSync, force = false) => {
-    if (!gameToSync?.id) return false;
-    setSyncStatus('syncing');
-    pendingSyncIdsRef.current.add(gameToSync.id);
-    let ok = false;
-    try {
-      ok = await syncGameToCloud(gameToSync, currentUserRef.current, force);
-    } catch (err) {
-      console.warn('[syncWithStatus] Errore sincronizzazione cloud:', err?.message || err);
-      ok = false;
-    } finally {
-      pendingSyncIdsRef.current.delete(gameToSync.id);
-    }
-    if (!ok) {
-      addToOutboxQueue(gameToSync);
-    } else {
-      removeFromOutboxQueue(gameToSync.id);
-    }
-    setSyncStatus(ok ? 'synced' : 'offline');
-    return ok;
-  }, []);
+  useGameCloudListeners({
+    currentUid,
+    currentEmail,
+    currentUserRef,
+    activeGameId: activeGame?.id,
+    activeGameRef,
+    pendingSyncIdsRef,
+    setActiveGame,
+    setGamesHistory,
+    setIsCloudJoined,
+    setTablePlayers,
+    setSyncStatus,
+    syncWithStatus,
+    customAlert,
+  });
 
   // Giocatori ricavati dinamicamente dallo storico partite e dalla partita in corso
   const recentPlayers = useMemo(() => {
@@ -250,234 +123,6 @@ export function useBurracoGame({
     (gamesHistory || []).forEach(extractFromGame);
     return Array.from(namesSet).filter(Boolean);
   }, [gamesHistory, activeGame]);
-
-  // 1. Controllo Paracadute d'Emergenza Stateless Game (#backup=...)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.location.hash || !window.location.hash.includes('backup=')) {
-      return;
-    }
-    let cancelled = false;
-    Promise.resolve().then(() => {
-      if (cancelled) return;
-      try {
-        const restoredGame = decodeGameFromUrlToken(window.location.hash);
-        if (restoredGame && restoredGame.id) {
-          saveActiveGame(restoredGame);
-          setActiveGame(restoredGame);
-          syncWithStatus(restoredGame, true);
-          try {
-            window.history.replaceState({}, '', window.location.pathname + window.location.search);
-          } catch {}
-          if (typeof customAlert === 'function') {
-            customAlert({
-              title: 'Partita Ripristinata!',
-              message: `Il tavolo "${restoredGame.team1?.name} vs ${restoredGame.team2?.name}" è stato ripristinato con successo dal link di backup!`,
-              variant: 'success'
-            });
-          }
-        }
-      } catch (backupErr) {
-        console.warn('Errore ripristino backup URL:', backupErr);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [customAlert, syncWithStatus]);
-
-  // 2. Isolamento dati storico partite per account utente & sync cloud (senza resuscitare partite eliminate)
-  useEffect(() => {
-    const userKey = currentUid || 'guest';
-    let cancelled = false;
-
-    Promise.resolve().then(() => {
-      if (!cancelled) {
-        setGamesHistory(getGamesHistory(userKey));
-      }
-    });
-
-    if (!currentUid) {
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const unsubHistory = subscribeToCloudGamesHistory({ uid: currentUid }, (cloudHistory, meta = {}) => {
-      if (cancelled || !Array.isArray(cloudHistory)) return;
-      const localGames = getGamesHistory(userKey);
-      const outboxIds = new Set((getOutboxQueue() || []).map(g => g?.id).filter(Boolean));
-      const activeId = activeGameRef.current?.id;
-
-      const map = new Map();
-      // Conserva localmente le partite se la risposta cloud è parziale, in coda offline, in sync, o attiva
-      localGames.forEach(g => {
-        if (!g?.id) return;
-        if (meta?.isPartial || outboxIds.has(g.id) || pendingSyncIdsRef.current.has(g.id) || g.id === activeId) {
-          map.set(g.id, g);
-        }
-      });
-
-      cloudHistory.forEach(cloudGame => {
-        if (!cloudGame?.id) return;
-        const localMatch = map.get(cloudGame.id);
-        if (localMatch && (localMatch.rounds?.length || 0) > (cloudGame.rounds?.length || 0)) {
-          return;
-        }
-        map.set(cloudGame.id, cloudGame);
-      });
-
-      const merged = Array.from(map.values()).sort(
-        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
-      );
-
-      setGamesHistory(merged);
-      safeSetItem(getHistoryKey(userKey), JSON.stringify(merged));
-    });
-
-    return () => {
-      cancelled = true;
-      unsubHistory();
-    };
-  }, [currentUid]);
-
-  // 3. Ascolto real-time della partita attiva da Firestore (Multi-device live sync)
-  useEffect(() => {
-    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    const urlGameId = params ? params.get('game') : null;
-    const targetId = urlGameId || activeGame?.id;
-
-    if (!targetId) return;
-
-    lastFetchedRosterKeyRef.current = '';
-
-    // Esegue joinCloudGame solo se l'utente autenticato non è già registrato sul tavolo
-    const user = currentUserRef.current;
-    if (currentUid && user) {
-      const currentActive = activeGameRef.current;
-      const alreadyHasUid = currentActive?.id === targetId &&
-        Array.isArray(currentActive.playerUids) &&
-        currentActive.playerUids.includes(currentUid);
-      const alreadyHasEmail = !currentEmail || (
-        currentActive?.id === targetId &&
-        Array.isArray(currentActive.playerEmails) &&
-        currentActive.playerEmails.some(e => (e || '').toLowerCase() === currentEmail)
-      );
-      if (!alreadyHasUid || !alreadyHasEmail) {
-        joinCloudGame(targetId, user);
-      }
-    }
-
-    const unsubscribe = subscribeToCloudGame(
-      targetId,
-      (cloudGame) => {
-        if (cloudGame && cloudGame.id === targetId) {
-          // Se l'host ha chiuso il tavolo, avvisa i partecipanti e svuota il tavolo
-          if (cloudGame.tableClosed) {
-            setActiveGame(null);
-            saveActiveGame(null);
-            setIsCloudJoined(false);
-            if (typeof sessionStorage !== 'undefined') {
-              sessionStorage.setItem('burraco_table_closed_explicitly', 'true');
-            }
-            try {
-              const url = new URL(window.location.href);
-              url.searchParams.delete('game');
-              window.history.replaceState({}, '', url.pathname);
-            } catch {
-              // ignore
-            }
-            if (typeof customAlert === 'function') {
-              customAlert({
-                title: 'Tavolo Chiuso',
-                message: "L'organizzatore ha chiuso questo tavolo di gioco. La partita rimane salvata nell'archivio.",
-                variant: 'info'
-              });
-            }
-            return;
-          }
-
-          setActiveGame(prev => {
-            let nextGame = cloudGame;
-            const prevRounds = Array.isArray(prev?.rounds) ? prev.rounds : [];
-            const cloudRounds = Array.isArray(cloudGame.rounds) ? cloudGame.rounds : [];
-
-            // Se entrambi i dispositivi hanno ledgerChain, esegui fusione deterministica CRDT
-            if (prev?.id === targetId && Array.isArray(prev?.ledgerChain) && Array.isArray(cloudGame?.ledgerChain)) {
-              try {
-                const mergedChain = mergeChainsCRDT(prev.ledgerChain, cloudGame.ledgerChain);
-                const reconstructed = reconstructGameStateFromChain(mergedChain, {
-                  ...cloudGame,
-                  ledgerChain: mergedChain,
-                });
-                if (reconstructed) {
-                  nextGame = reconstructed;
-                }
-              } catch (crdtErr) {
-                console.warn('[Multiplayer Sync] Avviso merge CRDT:', crdtErr);
-              }
-            } else if (prev?.id === targetId && prevRounds.length > cloudRounds.length) {
-              console.warn(`[Multiplayer Sync] Stato locale ha ${prevRounds.length} mani, cloud ne ha ${cloudRounds.length}. Mantengo lo stato locale.`);
-              nextGame = prev;
-            }
-
-            // Salvaguardia rounds: non perdere MAI le mani registrate nel cloud o in locale
-            if (cloudRounds.length > (nextGame.rounds?.length || 0)) {
-              nextGame = {
-                ...nextGame,
-                rounds: cloudRounds,
-                winner: cloudGame.winner !== undefined ? cloudGame.winner : nextGame.winner,
-                isFinished: cloudGame.isFinished ?? nextGame.isFinished,
-              };
-            }
-            if (prev?.id === targetId && prevRounds.length > (nextGame.rounds?.length || 0)) {
-              nextGame = {
-                ...nextGame,
-                rounds: prevRounds,
-                winner: prev.winner !== undefined ? prev.winner : nextGame.winner,
-                isFinished: prev.isFinished ?? nextGame.isFinished,
-              };
-            }
-
-            saveActiveGame(nextGame);
-            return nextGame;
-          });
-
-          setSyncStatus('synced');
-
-          if ((cloudGame.playerUids && cloudGame.playerUids.length > 0) || (cloudGame.playerEmails && cloudGame.playerEmails.length > 0)) {
-            const rosterKey = `${(cloudGame.playerUids || []).slice().sort().join(',')}|${(cloudGame.playerEmails || []).slice().sort().join(',')}`;
-            if (rosterKey !== lastFetchedRosterKeyRef.current) {
-              lastFetchedRosterKeyRef.current = rosterKey;
-              fetchTablePlayers(cloudGame.playerUids, cloudGame.playerEmails).then(players => {
-                if (Array.isArray(players) && players.length > 0) {
-                  setTablePlayers(players);
-                }
-              });
-            }
-          }
-        }
-      },
-      () => {
-        if (urlGameId) {
-          customAlert({
-            title: 'Tavolo non trovato',
-            message: `Il tavolo "${urlGameId}" non è stato trovato o è stato eliminato.`,
-            variant: 'warning'
-          });
-          const url = new URL(window.location.href);
-          url.searchParams.delete('game');
-          window.history.replaceState({}, '', url.pathname);
-          setIsCloudJoined(false);
-          const currentLocal = getActiveGame();
-          if (currentLocal) {
-            setActiveGame(currentLocal);
-          }
-        }
-      }
-    );
-
-    return () => unsubscribe();
-  }, [activeGame?.id, currentUid, currentEmail, customAlert]);
 
   // Avvio nuova partita
   const handleStartGame = useCallback((newGame) => {
@@ -503,7 +148,6 @@ export function useBurracoGame({
       ...(newGame.team3?.players || [])
     ].map(p => typeof p === 'string' ? p.trim() : '').filter(Boolean);
 
-    // Separa gli amici in gioco tra Amici Stretti (entrano direttamente) e Amici Normali (richiedono invito)
     const registeredPlayerUids = user?.uid ? [user.uid] : [];
     const registeredPlayerEmails = user?.email ? [user.email] : [];
     const pendingInviteFriends = [];
@@ -650,7 +294,7 @@ export function useBurracoGame({
         console.warn('Errore celebrazione vittoria:', celErr);
       }
     }
-  }, [syncWithStatus]);
+  }, [syncWithStatus, offlineEventsCountRef]);
 
   // Annulla l'ultima mano
   const handleDeleteLastRound = useCallback(async (customConfirm) => {
@@ -853,7 +497,7 @@ export function useBurracoGame({
     setGamesHistory(updatedHistory);
     updateCareerStatsInBackground(user, updatedHistory, updatedGame);
     onCelebrateRef.current();
-  }, [syncWithStatus]);
+  }, [syncWithStatus, offlineEventsCountRef]);
 
   // Rivincita
   const handleRematch = useCallback(() => {
@@ -982,7 +626,7 @@ export function useBurracoGame({
     } catch {
       // ignore
     }
-  }, [syncWithStatus]);
+  }, [syncWithStatus, offlineEventsCountRef]);
 
   // Scollegati dal tavolo condiviso
   const handleLeaveCloudTable = useCallback(async (customConfirm) => {
@@ -1078,7 +722,6 @@ Mani giocate: ${current.rounds.length} (Traguardo: ${current.targetScore} pt)`;
       tableClosed: false,
     };
 
-    // Rimuove subito tableClosed: true su Firestore prima di montare il listener real-time
     if (targetGame.tableClosed && (typeof navigator === 'undefined' || navigator.onLine)) {
       await syncWithStatus(resumedGame, true);
     } else {
@@ -1124,7 +767,7 @@ Mani giocate: ${current.rounds.length} (Traguardo: ${current.targetScore} pt)`;
       setSyncStatus('offline');
       return { success: false, isOffline: true, error: err };
     }
-  }, []);
+  }, [setSyncStatus]);
 
   // Importazione dati
   const handleDataImported = useCallback((importedGames, replaceCloud = false) => {

@@ -1,12 +1,101 @@
 @import "tailwindcss";
 
+/* ============================================================== */
+/* SYSTEM DESIGN TOKENS — CLUB ITALIANO ELEGANTE (4 FELT THEMES)  */
+/* ============================================================== */
+
+:root,
+[data-theme="emerald"] {
+  --surface-canvas: #08291c;
+  --surface-radial: radial-gradient(circle at 50% 12%, rgba(22, 108, 76, 0.42) 0%, rgba(4, 19, 13, 0.98) 100%);
+  --surface-card: rgba(11, 46, 33, 0.90);
+  --surface-card-solid: #0b2e21;
+  --surface-inset: rgba(5, 24, 17, 0.86);
+  --surface-hover: rgba(18, 66, 48, 0.85);
+  --surface-dock: rgba(6, 28, 20, 0.90);
+  --border-hairline: rgba(232, 190, 90, 0.24);
+  --border-subtle: rgba(184, 227, 207, 0.16);
+  --text-primary: #f8fafc;
+  --text-muted: #b8e3cf;
+  --text-subtle: rgba(184, 227, 207, 0.72);
+  --accent-gold: #e8be5a;
+  --accent-gold-bright: #f4d27a;
+  --accent-gold-ink: #062016;
+  --accent-ring: rgba(232, 190, 90, 0.35);
+  --grid-stroke: rgba(184, 227, 207, 0.22);
+  --chart-accent-bg: rgba(232, 190, 90, 0.16);
+}
+
+[data-theme="navy"] {
+  --surface-canvas: #091833;
+  --surface-radial: radial-gradient(circle at 50% 12%, rgba(28, 72, 150, 0.40) 0%, rgba(4, 11, 26, 0.98) 100%);
+  --surface-card: rgba(12, 30, 62, 0.92);
+  --surface-card-solid: #0c1e3e;
+  --surface-inset: rgba(7, 17, 38, 0.88);
+  --surface-hover: rgba(21, 48, 96, 0.88);
+  --surface-dock: rgba(7, 18, 40, 0.92);
+  --border-hairline: rgba(147, 197, 253, 0.24);
+  --border-subtle: rgba(194, 218, 252, 0.16);
+  --text-primary: #f8fafc;
+  --text-muted: #c2dafc;
+  --text-subtle: rgba(194, 218, 252, 0.74);
+  --accent-gold: #ecc568;
+  --accent-gold-bright: #f7da8a;
+  --accent-gold-ink: #07142b;
+  --accent-ring: rgba(236, 197, 104, 0.35);
+  --grid-stroke: rgba(147, 197, 253, 0.22);
+  --chart-accent-bg: rgba(236, 197, 104, 0.16);
+}
+
+[data-theme="burgundy"] {
+  --surface-canvas: #280812;
+  --surface-radial: radial-gradient(circle at 50% 12%, rgba(126, 22, 50, 0.42) 0%, rgba(18, 3, 8, 0.98) 100%);
+  --surface-card: rgba(48, 12, 24, 0.92);
+  --surface-card-solid: #300c18;
+  --surface-inset: rgba(28, 7, 14, 0.90);
+  --surface-hover: rgba(70, 18, 35, 0.88);
+  --surface-dock: rgba(30, 7, 15, 0.92);
+  --border-hairline: rgba(240, 196, 102, 0.26);
+  --border-subtle: rgba(244, 206, 219, 0.18);
+  --text-primary: #fff8fa;
+  --text-muted: #f4cedb;
+  --text-subtle: rgba(244, 206, 219, 0.76);
+  --accent-gold: #f0c466;
+  --accent-gold-bright: #fad98c;
+  --accent-gold-ink: #24050e;
+  --accent-ring: rgba(240, 196, 102, 0.38);
+  --grid-stroke: rgba(244, 206, 219, 0.22);
+  --chart-accent-bg: rgba(240, 196, 102, 0.18);
+}
+
+[data-theme="velvet"] {
+  --surface-canvas: #121316;
+  --surface-radial: radial-gradient(circle at 50% 12%, rgba(54, 58, 70, 0.38) 0%, rgba(8, 9, 11, 0.98) 100%);
+  --surface-card: rgba(24, 26, 32, 0.94);
+  --surface-card-solid: #181a20;
+  --surface-inset: rgba(14, 15, 20, 0.92);
+  --surface-hover: rgba(38, 41, 50, 0.90);
+  --surface-dock: rgba(15, 16, 20, 0.94);
+  --border-hairline: rgba(255, 255, 255, 0.16);
+  --border-subtle: rgba(203, 213, 225, 0.14);
+  --text-primary: #f8fafc;
+  --text-muted: #cbd5e1;
+  --text-subtle: rgba(203, 213, 225, 0.72);
+  --accent-gold: #e7bd5c;
+  --accent-gold-bright: #f4d37f;
+  --accent-gold-ink: #111317;
+  --accent-ring: rgba(231, 189, 92, 0.35);
+  --grid-stroke: rgba(203, 213, 225, 0.20);
+  --chart-accent-bg: rgba(231, 189, 92, 0.16);
+}
+
 @layer base {
   html, body {
     margin: 0;
     padding: 0;
-    background-color: var(--felt-bg-color, #08291c);
-    color: #f3f4f6;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
@@ -14,7 +103,7 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  button, a, input, select, [role="button"] {
+  button, a, input, select, textarea, [role="button"] {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
@@ -25,123 +114,181 @@
   }
 }
 
-/* Elimina il 'falso hover' di Safari su iPad/touch che costringe a toccare due volte */
+/* Elimina il falso hover su Safari iOS/iPadOS */
 @media (hover: none) and (pointer: coarse) {
-  button:hover:not(:active), a:hover:not(:active) {
+  button:hover:not(:active),
+  a:hover:not(:active) {
     filter: none;
   }
 }
 
 /* ============================================================== */
-/* TEMI VISIVI DEL PANNO DA GIOCO (FELT THEMES) */
+/* TYPOGRAPHY & NUMERIC DISCIPLINE                                */
 /* ============================================================== */
 
-/* 1. TEMA PREDEFINITO: VERDE SMERALDO FIBUR */
-:root, [data-theme="emerald"] {
-  --felt-bg-color: #08291c;
-  --felt-gradient: radial-gradient(circle at 50% 20%, rgba(24, 110, 78, 0.45) 0%, rgba(4, 20, 14, 0.97) 100%);
-  --felt-card-bg: rgba(13, 49, 36, 0.88);
-  --felt-card-border: rgba(212, 175, 55, 0.25);
-  --felt-subtle-bg: rgba(6, 28, 20, 0.85);
-  --felt-subtle-border: rgba(16, 185, 129, 0.25);
-  --felt-text-muted: #a7f3d0;
+.font-display {
+  font-family: 'Playfair Display', Georgia, Cambria, serif;
 }
 
-/* 2. TEMA: BLU NOTTE REALE */
-[data-theme="navy"] {
-  --felt-bg-color: #091833;
-  --felt-gradient: radial-gradient(circle at 50% 20%, rgba(30, 80, 170, 0.45) 0%, rgba(4, 12, 28, 0.98) 100%);
-  --felt-card-bg: rgba(12, 28, 58, 0.90);
-  --felt-card-border: rgba(147, 197, 253, 0.28);
-  --felt-subtle-bg: rgba(7, 18, 40, 0.88);
-  --felt-subtle-border: rgba(96, 165, 250, 0.25);
-  --felt-text-muted: #bfdbfe;
+.font-mono-num,
+.tabular-nums-club {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
-/* 3. TEMA: BORDEAUX CLUB VINTAGE */
-[data-theme="burgundy"] {
-  --felt-bg-color: #280812;
-  --felt-gradient: radial-gradient(circle at 50% 20%, rgba(140, 20, 50, 0.45) 0%, rgba(20, 4, 8, 0.98) 100%);
-  --felt-card-bg: rgba(45, 12, 22, 0.90);
-  --felt-card-border: rgba(251, 191, 36, 0.28);
-  --felt-subtle-bg: rgba(30, 7, 14, 0.88);
-  --felt-subtle-border: rgba(244, 63, 94, 0.25);
-  --felt-text-muted: #fbcfe8;
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-/* 4. TEMA: DARK VELVET / CARBONE */
-[data-theme="velvet"] {
-  --felt-bg-color: #121316;
-  --felt-gradient: radial-gradient(circle at 50% 20%, rgba(55, 58, 70, 0.45) 0%, rgba(8, 9, 11, 0.98) 100%);
-  --felt-card-bg: rgba(22, 24, 30, 0.92);
-  --felt-card-border: rgba(255, 255, 255, 0.20);
-  --felt-subtle-bg: rgba(14, 15, 19, 0.90);
-  --felt-subtle-border: rgba(255, 255, 255, 0.15);
-  --felt-text-muted: #cbd5e1;
-}
-
-/* Adattamento automatico di pannelli e chip storici a tema per Navy, Burgundy e Velvet */
-[data-theme]:not([data-theme="emerald"]) .bg-emerald-950,
-[data-theme]:not([data-theme="emerald"]) [class*="bg-emerald-950"] {
-  background-color: var(--felt-card-bg) !important;
-}
-
-[data-theme]:not([data-theme="emerald"]) .bg-emerald-900,
-[data-theme]:not([data-theme="emerald"]) [class*="bg-emerald-900"] {
-  background-color: var(--felt-subtle-bg) !important;
-}
-
-[data-theme]:not([data-theme="emerald"]) [class*="border-emerald-"] {
-  border-color: var(--felt-subtle-border) !important;
-}
-
-[data-theme]:not([data-theme="emerald"]) [class*="text-emerald-"]:not(.text-emerald-950) {
-  color: var(--felt-text-muted) !important;
-}
-
-[data-theme]:not([data-theme="emerald"]) [class*="from-emerald-950"] {
-  --tw-gradient-from: var(--felt-card-bg) var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: rgba(0, 0, 0, 0) var(--tw-gradient-to-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
-}
-
-[data-theme]:not([data-theme="emerald"]) [class*="via-emerald-950"],
-[data-theme]:not([data-theme="emerald"]) [class*="via-emerald-900"] {
-  --tw-gradient-to: rgba(0, 0, 0, 0) var(--tw-gradient-to-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--felt-card-bg) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
-}
+/* ============================================================== */
+/* FELT BACKGROUND & SEMANTIC CLUB SURFACES                       */
+/* ============================================================== */
 
 .felt-bg {
-  background-color: var(--felt-bg-color, #08291c);
-  background-image: 
-    var(--felt-gradient),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cpath transform='translate(35, 32) rotate(-18) scale(1.2)' d='M 0 -9 C -5 -3 -8 2 -8 5.5 C -8 8 -5.5 9 -3 9 C -1 9 -0.5 8 0 6.5 C 0.5 8 1 9 3 9 C 5.5 9 8 8 8 5.5 C 8 2 5 -3 0 -9 Z M -1 8 C -1 9.5 -2 11 -3.5 12 H 3.5 C 2 11 1 9.5 1 8 Z' fill='%23fbbf24' fill-opacity='0.24'/%3E%3Cpath transform='translate(132, 28) rotate(22) scale(1.15)' d='M 0 8.5 C -4.5 4.5 -8.5 1 -8.5 -3.5 C -8.5 -6.5 -6 -8.5 -3 -8.5 C -1.2 -8.5 0 -7 0 -6 C 0 -7 1.2 -8.5 3 -8.5 C 6 -8.5 8.5 -6.5 8.5 -3.5 C 8.5 1 4.5 4.5 0 8.5 Z' fill='%23ffffff' fill-opacity='0.20'/%3E%3Cpath transform='translate(85, 72) rotate(-14) scale(1.1)' d='M 0 -9 A 4.5 4.5 0 0 1 3.5 -2.2 A 4.5 4.5 0 1 1 2 5.5 C 2 7 3.5 9 4 10 H -4 C -3.5 9 -2 7 -2 5.5 A 4.5 4.5 0 1 1 -3.5 -2.2 A 4.5 4.5 0 0 1 0 -9 Z' fill='%23ffffff' fill-opacity='0.20'/%3E%3Cpath transform='translate(30, 114) rotate(20) scale(1.2)' d='M 0 -9.5 L 7 0 L 0 9.5 L -7 0 Z' fill='%23fbbf24' fill-opacity='0.25'/%3E%3Cpath transform='translate(145, 96) rotate(-24) scale(1.1)' d='M 0 8.5 C -4.5 4.5 -8.5 1 -8.5 -3.5 C -8.5 -6.5 -6 -8.5 -3 -8.5 C -1.2 -8.5 0 -7 0 -6 C 0 -7 1.2 -8.5 3 -8.5 C 6 -8.5 8.5 -6.5 8.5 -3.5 C 8.5 1 4.5 4.5 0 8.5 Z' fill='%23fbbf24' fill-opacity='0.22'/%3E%3Cpath transform='translate(92, 142) rotate(16) scale(1.2)' d='M 0 -9 C -5 -3 -8 2 -8 5.5 C -8 8 -5.5 9 -3 9 C -1 9 -0.5 8 0 6.5 C 0.5 8 1 9 3 9 C 5.5 9 8 8 8 5.5 C 8 2 5 -3 0 -9 Z M -1 8 C -1 9.5 -2 11 -3.5 12 H 3.5 C 2 11 1 9.5 1 8 Z' fill='%23ffffff' fill-opacity='0.20'/%3E%3Cpath transform='translate(152, 156) rotate(-16) scale(1.15)' d='M 0 -9 A 4.5 4.5 0 0 1 3.5 -2.2 A 4.5 4.5 0 1 1 2 5.5 C 2 7 3.5 9 4 10 H -4 C -3.5 9 -2 7 -2 5.5 A 4.5 4.5 0 1 1 -3.5 -2.2 A 4.5 4.5 0 0 1 0 -9 Z' fill='%23fbbf24' fill-opacity='0.24'/%3E%3Cpath transform='translate(38, 166) rotate(-10) scale(1.1)' d='M 0 -9.5 L 7 0 L 0 9.5 L -7 0 Z' fill='%23ffffff' fill-opacity='0.20'/%3E%3C/svg%3E");
-  background-size: 100% 100%, 180px 180px;
+  background-color: var(--surface-canvas);
+  background-image:
+    var(--surface-radial),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cpath transform='translate(38, 34) rotate(-16) scale(1.1)' d='M 0 -9 C -5 -3 -8 2 -8 5.5 C -8 8 -5.5 9 -3 9 C -1 9 -0.5 8 0 6.5 C 0.5 8 1 9 3 9 C 5.5 9 8 8 8 5.5 C 8 2 5 -3 0 -9 Z M -1 8 C -1 9.5 -2 11 -3.5 12 H 3.5 C 2 11 1 9.5 1 8 Z' fill='%23e8be5a' fill-opacity='0.09'/%3E%3Cpath transform='translate(142, 32) rotate(18) scale(1.05)' d='M 0 8.5 C -4.5 4.5 -8.5 1 -8.5 -3.5 C -8.5 -6.5 -6 -8.5 -3 -8.5 C -1.2 -8.5 0 -7 0 -6 C 0 -7 1.2 -8.5 3 -8.5 C 6 -8.5 8.5 -6.5 8.5 -3.5 C 8.5 1 4.5 4.5 0 8.5 Z' fill='%23ffffff' fill-opacity='0.07'/%3E%3Cpath transform='translate(94, 88) rotate(-12) scale(1.05)' d='M 0 -9 A 4.5 4.5 0 0 1 3.5 -2.2 A 4.5 4.5 0 1 1 2 5.5 C 2 7 3.5 9 4 10 H -4 C -3.5 9 -2 7 -2 5.5 A 4.5 4.5 0 1 1 -3.5 -2.2 A 4.5 4.5 0 0 1 0 -9 Z' fill='%23ffffff' fill-opacity='0.06'/%3E%3Cpath transform='translate(36, 134) rotate(22) scale(1.1)' d='M 0 -9.5 L 7 0 L 0 9.5 L -7 0 Z' fill='%23e8be5a' fill-opacity='0.09'/%3E%3Cpath transform='translate(154, 136) rotate(-20) scale(1.05)' d='M 0 8.5 C -4.5 4.5 -8.5 1 -8.5 -3.5 C -8.5 -6.5 -6 -8.5 -3 -8.5 C -1.2 -8.5 0 -7 0 -6 C 0 -7 1.2 -8.5 3 -8.5 C 6 -8.5 8.5 -6.5 8.5 -3.5 C 8.5 1 4.5 4.5 0 8.5 Z' fill='%23e8be5a' fill-opacity='0.08'/%3E%3Cpath transform='translate(98, 172) rotate(14) scale(1.05)' d='M 0 -9 C -5 -3 -8 2 -8 5.5 C -8 8 -5.5 9 -3 9 C -1 9 -0.5 8 0 6.5 C 0.5 8 1 9 3 9 C 5.5 9 8 8 8 5.5 C 8 2 5 -3 0 -9 Z M -1 8 C -1 9.5 -2 11 -3.5 12 H 3.5 C 2 11 1 9.5 1 8 Z' fill='%23ffffff' fill-opacity='0.07'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 200px 200px;
   background-attachment: fixed;
   transition: background-color 0.35s ease;
 }
 
-.felt-card {
-  background: var(--felt-card-bg, rgba(13, 49, 36, 0.88));
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--felt-card-border, rgba(212, 175, 55, 0.22));
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
-  transition: background 0.35s ease, border-color 0.35s ease;
+.felt-card,
+.club-card {
+  background: var(--surface-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-hairline);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.45);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.club-card-solid {
+  background: var(--surface-card-solid);
+  border: 1px solid var(--border-hairline);
+  box-shadow: 0 20px 44px -10px rgba(0, 0, 0, 0.6);
+}
+
+.club-inset {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+}
+
+.club-header-bar {
+  background: var(--surface-dock);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.club-dock {
+  background: var(--surface-dock);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-hairline);
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.65);
+}
+
+.club-divider {
+  border-color: var(--border-subtle);
+}
+
+.club-border {
+  border-color: var(--border-hairline);
+}
+
+.club-text-muted {
+  color: var(--text-muted);
+}
+
+.club-text-subtle {
+  color: var(--text-subtle);
+}
+
+.club-text-gold {
+  color: var(--accent-gold);
 }
 
 .gold-border {
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: var(--border-hairline);
 }
 
-.gold-gradient {
-  background: linear-gradient(135deg, #f9d976 0%, #e9b33a 50%, #c48a1d 100%);
+.gold-gradient,
+.club-btn-gold {
+  background: linear-gradient(135deg, #f6db82 0%, #e6b84c 52%, #c68e23 100%);
+  color: var(--accent-gold-ink);
+  box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.club-btn-gold:hover {
+  filter: brightness(1.06);
+}
+
+.club-btn-secondary {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.club-btn-secondary:hover {
+  background: var(--surface-hover);
+}
+
+.club-input {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.club-input::placeholder {
+  color: var(--text-subtle);
+  opacity: 0.7;
+}
+
+.club-input:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px var(--accent-ring);
 }
 
 .gold-text {
-  background: linear-gradient(135deg, #ffe082 0%, #ffc107 50%, #ffa000 100%);
+  background: linear-gradient(135deg, #fae08c 0%, #eab949 55%, #cf9220 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Segmented tabs container & items */
+.club-tab-bar {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Clean custom scrollbars for horizontal chips without visual noise */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile bottom-sheet reveal */
+@keyframes sheetSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.club-sheet-enter {
+  animation: sheetSlideUp 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Custom touch-friendly number input */

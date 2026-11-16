@@ -1,29 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { useSocial } from './socialContextStore';
-import { useTournament } from '../hooks/useTournament';
+import { useTournamentContext } from './tournamentContextStore';
 import { useBurracoGame } from '../hooks/useBurracoGame';
 import { GameContext } from './gameContextStore';
 
 export function GameProvider({ children }) {
-  const social = useSocial();
-  const tournament = useTournament(social.currentUser);
+  const { currentUser, friendsList } = useSocial();
+  const { activeTournament, handleUpdateTournament } = useTournamentContext();
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
 
   const game = useBurracoGame({
-    currentUser: social.currentUser,
-    friendsList: social.friendsList,
-    activeTournament: tournament.activeTournament,
-    handleUpdateTournament: tournament.handleUpdateTournament,
+    currentUser,
+    friendsList,
+    activeTournament,
+    handleUpdateTournament,
     onCelebrate: () => setIsVictoryOpen(true),
   });
 
   const value = useMemo(() => ({
     game,
-    tournament,
-    social,
     isVictoryOpen,
     setIsVictoryOpen,
-  }), [game, tournament, social, isVictoryOpen]);
+  }), [game, isVictoryOpen]);
 
   return (
     <GameContext.Provider value={value}>

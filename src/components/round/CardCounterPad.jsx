@@ -1,4 +1,5 @@
 import React from 'react';
+import { Minus, Plus } from 'lucide-react';
 import { CARD_VALUES } from '../../constants/burraco';
 
 export default function CardCounterPad({
@@ -8,37 +9,39 @@ export default function CardCounterPad({
   totalPoints = 0
 }) {
   return (
-    <div className="space-y-1 mt-1 pt-1.5 border-t border-emerald-800/40">
+    <div className="space-y-1.5 pt-2 border-t club-divider">
       {Object.entries(CARD_VALUES).map(([key, val]) => (
-        <div key={key} className="flex items-center justify-between text-xs py-0.5">
-          <div>
-            <span className={`font-semibold ${val.color} text-[11px]`}>{val.label}</span>
-            <span className={`text-[10px] ml-1 ${isHand ? 'text-rose-400/80' : 'text-emerald-400/70'}`}>
-              ({isHand ? `-${val.points}` : `+${val.points}`} pt)
+        <div key={key} className="flex items-center justify-between gap-2 py-0.5">
+          <div className="min-w-0">
+            <span className={`font-semibold text-xs ${val.color}`}>{val.label}</span>
+            <span className={`text-[11px] font-mono-num ml-1.5 ${isHand ? 'text-rose-300/80' : 'club-text-subtle'}`}>
+              {isHand ? `-${val.points}` : `+${val.points}`} pt
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => onChangeCount(key, -1)}
-              className="w-5 h-5 rounded bg-emerald-800 text-white flex items-center justify-center hover:bg-emerald-700 cursor-pointer font-bold text-xs"
+              className="w-10 h-10 rounded-xl club-btn-secondary flex items-center justify-center active:scale-90 cursor-pointer"
+              aria-label={`Rimuovi ${val.label}`}
             >
-              -
+              <Minus className="w-4 h-4" />
             </button>
-            <span className="w-5 text-center font-bold text-xs text-white">
+            <span className="w-7 text-center font-mono-num font-bold text-sm text-white">
               {cardCounts[key] || 0}
             </span>
             <button
               type="button"
               onClick={() => onChangeCount(key, 1)}
-              className="w-5 h-5 rounded bg-emerald-800 text-white flex items-center justify-center hover:bg-emerald-700 cursor-pointer font-bold text-xs"
+              className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center active:scale-90 cursor-pointer"
+              aria-label={`Aggiungi ${val.label}`}
             >
-              +
+              <Plus className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
         </div>
       ))}
-      <div className={`text-right text-[11px] font-bold pt-1 border-t border-emerald-800/50 ${
+      <div className={`text-right text-xs font-mono-num font-bold pt-2 border-t club-divider ${
         isHand ? 'text-rose-300' : 'text-emerald-300'
       }`}>
         {isHand ? `Totale carte in mano: -${totalPoints} pt` : `Totale carte: +${totalPoints} pt`}
