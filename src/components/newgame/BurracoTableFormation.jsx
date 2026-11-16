@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Users, Shuffle, ArrowLeftRight, X, Plus, Sparkles, Trash2, Award } from 'lucide-react';
+import { Shuffle, ArrowLeftRight, X, Plus, Trash2 } from 'lucide-react';
 import { sound } from '../../utils/soundEffects';
 
 export default function BurracoTableFormation({
@@ -136,7 +136,7 @@ export default function BurracoTableFormation({
       <div 
         onClick={() => {
           try { sound.playTap(); } catch {}
-          onSelectSlot && onSelectSlot(slotKey);
+          if (onSelectSlot) onSelectSlot(slotKey);
         }}
         className={`p-2.5 sm:p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between shadow-md active:scale-95 touch-manipulation min-h-[82px] sm:min-h-[88px] ${cardBg}`}
       >

@@ -1,7 +1,8 @@
 import React from 'react';
 import { getPlayerTitle } from '../../utils/trophies';
-import DeveloperBadge, { isDeveloperAccount } from '../DeveloperBadge';
-import { Trophy, Users } from 'lucide-react';
+import DeveloperBadge from '../DeveloperBadge';
+import { isDeveloperAccount } from '../../utils/developer';
+import { Users } from 'lucide-react';
 
 export default function LeaderboardTab({
   sortBy = 'points',

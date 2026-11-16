@@ -24,6 +24,11 @@ function versionPlugin() {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss(), versionPlugin()],
+  server: {
+    host: '0.0.0.0',
+    port: 3000,
+    allowedHosts: true,
+  },
   define: {
     __BUILD_TIME__: JSON.stringify(buildTime),
   },

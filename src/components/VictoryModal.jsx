@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { Trophy, Sparkles, RotateCcw, Home, Share2, X, Calendar } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { calculateFiburVictoryPoints } from '../utils/tournament';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 export default function VictoryModal({
   isOpen,
@@ -14,6 +15,7 @@ export default function VictoryModal({
   onOpenTournament = () => {},
 }) {
   const [copiedToast, setCopiedToast] = useState(false);
+  useModalEscape(isOpen, onClose);
   useEffect(() => {
     if (isOpen) {
       sound.playVictoryFanfare();
@@ -125,8 +127,17 @@ export default function VictoryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-md felt-card rounded-3xl border-2 border-amber-400 p-6 my-4 shadow-2xl text-center animate-in zoom-in-90 duration-300">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Partita conclusa"
+    >
+      <div
+        className="relative w-full max-w-md felt-card rounded-3xl border-2 border-amber-400 p-6 my-4 shadow-2xl text-center animate-in zoom-in-90 duration-300"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {onClose && (
           <button 

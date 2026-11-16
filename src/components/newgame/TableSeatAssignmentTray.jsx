@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { User, Users, Plus, Check, Star, Sparkles, X } from 'lucide-react';
+import { User, Plus, Check, Star, Sparkles, X } from 'lucide-react';
 import { sound } from '../../utils/soundEffects';
 
 export default function TableSeatAssignmentTray({
@@ -137,7 +137,7 @@ export default function TableSeatAssignmentTray({
   };
 
   const handleInputSubmit = (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
     if (!typedName.trim()) return;
     assignToActiveSlot(typedName.trim());
   };
@@ -204,13 +204,19 @@ export default function TableSeatAssignmentTray({
       </div>
 
       {/* 2. Campo Digitazione Veloce con Tasto Invio / + */}
-      <form onSubmit={handleInputSubmit} className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         <div className="relative flex-1">
           <input
             type="text"
             placeholder="Digita nome giocatore o tocca un chip sotto..."
             value={typedName}
             onChange={(e) => setTypedName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleInputSubmit();
+              }
+            }}
             className="w-full px-3.5 py-2 pl-9 rounded-xl bg-[#071d12] border border-emerald-600/70 text-white text-xs sm:text-sm placeholder-emerald-400/50 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 shadow-inner"
           />
           <User className="w-4 h-4 text-emerald-400/60 absolute left-3 top-2.5 pointer-events-none" />
@@ -226,7 +232,8 @@ export default function TableSeatAssignmentTray({
         </div>
 
         <button
-          type="submit"
+          type="button"
+          onClick={handleInputSubmit}
           disabled={!typedName.trim()}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shadow-sm transition-all cursor-pointer ${
             typedName.trim()
@@ -238,7 +245,7 @@ export default function TableSeatAssignmentTray({
           <Plus className="w-4 h-4 text-emerald-950" />
           <span>Assegna</span>
         </button>
-      </form>
+      </div>
 
       {/* 3. Chip Rapidi (Tu, Amici Club, Giocatori Recenti) */}
       {hasAnyChips && (

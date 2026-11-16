@@ -17,6 +17,14 @@
       ]
     },
     {
+      "collectionGroup": "burraco_tournaments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "burraco_notifications",
       "queryScope": "COLLECTION",
       "fields": [

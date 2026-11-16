@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import ConfirmModal from '../components/ConfirmModal';
-
-const ConfirmContext = createContext(null);
+import { ConfirmContext } from './confirmContextStore';
 
 export function ConfirmProvider({ children }) {
   const [config, setConfig] = useState(null);
@@ -87,20 +86,4 @@ export function ConfirmProvider({ children }) {
       />
     </ConfirmContext.Provider>
   );
-}
-
-export function useConfirm() {
-  const context = useContext(ConfirmContext);
-  if (!context) {
-    return async ({ message }) => window.confirm(message);
-  }
-  return context.confirm;
-}
-
-export function useAlert() {
-  const context = useContext(ConfirmContext);
-  if (!context) {
-    return async ({ message }) => window.alert(message);
-  }
-  return context.alert;
 }

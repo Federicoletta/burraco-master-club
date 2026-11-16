@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import { X, BookOpen, Award, CheckCircle2, Sparkles } from 'lucide-react';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 export default function RulesModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('scores'); // 'scores' | 'basics' | 'faq'
+  useModalEscape(isOpen, onClose);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl felt-card rounded-2xl border border-amber-500/40 p-4 sm:p-6 my-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Regolamento ufficiale del Burraco"
+    >
+      <div
+        className="relative w-full max-w-2xl felt-card rounded-2xl border border-amber-500/40 p-4 sm:p-6 my-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-3 border-b border-emerald-700/50">

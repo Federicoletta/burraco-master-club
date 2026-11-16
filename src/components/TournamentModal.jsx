@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { X, Trophy, Plus, Calendar, Users, ArrowLeft } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { useConfirm } from '../context/ConfirmContext';
+import { useConfirm } from '../context/confirmContextStore';
 import { sound } from '../utils/soundEffects';
+import { useModalEscape } from '../hooks/useModalEscape';
 import {
   generateRoundRobinSchedule,
   calculateTournamentStandings,
@@ -31,29 +32,22 @@ export default function TournamentModal({
   initialRoundFilter = 'all',
 }) {
   const confirm = useConfirm();
-  const [activeTab, setActiveTab] = useState(initialTab || 'standings'); // 'standings' | 'schedule' | 'manage'
-  const [isCreating, setIsCreating] = useState(!activeTournament);
-  const [selectedRoundFilter, setSelectedRoundFilter] = useState(initialRoundFilter || 'all');
+  const baseTab = initialTab || 'standings';
+  const [tabState, setTabState] = useState(() => ({ base: baseTab, value: baseTab }));
+  const activeTab = tabState.base === baseTab ? tabState.value : baseTab;
+  const setActiveTab = (nextTab) => setTabState({ base: baseTab, value: nextTab });
+
+  const baseRoundFilter = initialRoundFilter || 'all';
+  const [roundState, setRoundState] = useState(() => ({ base: baseRoundFilter, value: baseRoundFilter }));
+  const selectedRoundFilter = roundState.base === baseRoundFilter ? roundState.value : baseRoundFilter;
+  const setSelectedRoundFilter = (nextFilter) => setRoundState({ base: baseRoundFilter, value: nextFilter });
+
+  const [forceCreating, setForceCreating] = useState(false);
+  const isCreating = forceCreating || !activeTournament;
   const [tournamentsHistory, setTournamentsHistory] = useState(() => getTournamentsHistory());
   const [viewingHistoricalTournament, setViewingHistoricalTournament] = useState(null);
 
-  // Sincronizza stato di creazione e tab all'apertura del modale
-  useEffect(() => {
-    if (isOpen) {
-      if (!activeTournament) {
-        setIsCreating(true);
-      } else {
-        setIsCreating(false);
-      }
-      if (initialTab) {
-        setActiveTab(initialTab);
-      }
-      if (initialRoundFilter) {
-        setSelectedRoundFilter(initialRoundFilter);
-      }
-      setTournamentsHistory(getTournamentsHistory());
-    }
-  }, [isOpen, activeTournament, initialTab, initialRoundFilter]);
+  useModalEscape(!isPage && isOpen, onClose);
 
   // Stato form creazione
   const [tournamentName, setTournamentName] = useState('Torneo Burraco');
@@ -233,7 +227,7 @@ export default function TournamentModal({
 
     sound.playCardDeal();
     onStartTournament(newTournament);
-    setIsCreating(false);
+    setForceCreating(false);
     setActiveTab('standings');
   };
 
@@ -364,7 +358,10 @@ export default function TournamentModal({
   if (!isOpen) return null;
 
   const cardContent = (
-    <div className={`relative w-full ${isPage ? 'max-w-4xl mx-auto my-0' : 'max-w-4xl my-4 max-h-[92vh]'} felt-card rounded-2xl sm:rounded-3xl border border-amber-500/40 p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col`}>
+    <div
+      className={`relative w-full ${isPage ? 'max-w-4xl mx-auto my-0' : 'max-w-4xl my-4 max-h-[92vh]'} felt-card rounded-2xl sm:rounded-3xl border border-amber-500/40 p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col`}
+      onClick={!isPage ? (e) => e.stopPropagation() : undefined}
+    >
         
         {/* HEADER */}
         <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
@@ -415,7 +412,7 @@ export default function TournamentModal({
               !isCreating && activeTournament && (
                 <button
                   type="button"
-                  onClick={() => setIsCreating(true)}
+                  onClick={() => setForceCreating(true)}
                   className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 text-xs font-bold items-center gap-1 cursor-pointer transition-all active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5 text-amber-400" />
@@ -456,7 +453,7 @@ export default function TournamentModal({
             onAssignPlayer={handleAssignPlayer}
             onCreateTournament={handleCreateTournament}
             activeTournament={activeTournament}
-            onCancelCreating={() => setIsCreating(false)}
+            onCancelCreating={() => setForceCreating(false)}
           />
         ) : viewingHistoricalTournament ? (
           /* VISTA CLASSIFICA STORICA */
@@ -543,7 +540,7 @@ export default function TournamentModal({
                   teams={activeTournament?.teams || []}
                   onUpdateTeams={handleUpdateTeamsInTournament}
                   onFinishAndCelebrate={handleFinishAndCelebrate}
-                  onStartNewTournament={() => setIsCreating(true)}
+                  onStartNewTournament={() => setForceCreating(true)}
                   tournamentsHistory={tournamentsHistory}
                   onDeleteHistoricalTournament={handleDeleteHistoricalTournament}
                   onViewHistoricalStandings={(t) => setViewingHistoricalTournament(t)}
@@ -576,7 +573,13 @@ export default function TournamentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Torneo di Burraco"
+    >
       {cardContent}
     </div>
   );

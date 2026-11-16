@@ -1,25 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, QrCode, Copy, Check, Users, UserPlus, MessageCircle, Share2, Loader2 } from 'lucide-react';
+import QRCode from 'qrcode';
 import DeveloperBadge from './DeveloperBadge';
 import { isDeveloperAccount } from '../utils/developer';
 import { findGameByPinOrId } from '../services/firebase';
-import { generateStatelessGameShareUrl } from '../utils/statelessGame';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 export default function CloudSyncModal({
   isOpen,
   onClose,
   activeGame,
-  _cloudStatus, // 'connected' | 'offline' | 'pending'
   currentUser = null,
   tablePlayers = [],
   friendsList = [],
   onSendFriendRequest,
-  onInviteFriendToGame
+  onInviteFriendToGame,
+  onJoinGame
 }) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPin, setCopiedPin] = useState(false);
-  const [copiedBackup, setCopiedBackup] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState('');
   const [sendingFriendUids, setSendingFriendUids] = useState({});
   const [sentFriendUids, setSentFriendUids] = useState({});
   const [invitingFriendUids, setInvitingFriendUids] = useState({});
@@ -28,9 +29,29 @@ export default function CloudSyncModal({
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
 
+  useModalEscape(isOpen, onClose);
+
+  const currentUrl = typeof window !== 'undefined'
+    ? window.location.origin + (activeGame?.id ? `?game=${activeGame.id}` : '')
+    : '';
+
+  useEffect(() => {
+    if (!isOpen || !showQr || !currentUrl) return undefined;
+    let active = true;
+    QRCode.toDataURL(currentUrl, { width: 220, margin: 2 })
+      .then((dataUrl) => {
+        if (active) setQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (active) setQrDataUrl('');
+      });
+    return () => {
+      active = false;
+    };
+  }, [isOpen, showQr, currentUrl]);
+
   if (!isOpen) return null;
 
-  const currentUrl = window.location.origin + (activeGame?.id ? `?game=${activeGame.id}` : '');
   const rawDigits = (activeGame?.id || '').replace(/\D/g, '');
   const shortPin = rawDigits.length >= 6 ? rawDigits.slice(-6) : (activeGame?.id || '').slice(-6).toUpperCase();
   const formattedPin = shortPin.length === 6 ? `${shortPin.slice(0, 3)} • ${shortPin.slice(3)}` : shortPin;
@@ -47,18 +68,16 @@ export default function CloudSyncModal({
     setTimeout(() => setCopiedPin(false), 2500);
   };
 
-  const handleShareWhatsApp = () => {
-    const teamsStr = activeGame?.team1?.name && activeGame?.team2?.name 
-      ? ` (${activeGame.team1.name} vs ${activeGame.team2.name})` 
-      : '';
-    const text = encodeURIComponent(
-      `🃏 *Burraco Score Live*\n` +
-      `Unisciti al nostro tavolo${teamsStr} per seguire i punteggi e le mani in tempo reale!\n\n` +
-      `👉 Clicca qui per entrare: ${currentUrl}\n` +
-      (shortPin ? `🔢 PIN Tavolo: ${formattedPin}` : '')
-    );
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
-  };
+  const teamsStr = activeGame?.team1?.name && activeGame?.team2?.name 
+    ? ` (${activeGame.team1.name} vs ${activeGame.team2.name})` 
+    : '';
+  const whatsappText = encodeURIComponent(
+    `🃏 *Burraco Score Live*\n` +
+    `Unisciti al nostro tavolo${teamsStr} per seguire i punteggi e le mani in tempo reale!\n\n` +
+    `👉 Clicca qui per entrare: ${currentUrl}\n` +
+    (shortPin ? `🔢 PIN Tavolo: ${formattedPin}` : '')
+  );
+  const whatsappHref = `https://api.whatsapp.com/send?text=${whatsappText}`;
 
   const handleInviteFriend = async (friend) => {
     if (!onInviteFriendToGame || !friend) return;
@@ -81,11 +100,11 @@ export default function CloudSyncModal({
   });
 
   const handleRequestFriendship = async (targetPlayer) => {
-    if (!targetPlayer?.email || !onSendFriendRequest) return;
+    if ((!targetPlayer?.email && !targetPlayer?.uid) || !onSendFriendRequest) return;
     const key = targetPlayer.uid || targetPlayer.email;
     setSendingFriendUids(prev => ({ ...prev, [key]: true }));
     try {
-      await onSendFriendRequest(targetPlayer.email);
+      await onSendFriendRequest(targetPlayer);
       setSentFriendUids(prev => ({ ...prev, [key]: true }));
     } catch (err) {
       console.warn('Errore richiesta:', err);
@@ -95,8 +114,17 @@ export default function CloudSyncModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/40 p-4 sm:p-6 my-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Invita al tavolo e condividi"
+    >
+      <div
+        className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/40 p-4 sm:p-6 my-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-3 border-b border-emerald-700/50">
@@ -155,14 +183,15 @@ export default function CloudSyncModal({
               </div>
 
               {/* Pulsante Invia su WhatsApp Rapido */}
-              <button
-                type="button"
-                onClick={handleShareWhatsApp}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-500 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-950/60 cursor-pointer transition-all active:scale-98"
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-500 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-950/60 cursor-pointer transition-all active:scale-98 no-underline"
               >
                 <MessageCircle className="w-4 h-4 text-white fill-white" />
                 <span>Invia Invito su WhatsApp</span>
-              </button>
+              </a>
 
               {/* Azioni Secondarie: QR Code & Copia Link Diretto */}
               <div className="grid grid-cols-2 gap-2">
@@ -192,11 +221,17 @@ export default function CloudSyncModal({
               {/* Visualizzatore QR Code se espanso */}
               {showQr && (
                 <div className="p-4 rounded-2xl bg-white flex flex-col items-center justify-center text-center shadow-xl border-2 border-amber-400 animate-in fade-in zoom-in-95 duration-200">
-                  <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(currentUrl)}`} 
-                    alt="QR Code Tavolo" 
-                    className="w-40 h-40 sm:w-48 sm:h-48 rounded-lg"
-                  />
+                  {qrDataUrl ? (
+                    <img 
+                      src={qrDataUrl} 
+                      alt="QR Code Tavolo" 
+                      className="w-40 h-40 sm:w-48 sm:h-48 rounded-lg"
+                    />
+                  ) : (
+                    <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-500 text-xs font-semibold">
+                      Generazione QR...
+                    </div>
+                  )}
                   <p className="text-zinc-900 font-bold text-xs mt-2.5">
                     Fai inquadrare con la fotocamera per collegarsi al volo!
                   </p>
@@ -260,7 +295,7 @@ export default function CloudSyncModal({
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
                             ✓ Inviata
                           </span>
-                        ) : player.email ? (
+                        ) : (player.email || player.uid) ? (
                           <button
                             type="button"
                             disabled={isSending}
@@ -372,10 +407,23 @@ export default function CloudSyncModal({
                 setJoinError('');
                 try {
                   const found = await findGameByPinOrId(val);
-                  const targetId = found?.id || (val.includes('game=') ? val.split('game=')[1].split('&')[0] : val);
-                  window.location.href = window.location.origin + '?game=' + targetId;
-                } catch (err) {
+                  const extractedId = found?.id || (val.includes('game=') ? val.split('game=')[1].split('&')[0] : null);
+                  if (!found && !extractedId) {
+                    setJoinError('Partita non trovata. Controlla il PIN o link inserito.');
+                    setIsJoining(false);
+                    return;
+                  }
+                  if (typeof onJoinGame === 'function') {
+                    await onJoinGame(found || extractedId);
+                  } else {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('game', extractedId);
+                    window.history.replaceState({}, '', url.toString());
+                    onClose();
+                  }
+                } catch {
                   setJoinError('Impossibile trovare la partita. Controlla il PIN o link.');
+                } finally {
                   setIsJoining(false);
                 }
               }}

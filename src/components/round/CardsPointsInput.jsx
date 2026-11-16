@@ -16,18 +16,17 @@ export default function CardsPointsInput({
   totalPoints = 0
 }) {
   const quickValues = [5, 10, 20, 50, 100];
-  const displayVal = directValue !== '' ? directValue : (totalPoints > 0 ? String(totalPoints) : '0');
 
   return (
-    <div className={`p-3 sm:p-4 rounded-2xl border shadow-inner space-y-2.5 transition-all ${
+    <div className={`min-w-0 overflow-hidden p-3 sm:p-4 rounded-2xl border shadow-inner space-y-2.5 transition-all ${
       isHand
         ? 'bg-rose-950/40 border-rose-500/40'
         : 'bg-emerald-950/70 border-emerald-500/40'
     }`}>
       
       {/* Header Sezione Carte */}
-      <div className="flex items-center justify-between text-xs">
-        <span className={`font-black uppercase tracking-wider text-xs flex items-center gap-1.5 ${
+      <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+        <span className={`font-black uppercase tracking-wider text-[11px] sm:text-xs flex items-center gap-1.5 min-w-0 ${
           isHand ? 'text-rose-300' : 'text-emerald-300'
         }`}>
           <span>{isHand ? '🃏 Carte in Mano (Penalità -)' : '🌿 Carte Calate a Terra (+)'}</span>
@@ -36,7 +35,7 @@ export default function CardsPointsInput({
         <button
           type="button"
           onClick={onTogglePad}
-          className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer touch-manipulation ${
+          className={`shrink-0 whitespace-nowrap text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer touch-manipulation ${
             isHand 
               ? 'text-rose-300 border-rose-500/40 hover:bg-rose-900/40' 
               : 'text-emerald-300 border-emerald-500/40 hover:bg-emerald-900/40'
@@ -49,13 +48,13 @@ export default function CardsPointsInput({
       {!showPad ? (
         <div className="space-y-2.5">
           {/* Display Punti Grande con Input numerico integrato */}
-          <div className="flex items-center gap-2">
-            <div className={`relative flex-1 rounded-2xl border flex items-center justify-center p-2 shadow-inner ${
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`relative flex-1 min-w-0 rounded-2xl border flex items-center justify-center px-3 py-2 shadow-inner ${
               isHand
                 ? 'bg-rose-950/60 border-rose-500/50 text-rose-200'
                 : 'bg-emerald-900/60 border-emerald-500/50 text-emerald-200'
             }`}>
-              <span className={`text-xl sm:text-2xl font-black mr-1 ${isHand ? 'text-rose-400' : 'text-emerald-400'}`}>
+              <span className={`text-xl sm:text-2xl font-black mr-1 shrink-0 ${isHand ? 'text-rose-400' : 'text-emerald-400'}`}>
                 {isHand ? '-' : '+'}
               </span>
               <input
@@ -69,9 +68,9 @@ export default function CardsPointsInput({
                   onChangeDirect(val);
                 }}
                 onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                className="w-28 text-center text-2xl sm:text-3xl font-black bg-transparent focus:outline-none"
+                className="flex-1 min-w-0 w-0 text-center text-2xl sm:text-3xl font-black bg-transparent focus:outline-none"
               />
-              <span className="text-xs font-bold opacity-70 ml-1">pt</span>
+              <span className="text-xs font-bold opacity-70 ml-1 shrink-0">pt</span>
             </div>
 
             {/* Tasto Cancella / Azzera Rapido */}
@@ -100,7 +99,7 @@ export default function CardsPointsInput({
                   sound.playTap();
                   onAddAmount(val);
                 }}
-                className={`py-2 px-1 rounded-xl active:scale-95 text-xs sm:text-sm font-black transition-all shadow-sm cursor-pointer touch-manipulation text-center ${
+                className={`min-w-0 py-2 px-0.5 rounded-xl active:scale-95 text-[11px] sm:text-sm font-black whitespace-nowrap transition-all shadow-sm cursor-pointer touch-manipulation text-center ${
                   isHand
                     ? 'bg-rose-900/80 hover:bg-rose-800 text-rose-100 border border-rose-600/50'
                     : 'bg-emerald-900/90 hover:bg-emerald-800 text-emerald-100 border border-emerald-600/50'

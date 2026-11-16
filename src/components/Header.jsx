@@ -6,13 +6,9 @@ import {
   Music,
   Sun,
   RotateCw,
-  Sparkles,
   Bell,
-  Palette,
-  Volume2,
-  VolumeX
+  Palette
 } from 'lucide-react';
-import { THEMES } from '../utils/theme';
 import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
 import { wakeLock } from '../utils/wakeLock';
@@ -25,10 +21,10 @@ function Header({
   hasActiveGame,
   notificationCount = 0,
   onOpenNotifications,
-  onOpenThemeSelector,
-  currentTheme = 'emerald'
+  onOpenThemeSelector
 }) {
   const [soundOn, setSoundOn] = useState(sound.enabled);
+  const [soundVolume, setSoundVolume] = useState(() => Math.round(sound.volume * 100));
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [updateInfo, setUpdateInfo] = useState({ hasUpdate: false });
@@ -300,6 +296,18 @@ function Header({
           <AudioSettingsModal
             isOpen={isAudioModalOpen}
             onClose={() => setIsAudioModalOpen(false)}
+            soundOn={soundOn}
+            volume={soundVolume}
+            onToggleSound={() => {
+              const nextEnabled = !soundOn;
+              sound.setSoundEnabled(nextEnabled);
+              setSoundOn(sound.enabled);
+            }}
+            onChangeVolume={(val) => {
+              sound.setVolume(val / 100);
+              setSoundVolume(Math.round(sound.volume * 100));
+              setSoundOn(sound.enabled);
+            }}
           />
         )}
       </Suspense>

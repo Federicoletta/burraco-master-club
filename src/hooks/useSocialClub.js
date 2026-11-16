@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useAlert } from '../context/ConfirmContext';
+import { useAlert } from '../context/confirmContextStore';
 import { 
   loginWithGoogle, 
   logoutUser, 
@@ -44,6 +44,14 @@ export function useSocialClub() {
   useEffect(() => {
     const unsubAuth = subscribeToAuth((user) => {
       setCurrentUser(user);
+      if (!user) {
+        setNotifications([]);
+        setRawFriendsList([]);
+        setCloseFriends([]);
+        setClubUsers([]);
+        setToastNotification(null);
+        prevNotifIdsRef.current = [];
+      }
     });
     return () => unsubAuth();
   }, []);
@@ -51,11 +59,6 @@ export function useSocialClub() {
   // 2. Ascolto real-time Notifiche, Amici, Profilo (Amici Stretti) e Membri Club
   useEffect(() => {
     if (!currentUser) {
-      setNotifications([]);
-      setRawFriendsList([]);
-      setCloseFriends([]);
-      setToastNotification(null);
-      prevNotifIdsRef.current = [];
       return;
     }
 
@@ -155,10 +158,16 @@ export function useSocialClub() {
     return await sendFriendRequest(currentUser, target);
   };
 
-  // Rimozione amico
-  const handleRemoveFriend = async (friendshipId) => {
+  // Rimozione amico (accetta sia oggetto friend che friendshipId stringa)
+  const handleRemoveFriend = async (friendOrId) => {
+    const friendshipId = typeof friendOrId === 'string' ? friendOrId : friendOrId?.friendshipId;
+    const friendUid = typeof friendOrId === 'object' && friendOrId !== null ? friendOrId.uid : null;
+    if (!friendshipId) return;
     try {
-      await removeFriend(friendshipId);
+      await removeFriend(friendshipId, currentUser, friendUid);
+      if (friendUid) {
+        setCloseFriends(prev => prev.filter(id => id !== friendUid));
+      }
     } catch (err) {
       console.error('Errore rimozione amicizia:', err);
       customAlert({
@@ -239,7 +248,13 @@ export function useSocialClub() {
         if (typeof onJoinedCloudGame === 'function') {
           onJoinedCloudGame(notification.gameId);
         } else {
-          window.location.href = window.location.origin + '?game=' + notification.gameId;
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.set('game', notification.gameId);
+            window.history.replaceState({}, '', url.toString());
+          } catch {
+            // ignore
+          }
         }
       }
     } catch (err) {
@@ -303,6 +318,7 @@ export function useSocialClub() {
     isProfileOpen,
     setIsProfileOpen,
     profileInitialTab,
+    setProfileInitialTab,
     handleOpenProfile,
     handleLogin,
     handleLogout,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   X, 
   LogOut, 
@@ -7,8 +7,9 @@ import {
   Users 
 } from 'lucide-react';
 import { getFriendOnlineStatus } from '../services/social';
-import { calculatePlayerStats, computeUserCareerStats } from '../utils/storage';
+import { computeUserCareerStats } from '../utils/storage';
 import { calculatePlayerTrophies } from '../utils/trophies';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 // Sotto-componenti modulari del profilo utente
 import ProfileTab from './profile/ProfileTab';
@@ -25,7 +26,6 @@ export default function UserProfileModal({
   onLogout,
   gamesHistory = [],
   activeGame,
-  recentPlayers = [],
   tablePlayers = [],
   friendsList = [],
   clubUsers = [],
@@ -39,7 +39,10 @@ export default function UserProfileModal({
   onToggleCloseFriend,
   initialTab = 'profile'
 }) {
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [tabState, setTabState] = useState({ base: initialTab || 'profile', value: initialTab || 'profile' });
+  const activeTab = tabState.base === (initialTab || 'profile') ? tabState.value : (initialTab || 'profile');
+  const setActiveTab = (nextTab) => setTabState({ base: initialTab || 'profile', value: nextTab });
+
   const [sortBy, setSortBy] = useState('points'); // 'points' | 'burrachi' | 'winrate'
   const [friendSearchInput, setFriendSearchInput] = useState('');
   const [friendFeedback, setFriendFeedback] = useState(null);
@@ -47,11 +50,7 @@ export default function UserProfileModal({
   const [invitingFriendUids, setInvitingFriendUids] = useState({});
   const [invitedFriendUids, setInvitedFriendUids] = useState({});
 
-  useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab);
-    }
-  }, [initialTab, isOpen]);
+  useModalEscape(!isPage && isOpen, onClose);
 
   // Calcola statistiche collegate all'utente autenticato
   const userDisplayName = currentUser?.displayName || 'Giocatore Burraco';
@@ -270,7 +269,10 @@ export default function UserProfileModal({
   if (!isOpen) return null;
 
   const cardContent = (
-    <div className={`relative w-full ${isPage ? 'max-w-3xl mx-auto my-0' : 'max-w-xl sm:max-w-2xl my-auto max-h-[92vh] sm:max-h-[88vh]'} felt-card rounded-3xl border border-amber-500/40 shadow-2xl flex flex-col overflow-hidden animate-in fade-in duration-200`}>
+    <div
+      className={`relative w-full ${isPage ? 'max-w-3xl mx-auto my-0' : 'max-w-xl sm:max-w-2xl my-auto max-h-[92vh] sm:max-h-[88vh]'} felt-card rounded-3xl border border-amber-500/40 shadow-2xl flex flex-col overflow-hidden animate-in fade-in duration-200`}
+      onClick={!isPage ? (e) => e.stopPropagation() : undefined}
+    >
         
         {/* HEADER FISSO */}
         <div className="p-3 sm:p-4 pb-2.5 border-b border-emerald-700/50 flex items-center justify-between shrink-0 bg-emerald-950/90">
@@ -482,7 +484,13 @@ export default function UserProfileModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Profilo giocatore e statistiche"
+    >
       {cardContent}
     </div>
   );

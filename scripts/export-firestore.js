@@ -1,34 +1,26 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import fs from 'fs';
 import path from 'path';
+import { getCliFirebaseDb } from './firebase-cli-config.js';
 
-const firebaseConfig = {
-  projectId: "burraco-score-fedec",
-  appId: "1:453081841776:web:0e44d414aad67a818b34b5",
-  storageBucket: "burraco-score-fedec.firebasestorage.app",
-  apiKey: "AIzaSyAto2ITLoaMtUvRkanYacdK1yrqLm48J68",
-  authDomain: "burraco-score-fedec.firebaseapp.com",
-  messagingSenderId: "453081841776",
-  projectNumber: "453081841776",
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const { db, firebaseConfig } = getCliFirebaseDb();
 
 async function exportFirestore() {
   console.log('Avvio esportazione database Firestore...');
   const collections = [
-    'burraco_games', 
-    'burraco_tournaments', 
-    'burraco_meta', 
-    'burraco_users', 
-    'burraco_friends', 
+    'burraco_games',
+    'burraco_pins',
+    'burraco_tournaments',
+    'burraco_meta',
+    'burraco_users',
+    'burraco_public_profiles',
+    'burraco_friends',
     'burraco_notifications'
   ];
   const exportData = {
     exportedAt: new Date().toISOString(),
     projectId: firebaseConfig.projectId,
+    databaseId: firebaseConfig.firestoreDatabaseId || '(default)',
     collections: {}
   };
 
@@ -80,7 +72,8 @@ async function exportFirestore() {
       // Se fallisce per permessi, tenta con REST API e token CLI
       if (cliToken) {
         try {
-          const res = await fetch(`https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/${colName}`, {
+          const targetDb = firebaseConfig.firestoreDatabaseId || '(default)';
+          const res = await fetch(`https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/${encodeURIComponent(targetDb)}/documents/${colName}`, {
             headers: { Authorization: `Bearer ${cliToken}` }
           });
           const data = await res.json();

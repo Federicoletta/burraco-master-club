@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
     "lint": "oxlint src",
     "test": "vitest run",
@@ -14,6 +14,7 @@
     "canvas-confetti": "^1.9.4",
     "firebase": "^12.19.0",
     "lucide-react": "^1.49.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

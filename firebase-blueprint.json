@@ -1,0 +1,149 @@
+{
+  "entities": {
+    "Game": {
+      "title": "Burraco Game",
+      "description": "A Burraco match document with teams, rounds history, CRDT ledger chain, and cloud sync metadata.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique match identifier matching the document ID." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Match creation timestamp." },
+        "mode": { "type": "string", "enum": ["pairs", "singles", "trio"], "description": "Match mode." },
+        "allowSemipulito": { "type": "boolean", "description": "Whether semipulito burraco counts for 150 points." },
+        "targetScore": { "type": "number", "description": "Target winning score threshold." },
+        "team1": { "type": "object", "description": "First team or player map with name and players list." },
+        "team2": { "type": "object", "description": "Second team or player map with name and players list." },
+        "team3": { "type": "object", "description": "Third player map used in trio mode." },
+        "rounds": { "type": "array", "description": "Played hands and score breakdown." },
+        "winner": { "type": "string", "enum": ["team1", "team2", "team3"], "description": "Winning team key when finished." },
+        "isFinished": { "type": "boolean", "description": "Whether the match has ended." },
+        "ownerUid": { "type": "string", "description": "Creator Firebase Auth UID." },
+        "ownerEmail": { "type": "string", "description": "Creator email address." }
+      },
+      "required": ["id", "mode", "allowSemipulito", "targetScore", "team1", "team2", "rounds", "isFinished"]
+    },
+    "PinLookup": {
+      "title": "Game PIN Lookup",
+      "description": "Fast O(1) short PIN mapping to a game ID.",
+      "type": "object",
+      "properties": {
+        "pin": { "type": "string", "description": "Short table PIN code." },
+        "gameId": { "type": "string", "description": "Target game document ID." }
+      },
+      "required": ["pin", "gameId"]
+    },
+    "Tournament": {
+      "title": "Burraco Tournament",
+      "description": "FIBUR or classic Burraco tournament bracket and schedule.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique tournament ID." },
+        "name": { "type": "string", "description": "Tournament display name." },
+        "targetScore": { "type": "number", "description": "Target points per match." },
+        "scoringSystem": { "type": "string", "enum": ["fibur", "classic"], "description": "Tournament ranking formula." },
+        "teams": { "type": "array", "description": "Enrolled teams." },
+        "rounds": { "type": "array", "description": "Scheduled rounds and matches." },
+        "status": { "type": "string", "enum": ["in_progress", "completed"], "description": "Current tournament status." },
+        "ownerUid": { "type": "string", "description": "Organizer Firebase Auth UID." }
+      },
+      "required": ["id", "name", "teams", "rounds", "status"]
+    },
+    "PlayersMeta": {
+      "title": "Players Metadata",
+      "description": "Global metadata document containing known player names.",
+      "type": "object",
+      "properties": {
+        "list": { "type": "array", "description": "List of stored player names." }
+      },
+      "required": ["list"]
+    },
+    "UserProfile": {
+      "title": "Private Club User Profile",
+      "description": "Owner-only user profile containing PII (email), personal guest book, and close friends.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID." },
+        "displayName": { "type": "string", "description": "Player display name." },
+        "email": { "type": "string", "description": "Private user email address." },
+        "photoURL": { "type": "string", "description": "Avatar photo URL." },
+        "guests": { "type": "array", "description": "Private user guest players list." },
+        "careerStats": { "type": "object", "description": "Aggregated career metrics." },
+        "closeFriends": { "type": "array", "description": "List of close friend UIDs." }
+      },
+      "required": ["uid", "displayName"]
+    },
+    "PublicProfile": {
+      "title": "Public Club Member Profile",
+      "description": "Non-PII public member profile used for club directory search, live online status, and leaderboard stats.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID." },
+        "displayName": { "type": "string", "description": "Player display name." },
+        "displayNameLower": { "type": "string", "description": "Lowercase display name for case-insensitive lookup." },
+        "photoURL": { "type": "string", "description": "Avatar photo URL." },
+        "lastSeen": { "type": "string", "format": "date-time", "description": "Last online presence timestamp." },
+        "careerStats": { "type": "object", "description": "Aggregated career metrics." }
+      },
+      "required": ["uid", "displayName"]
+    },
+    "Notification": {
+      "title": "Social Notification",
+      "description": "Friend request or live table invitation.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Notification document ID." },
+        "type": { "type": "string", "enum": ["friend_request", "game_invite"], "description": "Notification type." },
+        "fromUid": { "type": "string", "description": "Sender UID." },
+        "toUid": { "type": "string", "description": "Recipient UID." },
+        "toEmail": { "type": "string", "description": "Recipient email." },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"], "description": "Invitation status." }
+      },
+      "required": ["id", "type", "fromUid", "status"]
+    },
+    "Friendship": {
+      "title": "Club Friendship",
+      "description": "Mutual friendship record between two authenticated users.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Deterministic friendship ID." },
+        "users": { "type": "array", "description": "Pair of member UIDs." },
+        "emails": { "type": "array", "description": "Pair of member emails." },
+        "status": { "type": "string", "enum": ["accepted"], "description": "Friendship status." }
+      },
+      "required": ["id", "users", "status"]
+    }
+  },
+  "firestore": {
+    "/burraco_games/{gameId}": {
+      "schema": { "$ref": "#/entities/Game" },
+      "description": "Live and historical Burraco matches."
+    },
+    "/burraco_pins/{pin}": {
+      "schema": { "$ref": "#/entities/PinLookup" },
+      "description": "Short table PIN to gameId mapping."
+    },
+    "/burraco_tournaments/{tournamentId}": {
+      "schema": { "$ref": "#/entities/Tournament" },
+      "description": "Multi-round Burraco tournaments."
+    },
+    "/burraco_meta/{docId}": {
+      "schema": { "$ref": "#/entities/PlayersMeta" },
+      "description": "Shared club metadata documents."
+    },
+    "/burraco_users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Owner-only private user profiles and PII."
+    },
+    "/burraco_public_profiles/{userId}": {
+      "schema": { "$ref": "#/entities/PublicProfile" },
+      "description": "Public non-PII club directory profiles."
+    },
+    "/burraco_notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "Pending friend requests and game invites."
+    },
+    "/burraco_friends/{friendshipId}": {
+      "schema": { "$ref": "#/entities/Friendship" },
+      "description": "Confirmed friend relationships."
+    }
+  }
+}

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Code } from 'lucide-react';
-export { isDeveloperAccount } from '../utils/developer';
 
 /**
  * Tag badge esclusivo per lo sviluppatore dell'app

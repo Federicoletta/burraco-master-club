@@ -1,5 +1,5 @@
 import React, { useMemo, memo } from 'react';
-import { Trophy, Plus, Sparkles, KeyRound, QrCode } from 'lucide-react';
+import { Trophy, Plus, Sparkles } from 'lucide-react';
 import { getGamesHistory, calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
 
@@ -78,6 +78,11 @@ function ScoreBoard({
     };
   }, [activeGame?.rounds]);
 
+  const pendingGame = useMemo(() => {
+    if (!activeGame || (activeGame.rounds && activeGame.rounds.length > 0)) return null;
+    return (gamesHistory || []).find(g => g && g.id !== activeGame?.id && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0) || null;
+  }, [activeGame, gamesHistory]);
+
   if (!activeGame) return null;
 
   const targetScore = activeGame.targetScore || 2005;
@@ -109,11 +114,6 @@ function ScoreBoard({
   const t3Percent = Math.min(100, Math.max(0, Math.round((totalTeam3 / targetScore) * 100)));
 
   const isTargetReached = totalTeam1 >= targetScore || totalTeam2 >= targetScore || (isTrio && totalTeam3 >= targetScore);
-
-  const pendingGame = useMemo(() => {
-    if (activeGame?.rounds && activeGame.rounds.length > 0) return null;
-    return (gamesHistory || []).find(g => g && g.id !== activeGame?.id && !g.isFinished && Array.isArray(g.rounds) && g.rounds.length > 0) || null;
-  }, [activeGame, gamesHistory]);
 
   const winningTeam = isTrio
     ? (totalTeam1 >= totalTeam2 && totalTeam1 >= totalTeam3 ? activeGame.team1 : totalTeam2 >= totalTeam1 && totalTeam2 >= totalTeam3 ? activeGame.team2 : activeGame.team3)

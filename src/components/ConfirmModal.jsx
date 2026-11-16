@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertCircle, Trash2, CheckCircle2, X } from 'lucide-react';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 export default function ConfirmModal({
   isOpen,
@@ -11,15 +12,21 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }) {
+  useModalEscape(isOpen, onCancel);
+
   if (!isOpen) return null;
 
   const isDanger = variant === 'danger';
   const isSuccess = variant === 'success';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onCancel}
+    >
       <div 
         className="w-full max-w-sm rounded-3xl bg-emerald-950/95 border-2 border-emerald-600/40 p-5 sm:p-6 shadow-2xl relative text-center backdrop-blur-xl animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >

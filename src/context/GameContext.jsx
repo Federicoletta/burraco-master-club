@@ -1,13 +1,12 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
-import { useSocial } from './SocialContext';
+import React, { useState, useMemo } from 'react';
+import { useSocial } from './socialContextStore';
 import { useTournament } from '../hooks/useTournament';
 import { useBurracoGame } from '../hooks/useBurracoGame';
-
-const GameContext = createContext(null);
+import { GameContext } from './gameContextStore';
 
 export function GameProvider({ children }) {
   const social = useSocial();
-  const tournament = useTournament();
+  const tournament = useTournament(social.currentUser);
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
 
   const game = useBurracoGame({
@@ -31,28 +30,4 @@ export function GameProvider({ children }) {
       {children}
     </GameContext.Provider>
   );
-}
-
-export function useGame() {
-  const context = useContext(GameContext);
-  if (!context) {
-    throw new Error('useGame deve essere utilizzato all\'interno di un GameProvider');
-  }
-  return context.game;
-}
-
-export function useTournamentContext() {
-  const context = useContext(GameContext);
-  if (!context) {
-    throw new Error('useTournamentContext deve essere utilizzato all\'interno di un GameProvider');
-  }
-  return context.tournament;
-}
-
-export function useBurraco() {
-  const context = useContext(GameContext);
-  if (!context) {
-    throw new Error('useBurraco deve essere utilizzato all\'interno di un GameProvider');
-  }
-  return context;
 }

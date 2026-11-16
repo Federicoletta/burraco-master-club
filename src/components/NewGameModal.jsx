@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Sparkles, Check, Play, Edit3, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Sparkles, Play, Edit3, ChevronDown, ChevronUp } from 'lucide-react';
 import GameModeSelector from './newgame/GameModeSelector';
 import BurracoTableFormation from './newgame/BurracoTableFormation';
 import TableSeatAssignmentTray from './newgame/TableSeatAssignmentTray';
 import TargetScoreSelector from './newgame/TargetScoreSelector';
 import SemipulitoToggle from './newgame/SemipulitoToggle';
 import { sound } from '../utils/soundEffects';
+import { useModalEscape } from '../hooks/useModalEscape';
 
-export default function NewGameModal({ 
-  isOpen, 
-  onClose, 
-  onStartGame, 
+function NewGameModalContent({
+  onClose,
+  onStartGame,
   friendsList = [],
   storedPlayers = [],
   hasActiveGame,
@@ -19,71 +19,34 @@ export default function NewGameModal({
   currentUser = null,
   lastGame = null
 }) {
-  const [mode, setMode] = useState('pairs'); // 'pairs' (2v2) | 'singles' (1v1) | 'trio' (A 3)
-  const [team1Name, setTeam1Name] = useState('');
-  const [team2Name, setTeam2Name] = useState('');
-  
+  const [mode, setMode] = useState(() => initialSetup?.mode || 'pairs');
+  const [team1Name, setTeam1Name] = useState(() => initialSetup?.team1Name || '');
+  const [team2Name, setTeam2Name] = useState(() => initialSetup?.team2Name || '');
+
   // Posti dei giocatori al tavolo
-  const [p1A, setP1A] = useState(''); // Sud (Tu / Caposquadra Coppia 1)
-  const [p1B, setP1B] = useState(''); // Nord (Compagno Coppia 1)
-  const [p2A, setP2A] = useState(''); // Ovest (Avversario 1 Coppia 2)
-  const [p2B, setP2B] = useState(''); // Est (Avversario 2 Coppia 2)
-  const [p3A, setP3A] = useState(''); // G3 (per trio)
+  const [p1A, setP1A] = useState(() => initialSetup?.p1A || ''); // Sud (Tu / Caposquadra Coppia 1)
+  const [p1B, setP1B] = useState(() => initialSetup?.p1B || ''); // Nord (Compagno Coppia 1)
+  const [p2A, setP2A] = useState(() => initialSetup?.p2A || ''); // Ovest (Avversario 1 Coppia 2)
+  const [p2B, setP2B] = useState(() => initialSetup?.p2B || ''); // Est (Avversario 2 Coppia 2)
+  const [p3A, setP3A] = useState(() => initialSetup?.p3A || ''); // G3 (per trio)
 
   const [activeSlot, setActiveSlot] = useState('p1A');
   const [showTeamNamesEdit, setShowTeamNamesEdit] = useState(false);
 
-  const [targetScore, setTargetScore] = useState(2005);
+  const [targetScore, setTargetScore] = useState(() => initialSetup?.targetScore || 2005);
   const [customTarget, setCustomTarget] = useState('');
-  const [allowSemipulito, setAllowSemipulito] = useState(true);
+  const [allowSemipulito, setAllowSemipulito] = useState(() => initialSetup?.allowSemipulito ?? true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Inizializza o resetta i campi ogni volta che si apre il modale
-  useEffect(() => {
-    setIsSubmitting(false);
-    if (isOpen) {
-      if (initialSetup) {
-        setMode(initialSetup.mode || 'pairs');
-        setTeam1Name(initialSetup.team1Name || '');
-        setTeam2Name(initialSetup.team2Name || '');
-        setP1A(initialSetup.p1A || '');
-        setP1B(initialSetup.p1B || '');
-        setP2A(initialSetup.p2A || '');
-        setP2B(initialSetup.p2B || '');
-        setP3A(initialSetup.p3A || '');
-        setTargetScore(initialSetup.targetScore || 2005);
-        setCustomTarget('');
-        setAllowSemipulito(initialSetup.allowSemipulito ?? true);
-      } else {
-        setMode('pairs');
-        setTeam1Name('');
-        setTeam2Name('');
-        setP1A('');
-        setP1B('');
-        setP2A('');
-        setP2B('');
-        setP3A('');
-        setTargetScore(2005);
-        setCustomTarget('');
-        setAllowSemipulito(true);
-      }
-      setActiveSlot('p1A');
-      setShowTeamNamesEdit(false);
-    }
-  }, [isOpen, initialSetup]);
-
-  // Se cambia la modalità, assicurati che lo slot attivo sia valido
-  useEffect(() => {
-    const validSlots = mode === 'pairs'
+  const handleModeChange = useCallback((nextMode) => {
+    setMode(nextMode);
+    const validSlots = nextMode === 'pairs'
       ? ['p1A', 'p1B', 'p2A', 'p2B']
-      : mode === 'singles'
+      : nextMode === 'singles'
       ? ['p1A', 'p2A']
       : ['p1A', 'p2A', 'p3A'];
-    
-    if (!validSlots.includes(activeSlot)) {
-      setActiveSlot('p1A');
-    }
-  }, [mode, activeSlot]);
+    setActiveSlot(prev => (validSlots.includes(prev) ? prev : 'p1A'));
+  }, []);
 
   // Avanza automaticamente allo slot successivo libero
   const handleAdvanceSlot = useCallback((currentSlot) => {
@@ -112,7 +75,7 @@ export default function NewGameModal({
   const handleUseLastGameFormation = useCallback(() => {
     if (!lastGame) return;
     try { sound.playCardDeal(); } catch {}
-    setMode(lastGame.mode || 'pairs');
+    handleModeChange(lastGame.mode || 'pairs');
     setTeam1Name(lastGame.team1?.name || '');
     setTeam2Name(lastGame.team2?.name || '');
     const t1 = lastGame.team1?.players || [];
@@ -125,10 +88,7 @@ export default function NewGameModal({
     setP3A(t3[0] || '');
     setTargetScore(lastGame.targetScore || 2005);
     setAllowSemipulito(lastGame.allowSemipulito ?? true);
-  }, [lastGame]);
-
-  if (!isOpen) return null;
-  if (typeof document === 'undefined') return null;
+  }, [lastGame, handleModeChange]);
 
   // Calcolo nomi ed etichette dinamiche
   const t1Players = mode === 'pairs'
@@ -204,8 +164,17 @@ export default function NewGameModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-6xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[94vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Nuova partita di Burraco"
+    >
+      <div
+        className="relative w-full max-w-6xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[94vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-3.5 border-b border-emerald-700/50">
@@ -262,7 +231,7 @@ export default function NewGameModal({
 
         {/* Selettore Modalità di Gioco in alto */}
         <div className="mt-3.5 mb-4">
-          <GameModeSelector mode={mode} setMode={setMode} />
+          <GameModeSelector mode={mode} setMode={handleModeChange} />
         </div>
 
         <form onSubmit={handleStart} className="space-y-4">
@@ -427,4 +396,16 @@ export default function NewGameModal({
     </div>,
     document.body
   );
+}
+
+export default function NewGameModal(props) {
+  useModalEscape(props.isOpen, props.onClose);
+
+  if (!props.isOpen || typeof document === 'undefined') return null;
+
+  const setupKey = props.initialSetup
+    ? `${props.initialSetup.mode || 'pairs'}_${props.initialSetup.team1Name || ''}_${props.initialSetup.team2Name || ''}_${props.initialSetup.p1A || ''}_${props.initialSetup.p2A || ''}_${props.initialSetup.targetScore || 2005}`
+    : 'default';
+
+  return <NewGameModalContent key={setupKey} {...props} />;
 }

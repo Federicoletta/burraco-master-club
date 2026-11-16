@@ -4,114 +4,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===============================================================
-    // Assumed Data Model
+    // Assumed Data Model (synced with firebase-blueprint.json)
     // ===============================================================
-    //
-    // Collection: burraco_games
-    // Document ID: {gameId} (must match data.id)
-    // Fields:
-    //   - id: string (required, 3-100 chars, immutable) - Unique game identifier
-    //   - createdAt: string | timestamp (optional, max 50 chars if string, immutable)
-    //   - mode: string (required, 'pairs' | 'singles' | 'trio', max 20 chars) - Match mode
-    //   - allowSemipulito: bool (required) - Whether semipulito burraco is counted
-    //   - targetScore: number (required, 100..10000) - Winning point threshold
-    //   - team1: map (required, keys: ['name', 'players'])
-    //       - name: string (1-100 chars)
-    //       - players: list of strings (0-4 players, 1-100 chars each)
-    //   - team2: map (required, keys: ['name', 'players'])
-    //       - name: string (1-100 chars)
-    //       - players: list of strings (0-4 players, 1-100 chars each)
-    //   - team3: map (optional for pairs/singles, required for trio, keys: ['name', 'players'])
-    //       - name: string (1-100 chars)
-    //       - players: list of strings (0-4 players, 1-100 chars each)
-    //   - rounds: list (required, max 100 rounds) - Match rounds history
-    //   - winner: string | null (optional, 'team1' | 'team2' | 'team3' | null)
-    //   - isFinished: bool (required) - Whether the match has concluded
-    //   - completedAt: string | timestamp (optional, max 50 chars if string)
-    //   - updatedAt: timestamp | string (optional) - Server sync timestamp
-    //   - ownerUid: string | null (optional, max 128 chars)
-    //   - ownerEmail: string | null (optional, max 150 chars)
-    //   - ownerName: string | null (optional, max 100 chars)
-    //   - playerUids: list of strings (optional, max 10 items)
-    //   - playerEmails: list of strings (optional, max 10 items)
-    //   - tableClosed: bool (optional)
-    //   - ledgerChain: list (optional, max 200 items)
-    //   - ledgerLastHash: string | null (optional, max 64 chars)
-    //   - ledgerChainLength: number | null (optional)
-    //   - telemetry: map | null (optional, max 30 keys)
-    //   - tournamentId: string | null (optional, max 100 chars)
-    //   - tournamentName: string | null (optional, max 100 chars)
-    //   - tournamentMatchId: string | null (optional, max 100 chars)
-    //   - tournamentRoundNumber: number | null (optional)
-    //   - tournamentTableNumber: number | null (optional)
-    //
-    // Collection: burraco_meta
-    // Document ID: {docId} (e.g., 'players')
-    // Fields for 'players':
-    //   - list: list of strings (required, max 200 players)
-    //   - updatedAt: timestamp | string (optional)
-    //
-    // Collection: burraco_tournaments
-    // Document ID: {tournamentId} (must match data.id)
-    // Fields:
-    //   - id: string (required, immutable) - Unique tournament identifier
-    //   - name: string (required, 1-100 chars) - Tournament name
-    //   - createdAt: string | timestamp (optional, max 50 chars if string, immutable)
-    //   - targetScore: number (optional, >= 100) - Target points per match
-    //   - scoringSystem: string (optional, 'fibur' | 'classic') - Tournament scoring system
-    //   - teams: list (required, 2-64 teams) - Enrolled teams
-    //   - rounds: list (required, max 100 rounds) - Tournament schedule & matches
-    //   - status: string (required, 'in_progress' | 'completed')
-    //   - completedAt: string | timestamp (optional, max 50 chars if string)
-    //   - updatedAt: string | timestamp (optional, max 50 chars if string)
-    //   - ownerUid: string | null (optional, max 128 chars)
-    //   - ownerEmail: string | null (optional, max 150 chars)
-    //   - ownerName: string | null (optional, max 100 chars)
-    //
-    // Collection: burraco_users
-    // Document ID: {userId} (must match data.uid)
-    // Fields:
-    //   - uid: string (required, immutable) - User Firebase Auth UID
-    //   - displayName: string (required, 1-100 chars) - Player public name
-    //   - email: string | null (optional, max 200 chars) - Player email
-    //   - photoURL: string | null (optional, max 2048 chars)
-    //   - lastLogin: string | timestamp (optional, max 50 chars if string)
-    //   - lastSeen: string | timestamp (optional, max 50 chars if string)
-    //   - updatedAt: string | timestamp (optional, max 50 chars if string)
-    //   - guests: list (optional, max 200 items)
-    //   - careerStats: map (optional, max 20 keys)
-    //   - closeFriends: list (optional, max 200 items)
-    //
-    // Collection: burraco_notifications
-    // Document ID: {notificationId}
-    // Fields:
-    //   - id: string (deterministic notification ID)
-    //   - type: string ('friend_request' | 'game_invite')
-    //   - fromUid: string - Sender user UID
-    //   - fromName: string - Sender display name
-    //   - fromEmail: string - Sender email address
-    //   - toEmail: string - Target user email address
-    //   - toUid: string | null - Target user UID (if registered)
-    //   - status: string ('pending' | 'accepted' | 'declined')
-    //
-    // Collection: burraco_friends
-    // Document ID: {friendshipId}
-    // Fields:
-    //   - id: string - Deterministic friendship ID
-    //   - users: list of strings [uidA, uidB]
-    //   - emails: list of strings [emailA, emailB]
-    //   - user1: map (profile info of first user)
-    //   - user2: map (profile info of second user)
-    //   - status: string ('accepted')
-    //
-    // Collection: burraco_pins
-    // Document ID: {pin} (must match data.pin)
-    // Fields:
-    //   - pin: string (required, 4-10 alphanumeric characters) - Fast O(1) table lookup short PIN
-    //   - gameId: string (required, 3-100 characters) - Target match ID
-    //   - createdAt: string | timestamp (optional, max 50 chars if string)
-    //   - updatedAt: string | timestamp (optional, max 50 chars if string)
-    //
+    // - burraco_games/{gameId}
+    // - burraco_pins/{pin}
+    // - burraco_tournaments/{tournamentId}
+    // - burraco_meta/{docId}
+    // - burraco_users/{userId} (Private PII - Owner only)
+    // - burraco_public_profiles/{userId} (Public Club Directory - Zero PII)
+    // - burraco_notifications/{notificationId}
+    // - burraco_friends/{friendshipId}
     // ===============================================================
 
     // Default deny all access
@@ -120,11 +22,34 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Helper Functions
+    // Core Helpers
     // ===============================================================
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
 
     function isAuthenticated() {
       return request.auth != null;
+    }
+
+    function isVerifiedEmailMatch(emailVal) {
+      return isAuthenticated() &&
+             request.auth.token.email != null &&
+             request.auth.token.email_verified == true &&
+             emailVal is string &&
+             emailVal == request.auth.token.email.lower();
+    }
+
+    function isValidId(id) {
+      return id is string &&
+             id.size() >= 1 &&
+             id.size() <= 128 &&
+             id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function isValidPlayerName(name) {
@@ -190,8 +115,8 @@ service cloud.firestore {
              (!('ownerUid' in data) || data.ownerUid == null || (data.ownerUid is string && data.ownerUid.size() <= 128)) &&
              (!('ownerEmail' in data) || data.ownerEmail == null || (data.ownerEmail is string && data.ownerEmail.size() <= 150)) &&
              (!('ownerName' in data) || data.ownerName == null || (data.ownerName is string && data.ownerName.size() <= 100)) &&
-             (!('playerUids' in data) || (data.playerUids is list && data.playerUids.size() <= 10)) &&
-             (!('playerEmails' in data) || (data.playerEmails is list && data.playerEmails.size() <= 10)) &&
+             (!('playerUids' in data) || (data.playerUids is list && data.playerUids.size() <= 10 && (data.playerUids.size() == 0 || data.playerUids[0] is string))) &&
+             (!('playerEmails' in data) || (data.playerEmails is list && data.playerEmails.size() <= 10 && (data.playerEmails.size() == 0 || data.playerEmails[0] is string))) &&
              (!('tableClosed' in data) || data.tableClosed == null || data.tableClosed is bool) &&
              (!('ledgerChain' in data) || data.ledgerChain == null || (data.ledgerChain is list && data.ledgerChain.size() <= 200)) &&
              (!('ledgerLastHash' in data) || data.ledgerLastHash == null || (data.ledgerLastHash is string && data.ledgerLastHash.size() <= 64)) &&
@@ -214,6 +139,9 @@ service cloud.firestore {
 
       return data.keys().hasAll(requiredFields) &&
              data.keys().hasOnly(allowedFields) &&
+             data.id is string &&
+             data.id.size() >= 3 &&
+             data.id.size() <= 100 &&
              data.id == tournamentId &&
              data.name is string &&
              data.name.size() > 0 &&
@@ -224,7 +152,7 @@ service cloud.firestore {
              data.teams.size() <= 64 &&
              data.rounds is list &&
              data.rounds.size() <= 100 &&
-             (!('targetScore' in data) || ((data.targetScore is int || data.targetScore is float) && data.targetScore >= 100)) &&
+             (!('targetScore' in data) || ((data.targetScore is int || data.targetScore is float) && data.targetScore >= 100 && data.targetScore <= 10000)) &&
              (!('scoringSystem' in data) || data.scoringSystem in ['fibur', 'classic']) &&
              (!('createdAt' in data) || data.createdAt == null || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
              (!('completedAt' in data) || data.completedAt == null || (data.completedAt is string && data.completedAt.size() <= 50) || data.completedAt is timestamp) &&
@@ -275,6 +203,7 @@ service cloud.firestore {
 
       return data.keys().hasAll(requiredFields) &&
              data.keys().hasOnly(allowedFields) &&
+             data.uid is string &&
              data.uid == userId &&
              data.displayName is string &&
              data.displayName.size() > 0 &&
@@ -286,7 +215,29 @@ service cloud.firestore {
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp) &&
              (!('guests' in data) || (data.guests is list && data.guests.size() <= 200)) &&
              (!('careerStats' in data) || data.careerStats == null || isValidCareerStats(data.careerStats)) &&
-             (!('closeFriends' in data) || (data.closeFriends is list && data.closeFriends.size() <= 200));
+             (!('closeFriends' in data) || (data.closeFriends is list && data.closeFriends.size() <= 200 && (data.closeFriends.size() == 0 || data.closeFriends[0] is string)));
+    }
+
+    function isValidPublicProfile(data, userId) {
+      let allowedFields = [
+        'uid', 'displayName', 'displayNameLower', 'photoURL', 'lastSeen', 'updatedAt', 'careerStats'
+      ];
+      let requiredFields = [
+        'uid', 'displayName'
+      ];
+
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.uid is string &&
+             data.uid == userId &&
+             data.displayName is string &&
+             data.displayName.size() > 0 &&
+             data.displayName.size() <= 100 &&
+             (!('displayNameLower' in data) || data.displayNameLower == null || (data.displayNameLower is string && data.displayNameLower.size() <= 100)) &&
+             (!('photoURL' in data) || data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 2048)) &&
+             (!('lastSeen' in data) || (data.lastSeen is string && data.lastSeen.size() <= 50) || data.lastSeen is timestamp) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp) &&
+             (!('careerStats' in data) || data.careerStats == null || isValidCareerStats(data.careerStats));
     }
 
     function isValidPinDoc(data, pin) {
@@ -302,8 +253,81 @@ service cloud.firestore {
              data.gameId is string &&
              data.gameId.size() >= 3 &&
              data.gameId.size() <= 100 &&
+             isValidId(data.gameId) &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50) || data.updatedAt is timestamp);
+    }
+
+    function isValidNotification(data, notificationId) {
+      let allowedFields = [
+        'id', 'type', 'gameId', 'gameName', 'teamName',
+        'fromUid', 'fromName', 'fromEmail', 'fromPhoto',
+        'toEmail', 'toUid', 'toName', 'toPhoto',
+        'status', 'createdAt', 'acceptedAt', 'declinedAt', 'respondedAt'
+      ];
+      let requiredFields = ['id', 'type', 'fromUid', 'status'];
+
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.id is string &&
+             data.id == notificationId &&
+             data.id.size() >= 3 &&
+             data.id.size() <= 128 &&
+             data.type is string &&
+             data.type in ['friend_request', 'game_invite'] &&
+             data.fromUid is string &&
+             data.fromUid.size() >= 1 &&
+             data.fromUid.size() <= 128 &&
+             data.status is string &&
+             data.status in ['pending', 'accepted', 'declined'] &&
+             (!('gameId' in data) || data.gameId == null || (data.gameId is string && data.gameId.size() <= 100)) &&
+             (!('gameName' in data) || data.gameName == null || (data.gameName is string && data.gameName.size() <= 120)) &&
+             (!('teamName' in data) || data.teamName == null || (data.teamName is string && data.teamName.size() <= 100)) &&
+             (!('fromName' in data) || data.fromName == null || (data.fromName is string && data.fromName.size() <= 100)) &&
+             (!('fromEmail' in data) || data.fromEmail == null || (data.fromEmail is string && data.fromEmail.size() <= 200)) &&
+             (!('fromPhoto' in data) || data.fromPhoto == null || (data.fromPhoto is string && data.fromPhoto.size() <= 2048)) &&
+             (!('toEmail' in data) || data.toEmail == null || (data.toEmail is string && data.toEmail.size() <= 200)) &&
+             (!('toUid' in data) || data.toUid == null || (data.toUid is string && data.toUid.size() <= 128)) &&
+             (!('toName' in data) || data.toName == null || (data.toName is string && data.toName.size() <= 100)) &&
+             (!('toPhoto' in data) || data.toPhoto == null || (data.toPhoto is string && data.toPhoto.size() <= 2048)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp) &&
+             (!('acceptedAt' in data) || (data.acceptedAt is string && data.acceptedAt.size() <= 50) || data.acceptedAt is timestamp) &&
+             (!('declinedAt' in data) || (data.declinedAt is string && data.declinedAt.size() <= 50) || data.declinedAt is timestamp) &&
+             (!('respondedAt' in data) || (data.respondedAt is string && data.respondedAt.size() <= 50) || data.respondedAt is timestamp);
+    }
+
+    function isValidFriendMemberMap(member) {
+      return member is map &&
+             member.keys().hasAll(['uid']) &&
+             member.keys().hasOnly(['uid', 'displayName', 'email', 'photoURL']) &&
+             member.uid is string &&
+             member.uid.size() >= 1 &&
+             member.uid.size() <= 128 &&
+             (!('displayName' in member) || member.displayName == null || (member.displayName is string && member.displayName.size() <= 100)) &&
+             (!('email' in member) || member.email == null || (member.email is string && member.email.size() <= 200)) &&
+             (!('photoURL' in member) || member.photoURL == null || (member.photoURL is string && member.photoURL.size() <= 2048));
+    }
+
+    function isValidFriendship(data, friendshipId) {
+      let allowedFields = ['id', 'users', 'emails', 'user1', 'user2', 'status', 'createdAt'];
+      let requiredFields = ['id', 'users', 'status'];
+
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.id is string &&
+             data.id == friendshipId &&
+             data.id.size() >= 3 &&
+             data.id.size() <= 128 &&
+             data.users is list &&
+             data.users.size() == 2 &&
+             data.users[0] is string &&
+             data.users[1] is string &&
+             data.users[0] != data.users[1] &&
+             data.status == 'accepted' &&
+             (!('emails' in data) || (data.emails is list && data.emails.size() <= 2)) &&
+             (!('user1' in data) || data.user1 == null || isValidFriendMemberMap(data.user1)) &&
+             (!('user2' in data) || data.user2 == null || isValidFriendMemberMap(data.user2)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50) || data.createdAt is timestamp);
     }
 
     // ===============================================================
@@ -312,62 +336,169 @@ service cloud.firestore {
 
     // Matches & Round Points
     match /burraco_games/{gameId} {
-      allow read: if true;
-      allow create: if isValidGame(request.resource.data, gameId);
-      allow update: if isValidGame(request.resource.data, gameId) &&
-                       request.resource.data.id == resource.data.id &&
-                       (!('createdAt' in resource.data) || resource.data.createdAt == null || !('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt);
-      allow delete: if true;
+      allow get: if isValidId(gameId);
+      allow list: if isAuthenticated() &&
+                     (resource.data.ownerUid == request.auth.uid ||
+                      (resource.data.playerUids is list && request.auth.uid in resource.data.playerUids));
+      allow create: if isValidId(gameId) &&
+                       isValidGame(incoming(), gameId) &&
+                       (!('ownerUid' in incoming()) || incoming().ownerUid == null || (isAuthenticated() && incoming().ownerUid == request.auth.uid));
+      allow update: if isValidId(gameId) &&
+                       isValidGame(incoming(), gameId) &&
+                       incoming().id == existing().id &&
+                       (!('createdAt' in existing()) || existing().createdAt == null || !('createdAt' in incoming()) || incoming().createdAt == existing().createdAt) &&
+                       ((!('ownerUid' in existing()) || existing().ownerUid == null)
+                         ? (!('ownerUid' in incoming()) || incoming().ownerUid == null || (isAuthenticated() && incoming().ownerUid == request.auth.uid))
+                         : incoming().ownerUid == existing().ownerUid);
+      allow delete: if isAuthenticated() &&
+                       isValidId(gameId) &&
+                       (!('ownerUid' in existing()) || existing().ownerUid == null || existing().ownerUid == request.auth.uid);
     }
 
     // Fast O(1) PIN table lookups
     match /burraco_pins/{pin} {
-      allow read: if true;
-      allow create, update: if isValidPinDoc(request.resource.data, pin);
-      allow delete: if true;
+      allow get: if isValidId(pin);
+      allow list: if false;
+      allow create: if isValidId(pin) &&
+                       isValidPinDoc(incoming(), pin) &&
+                       exists(/databases/$(database)/documents/burraco_games/$(incoming().gameId));
+      allow update: if isValidId(pin) &&
+                       isValidPinDoc(incoming(), pin) &&
+                       incoming().gameId == existing().gameId &&
+                       (!('createdAt' in existing()) || existing().createdAt == null || !('createdAt' in incoming()) || incoming().createdAt == existing().createdAt);
+      allow delete: if isAuthenticated() &&
+                       isValidId(pin) &&
+                       (!exists(/databases/$(database)/documents/burraco_games/$(existing().gameId)) ||
+                        get(/databases/$(database)/documents/burraco_games/$(existing().gameId)).data.ownerUid == null ||
+                        get(/databases/$(database)/documents/burraco_games/$(existing().gameId)).data.ownerUid == request.auth.uid);
     }
 
     // Tournaments (Bracket & Round-Robin)
     match /burraco_tournaments/{tournamentId} {
-      allow read: if true;
-      allow create: if isValidTournament(request.resource.data, tournamentId);
-      allow update: if isValidTournament(request.resource.data, tournamentId) &&
-                       request.resource.data.id == resource.data.id &&
-                       (!('createdAt' in resource.data) || resource.data.createdAt == null || !('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt);
-      allow delete: if true;
+      allow get: if isValidId(tournamentId) &&
+                    (existing().ownerUid == null || (isAuthenticated() && existing().ownerUid == request.auth.uid));
+      allow list: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isValidId(tournamentId) &&
+                       isValidTournament(incoming(), tournamentId) &&
+                       (!('ownerUid' in incoming()) || incoming().ownerUid == null || (isAuthenticated() && incoming().ownerUid == request.auth.uid));
+      allow update: if isValidId(tournamentId) &&
+                       isValidTournament(incoming(), tournamentId) &&
+                       incoming().id == existing().id &&
+                       (!('createdAt' in existing()) || existing().createdAt == null || !('createdAt' in incoming()) || incoming().createdAt == existing().createdAt) &&
+                       (!('ownerUid' in existing()) || existing().ownerUid == null || incoming().ownerUid == existing().ownerUid);
+      allow delete: if isAuthenticated() &&
+                       isValidId(tournamentId) &&
+                       (!('ownerUid' in existing()) || existing().ownerUid == null || existing().ownerUid == request.auth.uid);
     }
 
-    // Global Metadata (e.g. Participants List)
+    // Global Metadata
     match /burraco_meta/{docId} {
-      allow read: if true;
-      allow create: if isValidMeta(docId, request.resource.data);
-      allow update: if isValidMeta(docId, request.resource.data);
-      allow delete: if true;
+      allow get: if isAuthenticated() && isValidId(docId);
+      allow list: if false;
+      allow create, update: if isAuthenticated() &&
+                               isValidId(docId) &&
+                               isValidMeta(docId, incoming());
+      allow delete: if false;
     }
 
-    // Registered Users Profile / Directory
+    // Private User Profiles (PII isolated to owner only)
     match /burraco_users/{userId} {
-      allow read: if true;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null &&
+      allow get: if isAuthenticated() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isAuthenticated() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUser(incoming(), userId);
+      allow update: if isAuthenticated() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUser(incoming(), userId) &&
+                       incoming().uid == existing().uid;
+      allow delete: if isAuthenticated() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId;
+    }
+
+    // Public Club Directory (Zero PII - displayName, photoURL, lastSeen, careerStats only)
+    match /burraco_public_profiles/{userId} {
+      allow get: if isAuthenticated() && isValidId(userId);
+      allow list: if isAuthenticated() && resource.data.uid is string;
+      allow create: if isAuthenticated() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidPublicProfile(incoming(), userId);
+      allow update: if isAuthenticated() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidPublicProfile(incoming(), userId) &&
+                       incoming().uid == existing().uid;
+      allow delete: if isAuthenticated() &&
+                       isValidId(userId) &&
                        request.auth.uid == userId;
     }
 
     // Notifications (Friend requests & Game invitations)
     match /burraco_notifications/{notificationId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated();
+      allow get: if isAuthenticated() &&
+                    isValidId(notificationId) &&
+                    (existing().fromUid == request.auth.uid ||
+                     existing().toUid == request.auth.uid ||
+                     isVerifiedEmailMatch(existing().toEmail));
+      allow list: if isAuthenticated() &&
+                     (resource.data.fromUid == request.auth.uid ||
+                      resource.data.toUid == request.auth.uid ||
+                      isVerifiedEmailMatch(resource.data.toEmail));
+      allow create: if isAuthenticated() &&
+                       isValidId(notificationId) &&
+                       isValidNotification(incoming(), notificationId) &&
+                       incoming().fromUid == request.auth.uid &&
+                       incoming().status == 'pending';
+      allow update: if isAuthenticated() &&
+                       isValidId(notificationId) &&
+                       isValidNotification(incoming(), notificationId) &&
+                       incoming().id == existing().id &&
+                       incoming().fromUid == existing().fromUid &&
+                       incoming().type == existing().type &&
+                       (
+                         (existing().fromUid == request.auth.uid &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'status', 'toUid', 'toName', 'toPhoto', 'toEmail',
+                            'createdAt', 'fromName', 'fromPhoto', 'fromEmail',
+                            'gameId', 'gameName', 'teamName'
+                          ])) ||
+                         ((existing().toUid == request.auth.uid || isVerifiedEmailMatch(existing().toEmail)) &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'status', 'toUid', 'toName', 'toPhoto',
+                            'acceptedAt', 'declinedAt', 'respondedAt'
+                          ]))
+                       );
+      allow delete: if isAuthenticated() &&
+                       isValidId(notificationId) &&
+                       (existing().fromUid == request.auth.uid ||
+                        existing().toUid == request.auth.uid ||
+                        isVerifiedEmailMatch(existing().toEmail));
     }
 
     // Friendships
     match /burraco_friends/{friendshipId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated();
+      allow get: if isAuthenticated() &&
+                    isValidId(friendshipId) &&
+                    (existing().users is list && request.auth.uid in existing().users);
+      allow list: if isAuthenticated() &&
+                     (resource.data.users is list && request.auth.uid in resource.data.users);
+      allow create: if isAuthenticated() &&
+                       isValidId(friendshipId) &&
+                       isValidFriendship(incoming(), friendshipId) &&
+                       request.auth.uid in incoming().users;
+      allow update: if isAuthenticated() &&
+                       isValidId(friendshipId) &&
+                       isValidFriendship(incoming(), friendshipId) &&
+                       incoming().id == existing().id &&
+                       (existing().users is list && request.auth.uid in existing().users) &&
+                       request.auth.uid in incoming().users;
+      allow delete: if isAuthenticated() &&
+                       isValidId(friendshipId) &&
+                       (existing().users is list && request.auth.uid in existing().users);
     }
   }
 }

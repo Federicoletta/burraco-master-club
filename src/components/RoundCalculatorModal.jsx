@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Calculator, Zap, Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import { HONOR_POINTS, calculateTeamRoundScore, calculateCardsPoints } from '../constants/burraco';
 import { sound } from '../utils/soundEffects';
+import { useModalEscape } from '../hooks/useModalEscape';
 import TrioLoneSelector from './round/TrioLoneSelector';
 import QuickEntryPad from './round/QuickEntryPad';
 import BurracoToggles from './round/BurracoToggles';
 import CardsPointsInput from './round/CardsPointsInput';
 import RoundReceiptSummary from './round/RoundReceiptSummary';
+
+const getIsoTimestamp = () => new Date().toISOString();
 
 const DEFAULT_ENTITY = {
   chiusura: false,
@@ -23,8 +26,71 @@ const DEFAULT_ENTITY = {
   manualScore: '',
 };
 
-export default function RoundCalculatorModal({
-  isOpen,
+function getInitialRoundState(activeGame, roundToEdit, roundNumber) {
+  const isTrio = activeGame?.mode === 'trio';
+  const expectedLone = ((roundNumber - 1) % 3 === 0)
+    ? 'team1'
+    : ((roundNumber - 1) % 3 === 1)
+    ? 'team2'
+    : 'team3';
+
+  if (!roundToEdit) {
+    return {
+      entryMode: 'guided',
+      activeTab: isTrio ? 'lone' : 'team1',
+      lonePlayer: expectedLone,
+      team1Data: { ...DEFAULT_ENTITY },
+      team2Data: { ...DEFAULT_ENTITY },
+      team3Data: { ...DEFAULT_ENTITY },
+      loneData: { ...DEFAULT_ENTITY },
+      pairData: { ...DEFAULT_ENTITY },
+    };
+  }
+
+  const entryMode = roundToEdit.entryMode === 'quick' ? 'quick' : 'guided';
+  const lonePlayer = roundToEdit.lonePlayer || expectedLone;
+  let team1Data = { ...DEFAULT_ENTITY };
+  let team2Data = { ...DEFAULT_ENTITY };
+  let team3Data = { ...DEFAULT_ENTITY };
+  let loneData = { ...DEFAULT_ENTITY };
+  let pairData = { ...DEFAULT_ENTITY };
+
+  if (entryMode === 'quick') {
+    team1Data = { ...DEFAULT_ENTITY, manualScore: String(roundToEdit.team1Score ?? '') };
+    team2Data = { ...DEFAULT_ENTITY, manualScore: String(roundToEdit.team2Score ?? '') };
+    team3Data = { ...DEFAULT_ENTITY, manualScore: String(roundToEdit.team3Score ?? '') };
+  } else if (isTrio) {
+    if (roundToEdit.loneDetails && roundToEdit.pairDetails) {
+      loneData = { ...DEFAULT_ENTITY, ...roundToEdit.loneDetails };
+      pairData = { ...DEFAULT_ENTITY, ...roundToEdit.pairDetails };
+    } else {
+      const loneDet = lonePlayer === 'team1'
+        ? roundToEdit.team1Details
+        : lonePlayer === 'team2'
+        ? roundToEdit.team2Details
+        : roundToEdit.team3Details;
+      const pairDet = lonePlayer === 'team1' ? roundToEdit.team2Details : roundToEdit.team1Details;
+      if (loneDet) loneData = { ...DEFAULT_ENTITY, ...loneDet };
+      if (pairDet) pairData = { ...DEFAULT_ENTITY, ...pairDet };
+    }
+  } else {
+    if (roundToEdit.team1Details) team1Data = { ...DEFAULT_ENTITY, ...roundToEdit.team1Details };
+    if (roundToEdit.team2Details) team2Data = { ...DEFAULT_ENTITY, ...roundToEdit.team2Details };
+  }
+
+  return {
+    entryMode,
+    activeTab: isTrio ? 'lone' : 'team1',
+    lonePlayer,
+    team1Data,
+    team2Data,
+    team3Data,
+    loneData,
+    pairData,
+  };
+}
+
+function RoundCalculatorModalContent({
   onClose,
   onSaveRound,
   activeGame,
@@ -32,70 +98,24 @@ export default function RoundCalculatorModal({
   roundNumber = 1
 }) {
   const isTrio = activeGame?.mode === 'trio';
-  const [entryMode, setEntryMode] = useState('guided'); // 'guided' | 'quick'
-  const [activeTab, setActiveTab] = useState(isTrio ? 'lone' : 'team1'); // 'team1' | 'team2' | 'lone' | 'pair'
-  const [lonePlayer, setLonePlayer] = useState('team1'); // 'team1' | 'team2' | 'team3'
+  const [initialState] = useState(() => getInitialRoundState(activeGame, roundToEdit, roundNumber));
+  const [entryMode, setEntryMode] = useState(initialState.entryMode);
+  const [activeTab, setActiveTab] = useState(initialState.activeTab);
+  const [lonePlayer, setLonePlayer] = useState(initialState.lonePlayer);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Stato Squadra 1
-  const [team1Data, setTeam1Data] = useState({ ...DEFAULT_ENTITY });
+  const [team1Data, setTeam1Data] = useState(initialState.team1Data);
 
   // Stato Squadra 2
-  const [team2Data, setTeam2Data] = useState({ ...DEFAULT_ENTITY });
+  const [team2Data, setTeam2Data] = useState(initialState.team2Data);
 
   // Stato Giocatore 3 (Quick mode a 3)
-  const [team3Data, setTeam3Data] = useState({ ...DEFAULT_ENTITY });
+  const [team3Data, setTeam3Data] = useState(initialState.team3Data);
 
   // Stato Burraco a 3 (FIBUR Guidato)
-  const [loneData, setLoneData] = useState({ ...DEFAULT_ENTITY });
-  const [pairData, setPairData] = useState({ ...DEFAULT_ENTITY });
-
-  useEffect(() => {
-    if (roundToEdit) {
-      if (roundToEdit.lonePlayer) {
-        setLonePlayer(roundToEdit.lonePlayer);
-      }
-      if (roundToEdit.entryMode === 'quick') {
-        setEntryMode('quick');
-        setTeam1Data(prev => ({ ...prev, manualScore: String(roundToEdit.team1Score ?? '') }));
-        setTeam2Data(prev => ({ ...prev, manualScore: String(roundToEdit.team2Score ?? '') }));
-        setTeam3Data(prev => ({ ...prev, manualScore: String(roundToEdit.team3Score ?? '') }));
-      } else {
-        setEntryMode('guided');
-        if (isTrio) {
-          if (roundToEdit.loneDetails && roundToEdit.pairDetails) {
-            setLoneData({ ...DEFAULT_ENTITY, ...roundToEdit.loneDetails });
-            setPairData({ ...DEFAULT_ENTITY, ...roundToEdit.pairDetails });
-          } else {
-            const lp = roundToEdit.lonePlayer || 'team1';
-            const loneDet = lp === 'team1' ? roundToEdit.team1Details : lp === 'team2' ? roundToEdit.team2Details : roundToEdit.team3Details;
-            const pairDet = lp === 'team1' ? roundToEdit.team2Details : roundToEdit.team1Details;
-            if (loneDet) setLoneData({ ...DEFAULT_ENTITY, ...loneDet });
-            if (pairDet) setPairData({ ...DEFAULT_ENTITY, ...pairDet });
-          }
-        } else {
-          if (roundToEdit.team1Details) setTeam1Data({ ...DEFAULT_ENTITY, ...roundToEdit.team1Details });
-          if (roundToEdit.team2Details) setTeam2Data({ ...DEFAULT_ENTITY, ...roundToEdit.team2Details });
-        }
-      }
-    } else {
-      setTeam1Data({ ...DEFAULT_ENTITY });
-      setTeam2Data({ ...DEFAULT_ENTITY });
-      setTeam3Data({ ...DEFAULT_ENTITY });
-      setLoneData({ ...DEFAULT_ENTITY });
-      setPairData({ ...DEFAULT_ENTITY });
-      const expectedLone = ((roundNumber - 1) % 3 === 0) 
-        ? 'team1' 
-        : ((roundNumber - 1) % 3 === 1) 
-        ? 'team2' 
-        : 'team3';
-      setLonePlayer(expectedLone);
-      setActiveTab(isTrio ? 'lone' : 'team1');
-    }
-    setIsSubmitting(false);
-  }, [roundToEdit, isOpen, isTrio, roundNumber]);
-
-  if (!isOpen || !activeGame) return null;
+  const [loneData, setLoneData] = useState(initialState.loneData);
+  const [pairData, setPairData] = useState(initialState.pairData);
 
   // Calcolo punteggi netti in tempo reale
   const team1ScoreNormal = entryMode === 'quick' 
@@ -215,7 +235,7 @@ export default function RoundCalculatorModal({
           team1Details: entryMode === 'guided' ? team1Data : { manualScore: team1Score },
           team2Details: entryMode === 'guided' ? team2Data : { manualScore: team2Score },
         }),
-        timestamp: new Date().toISOString(),
+        timestamp: getIsoTimestamp(),
       };
 
       if (typeof onSaveRound === 'function') {
@@ -279,14 +299,14 @@ export default function RoundCalculatorModal({
     };
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 min-w-0">
         {/* Intestazione Squadra se Side-by-Side su tablet */}
-        <div className="hidden lg:flex items-center justify-between pb-2 border-b border-emerald-700/50">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-            <h3 className="font-black text-white text-sm sm:text-base">{teamName}</h3>
+        <div className="hidden lg:flex items-center justify-between gap-2 pb-2 border-b border-emerald-700/50">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
+            <h3 className="font-black text-white text-sm sm:text-base truncate">{teamName}</h3>
           </div>
-          <span className="font-black text-amber-300 text-sm px-2.5 py-0.5 rounded-lg bg-emerald-900 border border-amber-400/40">
+          <span className="font-black text-amber-300 text-sm px-2.5 py-0.5 rounded-lg bg-emerald-900 border border-amber-400/40 shrink-0 whitespace-nowrap">
             {teamScore >= 0 ? `+${teamScore}` : teamScore} pt
           </span>
         </div>
@@ -301,7 +321,7 @@ export default function RoundCalculatorModal({
         />
 
         {/* Inserimento Carte a Terra (+) e Carte in Mano (-) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2.5">
           <CardsPointsInput
             isHand={false}
             directValue={data.cardsOnTableDirect}
@@ -350,8 +370,17 @@ export default function RoundCalculatorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-4xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-auto shadow-2xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[94vh]">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Calcolatore punteggio smazzata"
+    >
+      <div
+        className="relative w-full max-w-5xl felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 my-auto shadow-2xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[94vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* HEADER MODAL */}
         <div className="flex items-center justify-between pb-3 border-b border-emerald-700/50 shrink-0">
@@ -450,11 +479,11 @@ export default function RoundCalculatorModal({
                           : 'bg-emerald-950/70 border-emerald-800 text-emerald-300/80 hover:bg-emerald-900/50'
                       }`}
                     >
-                      <div className="truncate">
+                      <div className="min-w-0 flex-1">
                         <span className="text-[10px] uppercase font-bold text-amber-300 block">Solitario</span>
                         <span className="text-xs font-black text-white truncate block">{lonePlayerName}</span>
                       </div>
-                      <span className="text-xs font-black text-amber-300 ml-2">
+                      <span className="text-xs font-black text-amber-300 ml-2 shrink-0 whitespace-nowrap">
                         {loneScore >= 0 ? `+${loneScore}` : loneScore} pt
                       </span>
                     </button>
@@ -468,11 +497,11 @@ export default function RoundCalculatorModal({
                           : 'bg-emerald-950/70 border-emerald-800 text-emerald-300/80 hover:bg-emerald-900/50'
                       }`}
                     >
-                      <div className="truncate">
+                      <div className="min-w-0 flex-1">
                         <span className="text-[10px] uppercase font-bold text-emerald-300 block">Coppia</span>
                         <span className="text-xs font-black text-white truncate block">{pairNames}</span>
                       </div>
-                      <span className="text-xs font-black text-emerald-300 ml-2">
+                      <span className="text-xs font-black text-emerald-300 ml-2 shrink-0 whitespace-nowrap">
                         {pairSplitScore >= 0 ? `+${pairSplitScore}` : pairSplitScore} pt cad.
                       </span>
                     </button>
@@ -488,11 +517,11 @@ export default function RoundCalculatorModal({
                           : 'bg-emerald-950/70 border-emerald-800 text-emerald-300/80 hover:bg-emerald-900/50'
                       }`}
                     >
-                      <div className="truncate">
+                      <div className="min-w-0 flex-1">
                         <span className="text-[10px] uppercase font-bold text-amber-300 block">Squadra 1</span>
                         <span className="text-xs font-black text-white truncate block">{activeGame.team1.name}</span>
                       </div>
-                      <span className="text-xs font-black text-amber-300 ml-2">
+                      <span className="text-xs font-black text-amber-300 ml-2 shrink-0 whitespace-nowrap">
                         {team1Score >= 0 ? `+${team1Score}` : team1Score} pt
                       </span>
                     </button>
@@ -506,11 +535,11 @@ export default function RoundCalculatorModal({
                           : 'bg-emerald-950/70 border-emerald-800 text-emerald-300/80 hover:bg-emerald-900/50'
                       }`}
                     >
-                      <div className="truncate">
+                      <div className="min-w-0 flex-1">
                         <span className="text-[10px] uppercase font-bold text-emerald-300 block">Squadra 2</span>
                         <span className="text-xs font-black text-white truncate block">{activeGame.team2.name}</span>
                       </div>
-                      <span className="text-xs font-black text-emerald-300 ml-2">
+                      <span className="text-xs font-black text-emerald-300 ml-2 shrink-0 whitespace-nowrap">
                         {team2Score >= 0 ? `+${team2Score}` : team2Score} pt
                       </span>
                     </button>
@@ -594,23 +623,23 @@ export default function RoundCalculatorModal({
 
         {/* FOOTER BAR: RIEPILOGO NETTO & TASTO SALVATAGGIO DORATO */}
         <div className="mt-3.5 pt-3 border-t border-emerald-700/50 shrink-0">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             
             {/* Riepilogo sintetico dei due totali */}
-            <div className="flex items-center gap-2.5 text-xs text-white w-full sm:w-auto justify-between sm:justify-start">
-              <span className="text-[11px] text-emerald-300/80 font-medium">Totale Mano:</span>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-600/50 font-black text-amber-300 text-xs">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-white w-full sm:w-auto min-w-0">
+              <span className="text-[11px] text-emerald-300/80 font-medium shrink-0">Totale Mano:</span>
+              <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                <span className="px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-600/50 font-black text-amber-300 text-xs max-w-[180px] sm:max-w-[210px] truncate">
                   {activeGame.team1.name}: {team1Score >= 0 ? `+${team1Score}` : team1Score} pt
                 </span>
-                <span className="text-emerald-500 font-black">•</span>
-                <span className="px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-600/50 font-black text-emerald-200 text-xs">
+                <span className="text-emerald-500 font-black shrink-0">•</span>
+                <span className="px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-600/50 font-black text-emerald-200 text-xs max-w-[180px] sm:max-w-[210px] truncate">
                   {activeGame.team2.name}: {team2Score >= 0 ? `+${team2Score}` : team2Score} pt
                 </span>
                 {isTrio && (
                   <>
-                    <span className="text-emerald-500 font-black">•</span>
-                    <span className="px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-600/50 font-black text-rose-300 text-xs">
+                    <span className="text-emerald-500 font-black shrink-0">•</span>
+                    <span className="px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-600/50 font-black text-rose-300 text-xs max-w-[180px] sm:max-w-[210px] truncate">
                       {activeGame.team3?.name || 'P3'}: {team3Score >= 0 ? `+${team3Score}` : team3Score} pt
                     </span>
                   </>
@@ -619,11 +648,11 @@ export default function RoundCalculatorModal({
             </div>
 
             {/* Pulsanti Annulla e Conferma */}
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
               <button
                 type="button"
                 onClick={onClose}
-                className="py-2.5 px-4 rounded-xl bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 text-xs font-semibold cursor-pointer transition-colors"
+                className="py-2.5 px-4 rounded-xl bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 text-xs font-semibold cursor-pointer transition-colors shrink-0 whitespace-nowrap"
               >
                 Annulla
               </button>
@@ -632,11 +661,11 @@ export default function RoundCalculatorModal({
                 type="button"
                 onClick={handleSave}
                 disabled={isSubmitting}
-                className={`py-3 px-6 rounded-2xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                className={`py-3 px-5 sm:px-6 rounded-2xl gold-gradient text-emerald-950 font-black text-xs sm:text-sm shadow-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 whitespace-nowrap ${
                   isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
                 }`}
               >
-                <Check className="w-4 h-4 stroke-[3]" />
+                <Check className="w-4 h-4 stroke-[3] shrink-0" />
                 <span>{isSubmitting ? 'Salvataggio...' : roundToEdit ? 'Aggiorna Smazzata' : 'Salva Smazzata 🃏'}</span>
               </button>
             </div>
@@ -647,4 +676,16 @@ export default function RoundCalculatorModal({
       </div>
     </div>
   );
+}
+
+export default function RoundCalculatorModal(props) {
+  useModalEscape(props.isOpen, props.onClose);
+
+  if (!props.isOpen || !props.activeGame) return null;
+
+  const modalKey = props.roundToEdit
+    ? `edit_${props.roundToEdit.roundNumber}_${props.activeGame.id}`
+    : `new_${props.roundNumber}_${props.activeGame.id}`;
+
+  return <RoundCalculatorModalContent key={modalKey} {...props} />;
 }

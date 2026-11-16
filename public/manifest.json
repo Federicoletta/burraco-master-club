@@ -1,12 +1,18 @@
 {
-  "name": "Burraco Score Tracker",
-  "short_name": "BurracoScore",
-  "description": "Segnapunti e calcolatore punti per Burraco",
+  "name": "Burraco Master Club",
+  "short_name": "Burraco Club",
+  "description": "Segnapunti digitale e tornei FIBUR per Burraco a coppie, singolo e a tre",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b291e",
-  "theme_color": "#0b291e",
+  "background_color": "#08291c",
+  "theme_color": "#08291c",
   "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♠️</text></svg>",
       "sizes": "192x192 512x512",

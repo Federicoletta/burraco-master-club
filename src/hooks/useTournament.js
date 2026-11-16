@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getActiveTournament,
   saveActiveTournament,
@@ -9,30 +9,15 @@ import {
   subscribeToCloudTournament
 } from '../services/firebase';
 
-export function useTournament() {
+export function useTournament(currentUser = null) {
   const [activeTournament, setActiveTournament] = useState(() => getActiveTournament());
   const [isTournamentOpen, setIsTournamentOpen] = useState(false);
-  
-  // Flag per impedire il ciclo ping-pong di riscrittura quando l'aggiornamento arriva dal listener remoto
-  const isRemoteSyncRef = useRef(false);
 
-  // 1. Sincronizzazione torneo locale col cloud (solo su modifiche locali effettive)
-  useEffect(() => {
-    if (activeTournament) {
-      if (isRemoteSyncRef.current) {
-        isRemoteSyncRef.current = false;
-        return;
-      }
-      syncTournamentToCloud(activeTournament);
-    }
-  }, [activeTournament]);
-
-  // 2. Ascolto real-time del torneo attivo da Firestore (multi-device)
+  // Ascolto real-time del torneo attivo da Firestore (multi-device)
   useEffect(() => {
     if (!activeTournament?.id) return;
     const unsubTournament = subscribeToCloudTournament(activeTournament.id, (cloudTourn) => {
       if (cloudTourn && cloudTourn.id === activeTournament.id) {
-        isRemoteSyncRef.current = true;
         setActiveTournament(cloudTourn);
         saveActiveTournament(cloudTourn);
       }
@@ -44,14 +29,14 @@ export function useTournament() {
   const handleStartTournament = (newTournament) => {
     setActiveTournament(newTournament);
     saveActiveTournament(newTournament);
-    syncTournamentToCloud(newTournament);
+    syncTournamentToCloud(newTournament, currentUser);
   };
 
   // Aggiornamento torneo
   const handleUpdateTournament = (updatedTournament) => {
     setActiveTournament(updatedTournament);
     saveActiveTournament(updatedTournament);
-    syncTournamentToCloud(updatedTournament);
+    syncTournamentToCloud(updatedTournament, currentUser);
   };
 
   // Conclusione e archiviazione torneo
@@ -63,7 +48,7 @@ export function useTournament() {
       status: 'completed',
       completedAt: new Date().toISOString(),
     };
-    syncTournamentToCloud(finished);
+    syncTournamentToCloud(finished, currentUser);
     setActiveTournament(null);
     saveActiveTournament(null);
   };

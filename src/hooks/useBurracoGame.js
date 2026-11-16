@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useAlert } from '../context/ConfirmContext';
+import { useAlert } from '../context/confirmContextStore';
 import {
   getActiveGame,
   saveActiveGame,
@@ -42,9 +42,22 @@ export function useBurracoGame({
   onCelebrate = () => {},
 }) {
   const customAlert = useAlert();
-  const [activeGame, setActiveGame] = useState(null);
-  const [gamesHistory, setGamesHistory] = useState([]);
-  const [isCloudJoined, setIsCloudJoined] = useState(false);
+  const [activeGame, setActiveGame] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('game')) return null;
+    }
+    const current = getActiveGame();
+    const hasRealRounds = current && Array.isArray(current.rounds) && current.rounds.length > 0;
+    const isClosed = current && (Boolean(current.tableClosed) || Boolean(current.isFinished));
+    if (hasRealRounds && !isClosed) return current;
+    saveActiveGame(null);
+    return null;
+  });
+  const [gamesHistory, setGamesHistory] = useState(() => getGamesHistory());
+  const [isCloudJoined, setIsCloudJoined] = useState(
+    () => typeof window !== 'undefined' && Boolean(new URLSearchParams(window.location.search).get('game'))
+  );
   const [tablePlayers, setTablePlayers] = useState([]);
   const [newGameInitialSetup, setNewGameInitialSetup] = useState(null);
   const [syncStatus, setSyncStatus] = useState(() => (typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced'));
@@ -53,6 +66,7 @@ export function useBurracoGame({
 
   const flushOutboxQueue = useCallback(async () => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    await Promise.resolve();
     const queue = getOutboxQueue();
     if (!queue || queue.length === 0) return;
     setSyncStatus('syncing');
@@ -82,11 +96,15 @@ export function useBurracoGame({
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    let flushTimer = null;
     if (typeof navigator !== 'undefined' && navigator.onLine) {
-      flushOutboxQueue();
+      flushTimer = setTimeout(() => {
+        flushOutboxQueue();
+      }, 0);
     }
 
     return () => {
+      if (flushTimer) clearTimeout(flushTimer);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -95,7 +113,13 @@ export function useBurracoGame({
   const syncWithStatus = useCallback(async (gameToSync, force = false) => {
     if (!gameToSync) return false;
     setSyncStatus('syncing');
-    const ok = await syncGameToCloud(gameToSync, currentUser, force);
+    let ok = false;
+    try {
+      ok = await syncGameToCloud(gameToSync, currentUser, force);
+    } catch (err) {
+      console.warn('[syncWithStatus] Errore sincronizzazione cloud:', err?.message || err);
+      ok = false;
+    }
     if (!ok) {
       addToOutboxQueue(gameToSync);
     } else {
@@ -119,10 +143,14 @@ export function useBurracoGame({
     return Array.from(namesSet).filter(Boolean);
   }, [gamesHistory, activeGame]);
 
-  // 1. Caricamento iniziale & Controllo Link Condiviso (?game=... o #backup=...)
+  // 1. Controllo Paracadute d'Emergenza Stateless Game (#backup=...)
   useEffect(() => {
-    // 0. Controllo Paracadute d'Emergenza Stateless Game (#backup=...)
-    if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('backup=')) {
+    if (typeof window === 'undefined' || !window.location.hash || !window.location.hash.includes('backup=')) {
+      return;
+    }
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled) return;
       try {
         const restoredGame = decodeGameFromUrlToken(window.location.hash);
         if (restoredGame && restoredGame.id) {
@@ -139,41 +167,26 @@ export function useBurracoGame({
               variant: 'success'
             });
           }
-          return;
         }
       } catch (backupErr) {
         console.warn('Errore ripristino backup URL:', backupErr);
       }
-    }
-
-    const storedHistory = getGamesHistory();
-    setGamesHistory(storedHistory);
-
-    const params = new URLSearchParams(window.location.search);
-    const urlGameId = params.get('game');
-
-    if (urlGameId) {
-      setIsCloudJoined(true);
-    } else {
-      const current = getActiveGame();
-      // Una partita è considerata attiva solo se ha mani effettivamente giocate (> 0) e non è conclusa né chiusa
-      const hasRealRounds = current && Array.isArray(current.rounds) && current.rounds.length > 0;
-      const isClosed = current && (Boolean(current.tableClosed) || Boolean(current.isFinished));
-
-      if (hasRealRounds && !isClosed) {
-        setActiveGame(current);
-      } else {
-        // Nessuna partita in corso attiva: apri direttamente la HomeLobby (Atrio Amici)
-        saveActiveGame(null);
-        setActiveGame(null);
-      }
-    }
-  }, []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [customAlert, syncWithStatus]);
 
   // 2. Isolamento dati storico partite per account utente
   useEffect(() => {
     const userKey = currentUser ? currentUser.uid : 'guest';
-    setGamesHistory(getGamesHistory(userKey));
+    let cancelled = false;
+
+    Promise.resolve().then(() => {
+      if (!cancelled) {
+        setGamesHistory(getGamesHistory(userKey));
+      }
+    });
 
     const unsubHistory = subscribeToCloudGamesHistory(currentUser, (cloudHistory) => {
       if (Array.isArray(cloudHistory)) {
@@ -188,7 +201,10 @@ export function useBurracoGame({
       }
     });
 
-    return () => unsubHistory();
+    return () => {
+      cancelled = true;
+      unsubHistory();
+    };
   }, [currentUser]);
 
   // 3. Ascolto real-time della partita attiva da Firestore (Multi-device live sync)
@@ -198,10 +214,6 @@ export function useBurracoGame({
     const targetId = urlGameId || activeGame?.id;
 
     if (!targetId) return;
-
-    if (urlGameId) {
-      setIsCloudJoined(true);
-    }
 
     if (currentUser) {
       joinCloudGame(targetId, currentUser);
@@ -317,7 +329,7 @@ export function useBurracoGame({
     );
 
     return () => unsubscribe();
-  }, [activeGame?.id, currentUser, customAlert, syncWithStatus]);
+  }, [activeGame?.id, currentUser, customAlert]);
 
   // Avvio nuova partita
   const handleStartGame = (newGame) => {
@@ -467,12 +479,13 @@ export function useBurracoGame({
       console.warn('Avviso registrazione blocco ledger round:', chainErr);
     }
 
-    const isFinished = Boolean(winner) || activeGame.isFinished || false;
+    const isFinished = Boolean(winner);
     const updatedGame = {
       ...activeGame,
       rounds: updatedRounds,
-      winner: winner || (activeGame.isFinished ? activeGame.winner : null),
+      winner: winner || null,
       isFinished,
+      completedAt: isFinished ? (activeGame.completedAt || new Date().toISOString()) : null,
       ledgerChain: chain || activeGame.ledgerChain || null,
       ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
     };
@@ -986,7 +999,9 @@ export function useBurracoGame({
     const userKey = currentUser ? currentUser.uid : 'guest';
     const updated = deleteGameFromHistory(gameId, userKey);
     setGamesHistory(updated);
-    deleteGameFromCloud(gameId);
+    deleteGameFromCloud(gameId).catch((err) => {
+      console.warn('Errore eliminazione partita cloud:', err?.message || err);
+    });
   };
 
   // Condivisione WhatsApp / Appunti
@@ -1193,6 +1208,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     recentPlayers,
     isCloudJoined,
     setIsCloudJoined,
+    syncStatus,
     tablePlayers,
     setTablePlayers,
     newGameInitialSetup,

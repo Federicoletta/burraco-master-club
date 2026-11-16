@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom';
 import { X, Volume2, VolumeX, Bell, Play, Pause, Music, Disc } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { bgMusic, MUSIC_TRACKS } from '../utils/backgroundMusic';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 export default function AudioSettingsModal({
   isOpen,
   onClose,
-  soundOn,
+  soundOn = sound.enabled,
   onToggleSound,
-  volume, // 0 - 100 per effetti sonori
+  volume = Math.round(sound.volume * 100), // 0 - 100 per effetti sonori
   onChangeVolume
 }) {
   const [musicState, setMusicState] = useState({
@@ -18,6 +19,8 @@ export default function AudioSettingsModal({
     trackId: bgMusic.trackId,
     enabled: bgMusic.enabled
   });
+
+  useModalEscape(isOpen, onClose);
 
   useEffect(() => {
     return bgMusic.subscribe((state) => {
@@ -44,9 +47,25 @@ export default function AudioSettingsModal({
     { label: '100%', value: 100 },
   ];
 
+  const applyVolumeChange = (val) => {
+    if (typeof onChangeVolume === 'function') {
+      onChangeVolume(val);
+    } else {
+      sound.setVolume(val / 100);
+    }
+  };
+
+  const handleToggleSfx = () => {
+    if (typeof onToggleSound === 'function') {
+      onToggleSound();
+    } else {
+      sound.setSoundEnabled(!sound.enabled);
+    }
+  };
+
   const handleSfxSlider = (e) => {
     const val = Number(e.target.value);
-    onChangeVolume(val);
+    applyVolumeChange(val);
   };
 
   const handleMusicSlider = (e) => {
@@ -55,7 +74,7 @@ export default function AudioSettingsModal({
   };
 
   const handleSelectSfxPreset = (val) => {
-    onChangeVolume(val);
+    applyVolumeChange(val);
     if (val > 0) {
       sound.playTap();
     }
@@ -83,6 +102,9 @@ export default function AudioSettingsModal({
     <div 
       className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Audio e musica di sottofondo"
     >
       <div 
         className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/40 p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto max-h-[92vh] flex flex-col"
@@ -264,7 +286,7 @@ export default function AudioSettingsModal({
               {/* Toggle ON / OFF Effetti */}
               <button
                 type="button"
-                onClick={onToggleSound}
+                onClick={handleToggleSfx}
                 className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                   soundOn && volume > 0
                     ? 'bg-amber-400 text-emerald-950 shadow-sm'

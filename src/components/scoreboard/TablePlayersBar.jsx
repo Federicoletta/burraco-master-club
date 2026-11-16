@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { UserPlus, Check, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
 import { sound } from '../../utils/soundEffects';
-import DeveloperBadge, { isDeveloperAccount } from '../DeveloperBadge';
+import DeveloperBadge from '../DeveloperBadge';
+import { isDeveloperAccount } from '../../utils/developer';
 
 export default function TablePlayersBar({
   activeGame,
@@ -68,7 +69,7 @@ export default function TablePlayersBar({
   }, [tablePlayers, currentUser, activeGame]);
 
   const handleRequestFriendship = async (targetPlayer) => {
-    if (!targetPlayer?.email) return;
+    if (!targetPlayer?.email && !targetPlayer?.uid) return;
     if (!currentUser) {
       if (onOpenLogin) onOpenLogin();
       return;
@@ -77,7 +78,7 @@ export default function TablePlayersBar({
     setSendingFriendUids(prev => ({ ...prev, [key]: true }));
     try {
       if (onSendFriendRequest) {
-        await onSendFriendRequest(targetPlayer.email);
+        await onSendFriendRequest(targetPlayer);
       }
       setSentFriendUids(prev => ({ ...prev, [key]: true }));
       sound.playTrophy();
@@ -291,10 +292,10 @@ export default function TablePlayersBar({
                   ) : (
                     <button
                       type="button"
-                      disabled={isSending || !player.email}
+                      disabled={isSending || (!player.email && !player.uid)}
                       onClick={() => handleRequestFriendship(player)}
                       className="px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-black text-[9px] sm:text-[11px] shadow-sm flex items-center gap-1 cursor-pointer active:scale-95 transition-all disabled:opacity-50"
-                      title={player.email ? `Chiedi l'amicizia a ${player.displayName || player.email}` : 'Email non disponibile per questo partecipante'}
+                      title={(player.email || player.uid) ? `Chiedi l'amicizia a ${player.displayName || player.email}` : 'Giocatore ospite non registrato'}
                     >
                       <UserPlus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-950" />
                       <span>{isSending ? '...' : '+ Amico'}</span>

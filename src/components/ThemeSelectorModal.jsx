@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Check, Sparkles, Palette } from 'lucide-react';
 import { THEMES, getStoredTheme, applyTheme } from '../utils/theme';
 import { sound } from '../utils/soundEffects';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 export default function ThemeSelectorModal({
   isOpen,
@@ -11,9 +12,12 @@ export default function ThemeSelectorModal({
   onThemeChange,
 }) {
   const [selectedTheme, setSelectedTheme] = useState(() => currentTheme || getStoredTheme());
+  useModalEscape(isOpen, onClose);
 
   if (!isOpen) return null;
   if (typeof document === 'undefined') return null;
+
+  const activeTheme = currentTheme || selectedTheme;
 
   const handleSelect = (themeId) => {
     setSelectedTheme(themeId);
@@ -25,7 +29,12 @@ export default function ThemeSelectorModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Panno del tavolo"
+    >
       
       {/* Backdrop click to close */}
       <div className="fixed inset-0" onClick={onClose} />
@@ -62,7 +71,7 @@ export default function ThemeSelectorModal({
         {/* Griglia Selezione Temi */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {THEMES.map((theme) => {
-            const isActive = selectedTheme === theme.id;
+            const isActive = activeTheme === theme.id;
             return (
               <button
                 key={theme.id}

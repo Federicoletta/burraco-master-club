@@ -18,7 +18,17 @@ import {
   saveActiveTournament,
   getTournamentsHistory,
 } from '../src/utils/tournament';
-import { sanitizeForFirestore } from '../src/services/firebase';
+import {
+  sanitizeForFirestore,
+  isFirebaseConfigured,
+  loginWithGoogle,
+  computeGameShortPin,
+  OperationType,
+  isPermissionOrQuotaError,
+  isIndexMissingError,
+  handleFirestoreError,
+  loadCloudTournamentsHistory,
+} from '../src/services/firebase';
 
 // Mock localStorage per l'ambiente di test Node
 const localStorageMock = (() => {
@@ -97,6 +107,25 @@ describe('Storage & Database Layer - Player Management', () => {
     const updatedHistory = getGamesHistory();
     expect(updatedHistory[0].team1.players).toEqual(['Alex', 'Elena']);
     expect(updatedHistory[0].team1.name).toBe('Alex & Elena');
+  });
+
+  it('safely renames players containing regex metacharacters or Italian accented letters without partial matches', () => {
+    setStoredPlayers(['Nicolò', 'M+']);
+    saveActiveGame({
+      id: 'game_special_chars',
+      team1: { name: 'Nicolò & Nicolò2 & M+', players: ['Nicolò', 'M+'] },
+      team2: { name: 'Andrè & M+Pro', players: ['Andrè', 'M+Pro'] },
+      rounds: [],
+    });
+
+    renamePlayer('Nicolò', 'Nico');
+    renamePlayer('M+', 'Max');
+
+    const updatedActive = getActiveGame();
+    expect(updatedActive.team1.players).toEqual(['Nico', 'Max']);
+    expect(updatedActive.team1.name).toBe('Nico & Nicolò2 & Max');
+    expect(updatedActive.team2.players).toEqual(['Andrè', 'M+Pro']);
+    expect(updatedActive.team2.name).toBe('Andrè & M+Pro');
   });
 });
 
@@ -286,5 +315,50 @@ describe('Firestore Sanitization - sanitizeForFirestore', () => {
     expect(sanitized.rounds).toEqual([]);
     expect(sanitized.team1.name).toBe('I susi');
     expect(sanitized.team2.name).toBe('I bufu');
+  });
+});
+
+describe('Firebase Offline / Unconfigured Guards', () => {
+  it('exposes configuration flag cleanly and rejects loginWithGoogle with informative Italian error when unconfigured', async () => {
+    expect(typeof isFirebaseConfigured).toBe('boolean');
+    if (!isFirebaseConfigured) {
+      await expect(loginWithGoogle()).rejects.toThrow(/configurazione Firebase mancante/i);
+    }
+  });
+
+  it('computes short 6-char table PIN consistently from numeric or alphanumeric game IDs', () => {
+    expect(computeGameShortPin('game_1771545600123')).toBe('600123');
+    expect(computeGameShortPin('tourn_abc_987654321')).toBe('654321');
+    expect(computeGameShortPin('ab12cd')).toBe('AB12CD');
+    expect(computeGameShortPin('')).toBe('');
+  });
+
+  it('classifies permission, quota, and missing-index Firestore errors accurately', () => {
+    expect(isPermissionOrQuotaError({ code: 'permission-denied', message: 'Missing or insufficient permissions.' })).toBe(true);
+    expect(isPermissionOrQuotaError({ code: 'resource-exhausted', message: 'Quota exceeded.' })).toBe(true);
+    expect(isPermissionOrQuotaError({ code: 'unavailable', message: 'offline' })).toBe(false);
+
+    expect(isIndexMissingError({ code: 'failed-precondition', message: 'The query requires an index.' })).toBe(true);
+    expect(isIndexMissingError({ code: 'permission-denied', message: 'denied' })).toBe(false);
+  });
+
+  it('throws structured FirestoreErrorInfo JSON from handleFirestoreError', () => {
+    let caught = null;
+    try {
+      handleFirestoreError(new Error('Missing or insufficient permissions.'), OperationType.WRITE, 'burraco_games/g1');
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    const parsed = JSON.parse(caught.message);
+    expect(parsed.operationType).toBe('write');
+    expect(parsed.path).toBe('burraco_games/g1');
+    expect(parsed.error).toContain('Missing or insufficient permissions');
+    expect(parsed.authInfo).toBeDefined();
+  });
+
+  it('returns empty array from loadCloudTournamentsHistory when user is unauthenticated', async () => {
+    await expect(loadCloudTournamentsHistory(null)).resolves.toEqual([]);
+    await expect(loadCloudTournamentsHistory({})).resolves.toEqual([]);
   });
 });

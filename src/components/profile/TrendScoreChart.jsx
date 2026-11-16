@@ -5,7 +5,7 @@ import { TrendingUp } from 'lucide-react';
  * TrendScoreChart - Grafico vettoriale responsivo per l'andamento cronologico dei punteggi
  * Disegna una curva cubica Bezier morbida con area sfumata e punti interattivi.
  */
-export default function TrendScoreChart({ scores = [], playerName = 'Tu' }) {
+export default function TrendScoreChart({ scores = [] }) {
   const [activePoint, setActivePoint] = useState(null);
 
   // Consideriamo le ultime 15 mani/partite per massima leggibilità

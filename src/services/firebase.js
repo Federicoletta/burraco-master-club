@@ -1,18 +1,21 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { 
+import {
   getFirestore,
   initializeFirestore,
   memoryLocalCache,
-  doc, 
-  setDoc, 
-  getDoc, 
-  onSnapshot, 
-  collection, 
-  getDocs, 
+  doc,
+  getDocFromServer,
+  setDoc,
+  getDoc,
+  onSnapshot,
+  collection,
+  getDocs,
   deleteDoc,
+  runTransaction,
   serverTimestamp,
   query,
   where,
+  orderBy,
   limit
 } from 'firebase/firestore';
 import {
@@ -23,21 +26,29 @@ import {
   onAuthStateChanged,
   getAdditionalUserInfo
 } from 'firebase/auth';
+import appletFirebaseConfig from '../../firebase-applet-config.json';
 
-// Configurazione Firebase del progetto dedicato "burraco-score-fedec"
+const rawEnvDbId = import.meta.env?.VITE_FIREBASE_DATABASE_ID;
+const hasEnvProject = Boolean(import.meta.env?.VITE_FIREBASE_PROJECT_ID);
+const resolvedDatabaseId = rawEnvDbId !== undefined && rawEnvDbId !== ''
+  ? (rawEnvDbId === '(default)' ? '' : rawEnvDbId)
+  : (hasEnvProject ? '' : (appletFirebaseConfig?.firestoreDatabaseId || ''));
+
+// Configurazione Firebase: dà priorità alle variabili d'ambiente (.env) con fallback a firebase-applet-config.json
 const firebaseConfig = {
-  projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || "burraco-score-fedec",
-  appId: import.meta.env?.VITE_FIREBASE_APP_ID || "1:453081841776:web:0e44d414aad67a818b34b5",
-  storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || "burraco-score-fedec.firebasestorage.app",
-  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || "AIzaSyAto2ITLoaMtUvRkanYacdK1yrqLm48J68",
-  authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || "burraco-score-fedec.firebaseapp.com",
-  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "453081841776",
-  projectNumber: import.meta.env?.VITE_FIREBASE_PROJECT_NUMBER || "453081841776",
+  projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || appletFirebaseConfig?.projectId || '',
+  appId: import.meta.env?.VITE_FIREBASE_APP_ID || appletFirebaseConfig?.appId || '',
+  storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || appletFirebaseConfig?.storageBucket || '',
+  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || appletFirebaseConfig?.apiKey || '',
+  authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || appletFirebaseConfig?.authDomain || '',
+  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || appletFirebaseConfig?.messagingSenderId || '',
+  projectNumber: import.meta.env?.VITE_FIREBASE_PROJECT_NUMBER || '',
+  firestoreDatabaseId: resolvedDatabaseId,
 };
 
-let app;
-let db;
-let auth;
+let app = null;
+let db = null;
+let auth = null;
 const googleProvider = new GoogleAuthProvider();
 
 // Pulisce vecchi frammenti di WebStorage lasciati da precedenti versioni del tab manager su Safari/iOS
@@ -58,22 +69,94 @@ if (typeof localStorage !== 'undefined') {
   }
 }
 
-try {
-  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+if (firebaseConfig.apiKey && firebaseConfig.projectId) {
   try {
-    // Usa memoryLocalCache per evitare completamente errori QuotaExceededError su Safari/iOS/iPadOS
-    db = initializeFirestore(app, {
-      localCache: memoryLocalCache()
-    });
-  } catch {
-    db = getFirestore(app);
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    const databaseId = firebaseConfig.firestoreDatabaseId || undefined;
+    try {
+      // Usa memoryLocalCache per evitare completamente errori QuotaExceededError su Safari/iOS/iPadOS
+      db = databaseId
+        ? initializeFirestore(app, { localCache: memoryLocalCache() }, databaseId)
+        : initializeFirestore(app, { localCache: memoryLocalCache() });
+    } catch {
+      db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+    }
+    auth = getAuth(app);
+
+    if (typeof window !== 'undefined' && db) {
+      getDocFromServer(doc(db, 'test', 'connection')).catch((error) => {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error('Verifica la configurazione Firebase: il client risulta offline.');
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Firebase initialization error:', err);
   }
-  auth = getAuth(app);
-} catch (err) {
-  console.error('Firebase initialization error:', err);
+} else {
+  console.warn('[Firebase] Variabili VITE_FIREBASE_* non configurate: esecuzione in modalità locale/offline.');
 }
 
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
+
 export { db, auth };
+
+export const OperationType = {
+  CREATE: 'create',
+  UPDATE: 'update',
+  DELETE: 'delete',
+  LIST: 'list',
+  GET: 'get',
+  WRITE: 'write',
+};
+
+export function isPermissionOrQuotaError(error) {
+  const code = error?.code || '';
+  const msg = (error?.message || '').toLowerCase();
+  return (
+    code === 'permission-denied' ||
+    code === 'resource-exhausted' ||
+    msg.includes('missing or insufficient permissions') ||
+    msg.includes('quota exceeded')
+  );
+}
+
+export function isIndexMissingError(error) {
+  const code = error?.code || '';
+  const msg = (error?.message || '').toLowerCase();
+  return code === 'failed-precondition' || msg.includes('requires an index');
+}
+
+export function handleFirestoreError(error, operationType, path = null) {
+  const user = auth?.currentUser || null;
+  const errInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    operationType,
+    path,
+    authInfo: {
+      userId: user?.uid ?? null,
+      email: user?.email ?? null,
+      emailVerified: user?.emailVerified ?? null,
+      isAnonymous: user?.isAnonymous ?? null,
+      tenantId: user?.tenantId ?? null,
+      providerInfo: Array.isArray(user?.providerData)
+        ? user.providerData.map(provider => ({
+            providerId: provider?.providerId ?? null,
+            email: provider?.email ?? null,
+          }))
+        : [],
+    },
+  };
+  const serialized = JSON.stringify(errInfo);
+  console.error('Firestore Error: ', serialized);
+  throw new Error(serialized);
+}
+
+export function computeGameShortPin(gameId) {
+  if (!gameId) return '';
+  const rawDigits = String(gameId).replace(/\D/g, '');
+  return rawDigits.length >= 6 ? rawDigits.slice(-6) : String(gameId).slice(-6).toUpperCase();
+}
 
 /**
  * Sanitizza ricorsivamente oggetti prima di inviarli a Firestore,
@@ -100,10 +183,46 @@ export function sanitizeForFirestore(val) {
 }
 
 /**
+ * Sincronizza profilo privato (burraco_users) e directory pubblica senza PII (burraco_public_profiles)
+ */
+async function syncUserProfiles(user, { includeLastLogin = false } = {}) {
+  if (!db || !user?.uid) return;
+  const nowIso = new Date().toISOString();
+  const displayName = (user.displayName || 'Giocatore Burraco').trim().slice(0, 100) || 'Giocatore Burraco';
+
+  const privatePayload = {
+    uid: user.uid,
+    displayName,
+    email: (user.email || '').toLowerCase(),
+    photoURL: user.photoURL || null,
+    lastSeen: nowIso,
+  };
+  if (includeLastLogin) {
+    privatePayload.lastLogin = nowIso;
+  }
+
+  const publicPayload = {
+    uid: user.uid,
+    displayName,
+    displayNameLower: displayName.toLowerCase(),
+    photoURL: user.photoURL || null,
+    lastSeen: nowIso,
+    updatedAt: nowIso,
+  };
+
+  await Promise.all([
+    setDoc(doc(db, 'burraco_users', user.uid), privatePayload, { merge: true }),
+    setDoc(doc(db, 'burraco_public_profiles', user.uid), publicPayload, { merge: true }),
+  ]);
+}
+
+/**
  * Accesso con Account Google (Popup)
  */
 export async function loginWithGoogle() {
-  if (!auth) throw new Error('Firebase Auth non inizializzato');
+  if (!auth) {
+    throw new Error('Accesso con Google non disponibile: configurazione Firebase mancante in questo ambiente.');
+  }
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result?.user;
@@ -121,20 +240,15 @@ export async function loginWithGoogle() {
       user.isFirstLogin = Boolean(isNewUser || !wasWelcomed);
     }
 
-    // Registra/aggiorna il profilo utente su Firestore in background
+    // Registra/aggiorna profilo privato e profilo pubblico su Firestore
     if (db && user) {
       try {
-        const userRef = doc(db, 'burraco_users', user.uid);
-        await setDoc(userRef, {
-          uid: user.uid,
-          displayName: user.displayName || 'Giocatore Burraco',
-          email: (user.email || '').toLowerCase(),
-          photoURL: user.photoURL || null,
-          lastLogin: new Date().toISOString(),
-          lastSeen: new Date().toISOString()
-        }, { merge: true });
+        await syncUserProfiles(user, { includeLastLogin: true });
       } catch (firestoreErr) {
-        console.warn('Avviso: impossibile salvare profilo su Firestore (regole di sicurezza o offline):', firestoreErr);
+        if (isPermissionOrQuotaError(firestoreErr)) {
+          handleFirestoreError(firestoreErr, OperationType.WRITE, `burraco_users/${user.uid}`);
+        }
+        console.warn('Avviso: impossibile salvare profilo su Firestore (offline):', firestoreErr);
       }
     }
     return user;
@@ -167,23 +281,64 @@ export function subscribeToAuth(onUserChange) {
     if (user && db) {
       const now = Date.now();
       const lastSynced = Number(sessionStorage.getItem('burraco_last_seen_sync') || 0);
-      if (now - lastSynced > 15 * 60 * 1000) {
+      const hasPublicSync = sessionStorage.getItem('burraco_public_profile_synced_v1') === user.uid;
+      if (!hasPublicSync || now - lastSynced > 15 * 60 * 1000) {
         sessionStorage.setItem('burraco_last_seen_sync', String(now));
+        sessionStorage.setItem('burraco_public_profile_synced_v1', user.uid);
         try {
-          const userRef = doc(db, 'burraco_users', user.uid);
-          await setDoc(userRef, {
-            uid: user.uid,
-            displayName: user.displayName || 'Giocatore Burraco',
-            email: (user.email || '').toLowerCase(),
-            photoURL: user.photoURL || null,
-            lastSeen: new Date().toISOString()
-          }, { merge: true });
+          await syncUserProfiles(user, { includeLastLogin: false });
         } catch (err) {
-          console.warn('Errore aggiornamento lastSeen:', err);
+          console.warn('Errore aggiornamento lastSeen/profilo:', err);
         }
       }
     }
   });
+}
+
+// Cache in memoria per evitare riscritture ripetitive di burraco_pins (preserva createdAt e risparmia scritture)
+const registeredPinsCache = new Set();
+
+/**
+ * Registra o aggiorna l'indice rapido del PIN per trovare il tavolo in O(1) senza sovrascrivere createdAt
+ */
+export async function registerGamePin(pin, gameId, createdAt = null) {
+  if (!db || !pin || !gameId) return false;
+  const cleanPin = String(pin).trim();
+  const cleanGameId = String(gameId).trim();
+  if (!cleanPin || !cleanGameId) return false;
+
+  const cacheKey = `${cleanPin}:${cleanGameId}`;
+  if (registeredPinsCache.has(cacheKey)) {
+    return true;
+  }
+
+  const pinPath = `burraco_pins/${cleanPin}`;
+  try {
+    const pinRef = doc(db, 'burraco_pins', cleanPin);
+    const existingSnap = await getDoc(pinRef);
+    if (existingSnap.exists()) {
+      const existingData = existingSnap.data();
+      if (existingData?.gameId === cleanGameId) {
+        registeredPinsCache.add(cacheKey);
+        return true;
+      }
+    }
+
+    await setDoc(pinRef, {
+      pin: cleanPin,
+      gameId: cleanGameId,
+      updatedAt: serverTimestamp(),
+      createdAt: createdAt || new Date().toISOString()
+    }, { merge: true });
+    registeredPinsCache.add(cacheKey);
+    return true;
+  } catch (err) {
+    if (isPermissionOrQuotaError(err)) {
+      handleFirestoreError(err, OperationType.WRITE, pinPath);
+    }
+    console.warn('[registerGamePin] Avviso:', err.message);
+    return false;
+  }
 }
 
 /**
@@ -195,6 +350,7 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
     console.warn('[syncGameToCloud] Impossibile sincronizzare: db o game.id mancante:', { hasDb: Boolean(db), id: game?.id });
     return false;
   }
+  const gamePath = `burraco_games/${game.id}`;
   try {
     const gameRef = doc(db, 'burraco_games', game.id);
 
@@ -207,7 +363,7 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
           const remoteData = snap.data();
           const remoteRounds = Array.isArray(remoteData.rounds) ? remoteData.rounds : [];
           const localRounds = Array.isArray(game.rounds) ? game.rounds : [];
-          
+
           if (remoteRounds.length > localRounds.length) {
             console.warn(`[syncGameToCloud] Documento remoto ha ${remoteRounds.length} mani, locale ne ha ${localRounds.length}. Sovrascrittura bloccata per salvaguardia.`);
             return false;
@@ -292,37 +448,18 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
     const payload = sanitizeForFirestore(allowedGameData);
     await setDoc(gameRef, payload, { merge: true });
 
-    // Registra in background il PIN rapido per ricerca istantanea O(1)
-    const rawDigits = (game.id || '').replace(/\D/g, '');
-    const shortPin = rawDigits.length >= 6 ? rawDigits.slice(-6) : (game.id || '').slice(-6).toUpperCase();
+    // Registra in background il PIN rapido per ricerca istantanea O(1) preservando createdAt
+    const shortPin = computeGameShortPin(game.id);
     if (shortPin && shortPin.length >= 4) {
-      registerGamePin(shortPin, game.id).catch(() => {});
+      registerGamePin(shortPin, game.id, game.createdAt || null).catch(() => {});
     }
 
     return true;
   } catch (err) {
-    console.error('[syncGameToCloud] Errore critico salvataggio Firestore:', err?.code, err?.message, err);
-    return false;
-  }
-}
-
-/**
- * Registra o aggiorna l'indice rapido del PIN per trovare il tavolo in O(1)
- */
-export async function registerGamePin(pin, gameId) {
-  if (!db || !pin || !gameId) return false;
-  try {
-    const cleanPin = String(pin).trim();
-    const pinRef = doc(db, 'burraco_pins', cleanPin);
-    await setDoc(pinRef, {
-      pin: cleanPin,
-      gameId: String(gameId).trim(),
-      updatedAt: serverTimestamp(),
-      createdAt: new Date().toISOString()
-    }, { merge: true });
-    return true;
-  } catch (err) {
-    console.warn('[registerGamePin] Avviso:', err.message);
+    if (isPermissionOrQuotaError(err)) {
+      handleFirestoreError(err, OperationType.WRITE, gamePath);
+    }
+    console.error('[syncGameToCloud] Errore salvataggio Firestore:', err?.code, err?.message, err);
     return false;
   }
 }
@@ -333,7 +470,7 @@ export async function registerGamePin(pin, gameId) {
 export async function findGameByPinOrId(pinOrId) {
   if (!db || !pinOrId) return null;
   const input = String(pinOrId).trim();
-  
+
   // 1. Se è un URL completo
   if (input.includes('game=')) {
     try {
@@ -375,14 +512,32 @@ export async function findGameByPinOrId(pinOrId) {
     try {
       const snap = await getDoc(doc(db, 'burraco_games', `game_${input}`));
       if (snap.exists()) return snap.data();
-    } catch {}
+    } catch {
+      // ignore
+    }
   }
 
-  // 5. Fallback retrocompatibile: scansione partite recenti
-  if (cleanDigits.length >= 4) {
+  // 5. Fallback retrocompatibile sulle partite proprie (se autenticato)
+  if (cleanDigits.length >= 4 && auth?.currentUser?.uid) {
     try {
-      const q = query(collection(db, 'burraco_games'), limit(30));
-      const querySnap = await getDocs(q);
+      const colRef = collection(db, 'burraco_games');
+      let querySnap;
+      try {
+        const orderedQuery = query(
+          colRef,
+          where('ownerUid', '==', auth.currentUser.uid),
+          orderBy('createdAt', 'desc'),
+          limit(30)
+        );
+        querySnap = await getDocs(orderedQuery);
+      } catch {
+        const fallbackQuery = query(
+          colRef,
+          where('ownerUid', '==', auth.currentUser.uid),
+          limit(30)
+        );
+        querySnap = await getDocs(fallbackQuery);
+      }
       for (const d of querySnap.docs) {
         if (d.id.endsWith(cleanDigits)) {
           return d.data();
@@ -401,6 +556,7 @@ export async function findGameByPinOrId(pinOrId) {
  */
 export function subscribeToCloudGame(gameId, onUpdate, onNotFound) {
   if (!db || !gameId) return () => {};
+  const gamePath = `burraco_games/${gameId}`;
   try {
     const gameRef = doc(db, 'burraco_games', gameId);
     return onSnapshot(gameRef, (docSnap) => {
@@ -410,6 +566,9 @@ export function subscribeToCloudGame(gameId, onUpdate, onNotFound) {
         onNotFound();
       }
     }, (err) => {
+      if (isPermissionOrQuotaError(err)) {
+        handleFirestoreError(err, OperationType.GET, gamePath);
+      }
       console.warn('Errore listener Firestore:', err.message);
     });
   } catch (err) {
@@ -418,7 +577,6 @@ export function subscribeToCloudGame(gameId, onUpdate, onNotFound) {
   }
 }
 
-/**
 /**
  * Verifica in modo robusto (UID, email case-insensitive o nome giocatore) se una partita appartiene all'utente
  */
@@ -444,8 +602,22 @@ export function isGameAssociatedWithUser(data, currentUser) {
   return false;
 }
 
+async function getDocsWithOrderFallback(orderedQuery, fallbackQuery, path) {
+  try {
+    return await getDocs(orderedQuery);
+  } catch (err) {
+    if (isIndexMissingError(err)) {
+      return await getDocs(fallbackQuery);
+    }
+    if (isPermissionOrQuotaError(err)) {
+      handleFirestoreError(err, OperationType.LIST, path);
+    }
+    throw err;
+  }
+}
+
 /**
- * Carica le partite archiviate dal cloud per l'utente specificato
+ * Carica le partite archiviate dal cloud per l'utente specificato (ordinate per data decrescente)
  */
 export async function loadCloudGamesHistory(currentUser = null) {
   if (!db || !currentUser?.uid) return [];
@@ -454,16 +626,22 @@ export async function loadCloudGamesHistory(currentUser = null) {
     const gamesMap = new Map();
 
     try {
-      const qOwner = query(colRef, where('ownerUid', '==', currentUser.uid), limit(60));
-      const snapOwner = await getDocs(qOwner);
+      const snapOwner = await getDocsWithOrderFallback(
+        query(colRef, where('ownerUid', '==', currentUser.uid), orderBy('createdAt', 'desc'), limit(60)),
+        query(colRef, where('ownerUid', '==', currentUser.uid), limit(60)),
+        'burraco_games'
+      );
       snapOwner.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
     } catch (e1) {
       console.warn('Errore query ownerUid:', e1.message);
     }
 
     try {
-      const qPart = query(colRef, where('playerUids', 'array-contains', currentUser.uid), limit(40));
-      const snapPart = await getDocs(qPart);
+      const snapPart = await getDocsWithOrderFallback(
+        query(colRef, where('playerUids', 'array-contains', currentUser.uid), orderBy('createdAt', 'desc'), limit(40)),
+        query(colRef, where('playerUids', 'array-contains', currentUser.uid), limit(40)),
+        'burraco_games'
+      );
       snapPart.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
     } catch (e2) {
       console.warn('Errore query playerUids:', e2.message);
@@ -480,15 +658,33 @@ export async function loadCloudGamesHistory(currentUser = null) {
 }
 
 /**
- * Elimina una partita archiviata da Firestore
+ * Elimina una partita archiviata da Firestore e pulisce l'eventuale PIN orfano in burraco_pins
  */
 export async function deleteGameFromCloud(gameId) {
   if (!db || !gameId) return false;
+  const gamePath = `burraco_games/${gameId}`;
   try {
+    const shortPin = computeGameShortPin(gameId);
+    if (shortPin && shortPin.length >= 4) {
+      try {
+        const pinRef = doc(db, 'burraco_pins', shortPin);
+        const pinSnap = await getDoc(pinRef);
+        if (pinSnap.exists() && pinSnap.data()?.gameId === gameId) {
+          await deleteDoc(pinRef);
+        }
+        registeredPinsCache.delete(`${shortPin}:${gameId}`);
+      } catch (pinErr) {
+        console.warn('Avviso rimozione PIN orfano:', pinErr?.message);
+      }
+    }
+
     const gameRef = doc(db, 'burraco_games', gameId);
     await deleteDoc(gameRef);
     return true;
   } catch (err) {
+    if (isPermissionOrQuotaError(err)) {
+      handleFirestoreError(err, OperationType.DELETE, gamePath);
+    }
     console.warn('Errore deleteGameFromCloud:', err.message);
     return false;
   }
@@ -502,15 +698,19 @@ export async function syncPlayersToCloud() {
 }
 
 /**
- * Salva la rubrica ospiti specifica per l'utente loggato nel suo documento profilo
+ * Salva la rubrica ospiti specifica per l'utente loggato nel suo documento profilo privato
  */
 export async function syncUserGuestsToCloud(userId, guests) {
   if (!db || !userId) return false;
+  const path = `burraco_users/${userId}`;
   try {
     const userRef = doc(db, 'burraco_users', userId);
     await setDoc(userRef, { guests: guests || [] }, { merge: true });
     return true;
   } catch (err) {
+    if (isPermissionOrQuotaError(err)) {
+      handleFirestoreError(err, OperationType.WRITE, path);
+    }
     console.warn('Errore syncUserGuestsToCloud:', err.message);
     return false;
   }
@@ -521,6 +721,7 @@ export async function syncUserGuestsToCloud(userId, guests) {
  */
 export function subscribeToUserGuests(userId, onUpdate) {
   if (!db || !userId) return () => {};
+  const path = `burraco_users/${userId}`;
   try {
     const userRef = doc(db, 'burraco_users', userId);
     return onSnapshot(userRef, (docSnap) => {
@@ -530,6 +731,9 @@ export function subscribeToUserGuests(userId, onUpdate) {
         onUpdate([]);
       }
     }, (err) => {
+      if (isPermissionOrQuotaError(err)) {
+        handleFirestoreError(err, OperationType.GET, path);
+      }
       console.warn('Errore subscribeToUserGuests:', err.message);
     });
   } catch (err) {
@@ -545,8 +749,35 @@ export function subscribeToCloudPlayers() {
   return () => {};
 }
 
+function subscribeWithOrderFallback(orderedQ, fallbackQ, onData, path) {
+  let activeUnsub = () => {};
+  let unsubscribed = false;
+
+  const attach = (qToUse, allowFallback) => {
+    activeUnsub = onSnapshot(qToUse, onData, (err) => {
+      if (unsubscribed) return;
+      if (allowFallback && isIndexMissingError(err)) {
+        activeUnsub();
+        attach(fallbackQ, false);
+        return;
+      }
+      if (isPermissionOrQuotaError(err)) {
+        handleFirestoreError(err, OperationType.LIST, path);
+      }
+      console.warn('Errore listener history:', err.message);
+    });
+  };
+
+  attach(orderedQ, true);
+
+  return () => {
+    unsubscribed = true;
+    activeUnsub();
+  };
+}
+
 /**
- * Ascolta in tempo reale lo storico partite da Firestore con isolamento utente
+ * Ascolta in tempo reale lo storico partite da Firestore con isolamento utente e ordinamento decrescente
  */
 export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
   if (!db) return () => {};
@@ -566,23 +797,25 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
       if (onUpdate) onUpdate(list);
     };
 
-    // 1. Partite in cui l'utente è proprietario
-    const qOwner = query(colRef, where('ownerUid', '==', currentUser.uid), limit(60));
-    const unsubOwner = onSnapshot(qOwner, (snapshot) => {
-      snapshot.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
-      emitMerged();
-    }, (err) => {
-      console.warn('Errore listener owner history:', err.message);
-    });
+    const unsubOwner = subscribeWithOrderFallback(
+      query(colRef, where('ownerUid', '==', currentUser.uid), orderBy('createdAt', 'desc'), limit(60)),
+      query(colRef, where('ownerUid', '==', currentUser.uid), limit(60)),
+      (snapshot) => {
+        snapshot.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
+        emitMerged();
+      },
+      'burraco_games'
+    );
 
-    // 2. Partite in cui l'utente è registrato come partecipante
-    const qPart = query(colRef, where('playerUids', 'array-contains', currentUser.uid), limit(40));
-    const unsubPart = onSnapshot(qPart, (snapshot) => {
-      snapshot.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
-      emitMerged();
-    }, (err) => {
-      console.warn('Errore listener participant history:', err.message);
-    });
+    const unsubPart = subscribeWithOrderFallback(
+      query(colRef, where('playerUids', 'array-contains', currentUser.uid), orderBy('createdAt', 'desc'), limit(40)),
+      query(colRef, where('playerUids', 'array-contains', currentUser.uid), limit(40)),
+      (snapshot) => {
+        snapshot.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
+        emitMerged();
+      },
+      'burraco_games'
+    );
 
     return () => {
       unsubOwner();
@@ -610,6 +843,7 @@ export async function cleanupLegacyCloudDatabase() {
  */
 export async function syncTournamentToCloud(tournament, currentUser = null) {
   if (!db || !tournament?.id) return false;
+  const path = `burraco_tournaments/${tournament.id}`;
   try {
     const tournamentRef = doc(db, 'burraco_tournaments', tournament.id);
     const allowedTournamentData = {
@@ -631,6 +865,9 @@ export async function syncTournamentToCloud(tournament, currentUser = null) {
     await setDoc(tournamentRef, payload, { merge: true });
     return true;
   } catch (err) {
+    if (isPermissionOrQuotaError(err)) {
+      handleFirestoreError(err, OperationType.WRITE, path);
+    }
     console.warn('Errore syncTournamentToCloud:', err.message);
     return false;
   }
@@ -641,6 +878,7 @@ export async function syncTournamentToCloud(tournament, currentUser = null) {
  */
 export function subscribeToCloudTournament(tournamentId, onUpdate) {
   if (!db || !tournamentId) return () => {};
+  const path = `burraco_tournaments/${tournamentId}`;
   try {
     const tournamentRef = doc(db, 'burraco_tournaments', tournamentId);
     return onSnapshot(tournamentRef, (docSnap) => {
@@ -648,6 +886,9 @@ export function subscribeToCloudTournament(tournamentId, onUpdate) {
         onUpdate(docSnap.data());
       }
     }, (err) => {
+      if (isPermissionOrQuotaError(err)) {
+        handleFirestoreError(err, OperationType.GET, path);
+      }
       console.warn('Errore listener Firestore tournament:', err.message);
     });
   } catch (err) {
@@ -657,12 +898,17 @@ export function subscribeToCloudTournament(tournamentId, onUpdate) {
 }
 
 /**
- * Carica lo storico tornei dal cloud
+ * Carica lo storico tornei dal cloud filtrato per l'organizzatore autenticato
  */
-export async function loadCloudTournamentsHistory() {
-  if (!db) return [];
+export async function loadCloudTournamentsHistory(currentUser = null) {
+  if (!db || !currentUser?.uid) return [];
   try {
-    const snapshot = await getDocs(collection(db, 'burraco_tournaments'));
+    const colRef = collection(db, 'burraco_tournaments');
+    const snapshot = await getDocsWithOrderFallback(
+      query(colRef, where('ownerUid', '==', currentUser.uid), orderBy('createdAt', 'desc'), limit(40)),
+      query(colRef, where('ownerUid', '==', currentUser.uid), limit(40)),
+      'burraco_tournaments'
+    );
     const list = [];
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
@@ -681,134 +927,120 @@ export async function loadCloudTournamentsHistory() {
  */
 export async function deleteTournamentFromCloud(tournamentId) {
   if (!db || !tournamentId) return false;
+  const path = `burraco_tournaments/${tournamentId}`;
   try {
     const tournamentRef = doc(db, 'burraco_tournaments', tournamentId);
     await deleteDoc(tournamentRef);
     return true;
   } catch (err) {
+    if (isPermissionOrQuotaError(err)) {
+      handleFirestoreError(err, OperationType.DELETE, path);
+    }
     console.warn('Errore deleteTournamentFromCloud:', err.message);
     return false;
   }
 }
 
 /**
- * Registra la presenza dell'utente autenticato nella partita cloud (se non già presente)
+ * Registra in modo atomico (runTransaction) la presenza dell'utente autenticato nella partita cloud
  */
 export async function joinCloudGame(gameId, currentUser) {
   if (!db || !gameId || !currentUser?.uid) return;
+  const gamePath = `burraco_games/${gameId}`;
   try {
     const gameRef = doc(db, 'burraco_games', gameId);
-    const snap = await getDoc(gameRef);
-    if (!snap.exists()) return;
-    const data = snap.data();
-    const currentUids = Array.isArray(data.playerUids) ? data.playerUids : [];
-    const currentEmails = Array.isArray(data.playerEmails) ? data.playerEmails : [];
-    
-    const needsUid = !currentUids.includes(currentUser.uid);
-    const userEmail = (currentUser.email || '').toLowerCase();
-    const needsEmail = userEmail && !currentEmails.includes(userEmail);
-    
-    if (needsUid || needsEmail) {
-      const updatedUids = needsUid ? [...currentUids, currentUser.uid] : currentUids;
-      const updatedEmails = (needsEmail && userEmail) ? [...currentEmails, userEmail] : currentEmails;
-      await setDoc(gameRef, {
-        playerUids: updatedUids.slice(0, 10),
-        playerEmails: updatedEmails.slice(0, 10),
+    const userEmail = (currentUser.email || '').trim().toLowerCase();
+
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(gameRef);
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+      const currentUids = Array.isArray(data.playerUids) ? data.playerUids : [];
+      const currentEmails = Array.isArray(data.playerEmails) ? data.playerEmails : [];
+
+      const needsUid = !currentUids.includes(currentUser.uid);
+      const needsEmail = Boolean(userEmail) && !currentEmails.includes(userEmail);
+
+      if (!needsUid && !needsEmail) return;
+
+      const updatedUids = needsUid ? [...currentUids, currentUser.uid].slice(0, 10) : currentUids.slice(0, 10);
+      const updatedEmails = needsEmail ? [...currentEmails, userEmail].slice(0, 10) : currentEmails.slice(0, 10);
+
+      transaction.set(gameRef, {
+        playerUids: updatedUids,
+        playerEmails: updatedEmails,
         updatedAt: serverTimestamp()
       }, { merge: true });
-    }
+    });
   } catch (err) {
+    if (isPermissionOrQuotaError(err)) {
+      handleFirestoreError(err, OperationType.UPDATE, gamePath);
+    }
     console.warn('Errore joinCloudGame:', err.message);
   }
 }
 
-// Cache in memoria dei profili utente per evitare query ridondanti a Firestore
+// Cache in memoria dei profili pubblici utente per evitare query ridondanti a Firestore
 const userProfilesCache = new Map();
 const USER_PROFILE_CACHE_TTL = 3 * 60 * 1000; // 3 minuti
 
 /**
- * Recupera i profili pubblici degli utenti collegati al tavolo (per UID ed Email) in parallelo con cache
+ * Recupera i profili pubblici degli utenti collegati al tavolo da burraco_public_profiles (zero PII leak)
  */
 export async function fetchTablePlayers(uids = [], emails = []) {
   if (!db) return [];
   try {
     const profiles = [];
     const seenUids = new Set();
-    const seenEmails = new Set();
     const now = Date.now();
 
-    // 1. Risolvi UID in parallelo
-    const uniqueUids = Array.isArray(uids) 
-      ? [...new Set(uids.filter(Boolean))] 
+    const uniqueUids = Array.isArray(uids)
+      ? [...new Set(uids.filter(Boolean))]
       : [];
 
-    const uidPromises = uniqueUids.map(async (uid) => {
-      const cached = userProfilesCache.get(uid);
-      if (cached && (now - cached.timestamp < USER_PROFILE_CACHE_TTL)) {
-        return cached.data;
-      }
-      try {
-        const userRef = doc(db, 'burraco_users', uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists()) {
-          const uData = snap.data();
-          userProfilesCache.set(uid, { data: uData, timestamp: now });
-          if (uData.email) {
-            userProfilesCache.set(`email_${uData.email.toLowerCase()}`, { data: uData, timestamp: now });
-          }
-          return uData;
-        }
-      } catch (err) {
-        console.warn('Errore lettura profilo uid:', uid, err.message);
-      }
-      return null;
-    });
-
-    const uidResults = await Promise.all(uidPromises);
-    uidResults.filter(Boolean).forEach(uData => {
-      if (!seenUids.has(uData.uid)) {
-        profiles.push(uData);
-        seenUids.add(uData.uid);
-        if (uData.email) seenEmails.add(uData.email.toLowerCase());
-      }
-    });
-
-    // 2. Risolvi eventuali Email rimanenti non associate agli UID già trovati
-    const remainingEmails = (Array.isArray(emails) ? emails : [])
-      .map(e => (e || '').toLowerCase().trim())
-      .filter(e => e && !seenEmails.has(e));
-
-    if (remainingEmails.length > 0) {
-      const emailPromises = [...new Set(remainingEmails)].map(async (cleanEmail) => {
-        const cached = userProfilesCache.get(`email_${cleanEmail}`);
+    if (auth?.currentUser) {
+      const uidPromises = uniqueUids.map(async (uid) => {
+        const cached = userProfilesCache.get(uid);
         if (cached && (now - cached.timestamp < USER_PROFILE_CACHE_TTL)) {
           return cached.data;
         }
         try {
-          const usersRef = collection(db, 'burraco_users');
-          const q = query(usersRef, where('email', '==', cleanEmail), limit(1));
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            const uData = snap.docs[0].data();
-            userProfilesCache.set(`email_${cleanEmail}`, { data: uData, timestamp: now });
-            if (uData.uid) userProfilesCache.set(uData.uid, { data: uData, timestamp: now });
+          const pubRef = doc(db, 'burraco_public_profiles', uid);
+          const snap = await getDoc(pubRef);
+          if (snap.exists()) {
+            const uData = snap.data();
+            userProfilesCache.set(uid, { data: uData, timestamp: now });
             return uData;
           }
-        } catch {
-          // ignore lookup error
+        } catch (err) {
+          console.warn('Errore lettura profilo pubblico uid:', uid, err.message);
         }
         return null;
       });
 
-      const emailResults = await Promise.all(emailPromises);
-      emailResults.filter(Boolean).forEach(uData => {
+      const uidResults = await Promise.all(uidPromises);
+      uidResults.filter(Boolean).forEach(uData => {
         if (!seenUids.has(uData.uid)) {
           profiles.push(uData);
           seenUids.add(uData.uid);
-          if (uData.email) seenEmails.add(uData.email.toLowerCase());
         }
       });
     }
+
+    // Assicura che eventuali partecipanti non ancora su burraco_public_profiles abbiano comunque un entry visiva dal contesto del tavolo
+    uniqueUids.forEach((uid, idx) => {
+      if (!seenUids.has(uid)) {
+        const fallbackEmail = Array.isArray(emails) && emails[idx] ? String(emails[idx]).toLowerCase() : null;
+        profiles.push({
+          uid,
+          displayName: fallbackEmail ? fallbackEmail.split('@')[0] : 'Giocatore al Tavolo',
+          email: fallbackEmail,
+          photoURL: null
+        });
+        seenUids.add(uid);
+      }
+    });
 
     return profiles;
   } catch (err) {
@@ -818,13 +1050,13 @@ export async function fetchTablePlayers(uids = [], emails = []) {
 }
 
 /**
- * Salva o aggiorna le statistiche globali di carriera dell'utente sul suo profilo Firestore
+ * Salva o aggiorna le statistiche globali di carriera dell'utente sul profilo privato e pubblico
  */
 export async function updateUserCareerStats(userId, stats) {
   if (!db || !userId || !stats) return false;
+  const path = `burraco_users/${userId}`;
   try {
-    const userRef = doc(db, 'burraco_users', userId);
-    const payload = sanitizeForFirestore({
+    const careerStatsPayload = sanitizeForFirestore({
       careerStats: {
         totalPoints: Number(stats.totalPoints) || 0,
         gamesPlayed: Number(stats.gamesPlayed) || 0,
@@ -839,16 +1071,36 @@ export async function updateUserCareerStats(userId, stats) {
         updatedAt: new Date().toISOString()
       }
     });
-    await setDoc(userRef, payload, { merge: true });
+
+    const userRef = doc(db, 'burraco_users', userId);
+    const pubRef = doc(db, 'burraco_public_profiles', userId);
+
+    const fallbackName = (auth?.currentUser?.uid === userId && auth?.currentUser?.displayName)
+      ? auth.currentUser.displayName.trim().slice(0, 100)
+      : 'Giocatore Burraco';
+
+    await Promise.all([
+      setDoc(userRef, careerStatsPayload, { merge: true }),
+      setDoc(pubRef, {
+        uid: userId,
+        displayName: fallbackName,
+        displayNameLower: fallbackName.toLowerCase(),
+        ...careerStatsPayload,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true }),
+    ]);
     return true;
   } catch (err) {
+    if (isPermissionOrQuotaError(err)) {
+      handleFirestoreError(err, OperationType.WRITE, path);
+    }
     console.warn('Errore updateUserCareerStats:', err.message);
     return false;
   }
 }
 
 /**
- * Ascolta in tempo reale i profili e le statistiche di carriera di tutti i propri amici
+ * Ascolta in tempo reale i profili pubblici e le statistiche di carriera di tutti i propri amici
  */
 export function subscribeToFriendsLiveProfiles(friendsList, onUpdate) {
   if (!db || !Array.isArray(friendsList) || friendsList.length === 0) {
@@ -863,8 +1115,8 @@ export function subscribeToFriendsLiveProfiles(friendsList, onUpdate) {
     const uid = friend.uid;
     if (!uid) return;
     try {
-      const uRef = doc(db, 'burraco_users', uid);
-      const unsub = onSnapshot(uRef, (snap) => {
+      const pubRef = doc(db, 'burraco_public_profiles', uid);
+      const unsub = onSnapshot(pubRef, (snap) => {
         if (snap.exists()) {
           profilesMap[uid] = {
             ...friend,
@@ -875,6 +1127,9 @@ export function subscribeToFriendsLiveProfiles(friendsList, onUpdate) {
         }
         if (onUpdate) onUpdate(Object.values(profilesMap));
       }, (err) => {
+        if (isPermissionOrQuotaError(err)) {
+          handleFirestoreError(err, OperationType.GET, `burraco_public_profiles/${uid}`);
+        }
         console.warn('Errore listener amico:', uid, err.message);
       });
       unsubs.push(unsub);
@@ -887,5 +1142,3 @@ export function subscribeToFriendsLiveProfiles(friendsList, onUpdate) {
     unsubs.forEach(unsub => unsub());
   };
 }
-
-

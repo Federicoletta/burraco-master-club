@@ -1,7 +1,6 @@
-import React, { createContext, useContext } from 'react';
+import React from 'react';
 import { useSocialClub } from '../hooks/useSocialClub';
-
-const SocialContext = createContext(null);
+import { SocialContext } from './socialContextStore';
 
 export function SocialProvider({ children }) {
   const social = useSocialClub();
@@ -11,12 +10,4 @@ export function SocialProvider({ children }) {
       {children}
     </SocialContext.Provider>
   );
-}
-
-export function useSocial() {
-  const context = useContext(SocialContext);
-  if (!context) {
-    throw new Error('useSocial deve essere utilizzato all\'interno di un SocialProvider');
-  }
-  return context;
 }

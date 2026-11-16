@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Share2, Check, Trophy, Award } from 'lucide-react';
+import { ArrowRight, Share2, Check, Award } from 'lucide-react';
 import { formatStandingsForSharing } from '../../utils/tournament';
 import { sound } from '../../utils/soundEffects';
 

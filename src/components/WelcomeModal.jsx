@@ -12,6 +12,7 @@ import {
   Flame
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 export default function WelcomeModal({
   isOpen,
@@ -19,6 +20,8 @@ export default function WelcomeModal({
   user,
   onOpenProfile
 }) {
+  useModalEscape(Boolean(isOpen && user), onClose);
+
   useEffect(() => {
     if (isOpen && user) {
       // Suono di festa elegante
@@ -57,6 +60,9 @@ export default function WelcomeModal({
     <div 
       className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Benvenuto nel club"
     >
       <div 
         className="w-full max-w-md max-h-[92vh] sm:max-h-[88vh] flex flex-col my-auto overflow-hidden rounded-3xl bg-gradient-to-b from-emerald-950 via-slate-900 to-emerald-950 border-2 border-amber-400 shadow-2xl text-white relative animate-in zoom-in-95 duration-200"

@@ -14,7 +14,6 @@ export default function TournamentManageTab({
   onViewHistoricalStandings,
   currentUser = null,
   friendsList = [],
-  playersList = [],
 }) {
   const [editingTeamId, setEditingTeamId] = useState(null);
   const [editTeamName, setEditTeamName] = useState('');

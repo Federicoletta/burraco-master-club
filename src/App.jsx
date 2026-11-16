@@ -7,9 +7,11 @@ import BottomNavBar from './components/navigation/BottomNavBar';
 import { Trophy } from 'lucide-react';
 
 // Context Providers & Hooks architetturali
-import { ConfirmProvider, useConfirm } from './context/ConfirmContext';
+import { ConfirmProvider } from './context/ConfirmContext';
+import { useConfirm } from './context/confirmContextStore';
 import { SocialProvider } from './context/SocialContext';
-import { GameProvider, useBurraco } from './context/GameContext';
+import { GameProvider } from './context/GameContext';
+import { useBurraco } from './context/gameContextStore';
 import { getStoredTheme, applyTheme } from './utils/theme';
 import { getStoredPlayers } from './utils/storage';
 
@@ -31,7 +33,6 @@ function BurracoAppContent() {
   // 1. Modals UI State
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
   const [isRoundCalcOpen, setIsRoundCalcOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isEditTeamsOpen, setIsEditTeamsOpen] = useState(false);
@@ -50,8 +51,12 @@ function BurracoAppContent() {
   const confirm = useConfirm();
 
   // 3. Event handlers memoizzati per evitare re-render a cascata su Header e ScoreBoard
-  const handleOpenNewGame = useCallback(() => {
-    game.setNewGameInitialSetup(null);
+  const handleOpenNewGame = useCallback((modeOrEvent) => {
+    if (typeof modeOrEvent === 'string') {
+      game.setNewGameInitialSetup({ mode: modeOrEvent });
+    } else {
+      game.setNewGameInitialSetup(null);
+    }
     setIsNewGameOpen(true);
   }, [game]);
 
@@ -89,6 +94,13 @@ function BurracoAppContent() {
   }, [game, confirm]);
 
   const [activeNavTab, setActiveNavTab] = useState('table'); // 'table' | 'tournament' | 'history' | 'profile'
+
+  const setIsProfileOpen = social.setIsProfileOpen;
+  React.useEffect(() => {
+    if (setIsProfileOpen) {
+      setIsProfileOpen(activeNavTab === 'profile');
+    }
+  }, [activeNavTab, setIsProfileOpen]);
 
   const handleOpenTournament = useCallback((targetTab = 'standings', roundNumber = 'all') => {
     setTournamentInitialTab(targetTab || 'standings');
@@ -141,8 +153,8 @@ function BurracoAppContent() {
           social.setToastNotification(null);
           if (notif.type === 'game_invite') {
             await social.handleAcceptGameInvite(notif, (gameId) => {
-              game.setIsCloudJoined(true);
-              window.location.href = window.location.origin + '?game=' + gameId;
+              game.handleResumeGame(gameId);
+              setActiveNavTab('table');
             });
           } else {
             await social.handleAcceptFriendRequest(notif);
@@ -382,6 +394,11 @@ function BurracoAppContent() {
           friendsList={social.friendsList}
           onSendFriendRequest={social.handleSendFriendRequest}
           onInviteFriendToGame={(friend) => social.handleInviteFriendToActiveGame(friend, game.activeGame)}
+          onJoinGame={(target) => {
+            setIsCloudModalOpen(false);
+            game.handleResumeGame(target);
+            setActiveNavTab('table');
+          }}
         />
 
         {/* 6. Modal Regole del Gioco & Valori Carte */}
@@ -411,8 +428,8 @@ function BurracoAppContent() {
           onAcceptFriendRequest={social.handleAcceptFriendRequest}
           onDeclineFriendRequest={social.handleDeclineFriendRequest}
           onAcceptGameInvite={(notif) => social.handleAcceptGameInvite(notif, (gameId) => {
-            game.setIsCloudJoined(true);
-            window.location.href = window.location.origin + '?game=' + gameId;
+            game.handleResumeGame(gameId);
+            setActiveNavTab('table');
           })}
           onDeclineGameInvite={social.handleDeclineGameInvite}
         />
@@ -422,7 +439,7 @@ function BurracoAppContent() {
           isOpen={Boolean(social.welcomeUser)}
           onClose={() => social.setWelcomeUser(null)}
           user={social.welcomeUser}
-          onOpenProfile={() => social.setIsProfileOpen(true)}
+          onOpenProfile={() => handleOpenProfile('profile')}
         />
 
         {/* 12. Modal Scelta Panno del Tavolo */}

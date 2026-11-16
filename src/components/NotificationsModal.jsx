@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Bell, UserPlus, Trophy, Check, Mail } from 'lucide-react';
 import DeveloperBadge from './DeveloperBadge';
 import { isDeveloperAccount } from '../utils/developer';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 export default function NotificationsModal({
   isOpen,
@@ -12,14 +13,25 @@ export default function NotificationsModal({
   onAcceptGameInvite,
   onDeclineGameInvite
 }) {
+  useModalEscape(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const friendRequests = notifications.filter(n => n.type === 'friend_request');
   const gameInvites = notifications.filter(n => n.type === 'game_invite');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/40 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[86vh] my-auto overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Notifiche e inviti"
+    >
+      <div
+        className="relative w-full max-w-lg felt-card rounded-2xl border border-amber-500/40 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[86vh] my-auto overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Intestazione fissa pinnata */}
         <div className="p-3.5 sm:p-4 pb-3 border-b border-emerald-700/50 flex items-center justify-between shrink-0 bg-emerald-950/90">

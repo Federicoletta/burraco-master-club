@@ -161,6 +161,17 @@ export function deletePlayerName(name, userKey) {
   return list;
 }
 
+function escapeRegExp(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function replaceWholeName(text, oldName, newName) {
+  if (typeof text !== 'string' || !oldName) return text;
+  const escaped = escapeRegExp(oldName);
+  const regex = new RegExp(`(^|[\\s&,/(\\-])(${escaped})(?=$|[\\s&,)/\\-])`, 'gu');
+  return text.replace(regex, (_, prefix) => `${prefix}${newName}`);
+}
+
 export function renamePlayer(oldName, newName, userKey) {
   if (!oldName || !newName || typeof oldName !== 'string' || typeof newName !== 'string') return getStoredPlayers(userKey);
   const cleanOld = oldName.trim();
@@ -190,8 +201,11 @@ export function renamePlayer(oldName, newName, userKey) {
       });
       let newName = team.name;
       if (typeof team.name === 'string' && team.name.includes(cleanOld)) {
-        newName = team.name.replace(new RegExp(`\\b${cleanOld}\\b`, 'g'), cleanNew);
-        teamMod = true;
+        const replaced = replaceWholeName(team.name, cleanOld, cleanNew);
+        if (replaced !== team.name) {
+          newName = replaced;
+          teamMod = true;
+        }
       }
       if (teamMod) {
         modified = true;
@@ -232,8 +246,11 @@ export function renamePlayer(oldName, newName, userKey) {
         });
         let newTeamName = team.name;
         if (typeof team.name === 'string' && team.name.includes(cleanOld)) {
-          newTeamName = team.name.replace(new RegExp(`\\b${cleanOld}\\b`, 'g'), cleanNew);
-          tMod = true;
+          const replaced = replaceWholeName(team.name, cleanOld, cleanNew);
+          if (replaced !== team.name) {
+            newTeamName = replaced;
+            tMod = true;
+          }
         }
         if (tMod) {
           gMod = true;

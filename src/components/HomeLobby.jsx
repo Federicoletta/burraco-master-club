@@ -11,11 +11,10 @@ import {
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { findGameByPinOrId } from '../services/firebase';
-import { useAlert } from '../context/ConfirmContext';
+import { useAlert } from '../context/confirmContextStore';
 
 export default function HomeLobby({
   currentUser,
-  friendsList = [],
   storedPlayers = [],
   gamesHistory = [],
   onStartGame,

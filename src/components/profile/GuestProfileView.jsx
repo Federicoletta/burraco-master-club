@@ -1,5 +1,6 @@
 import React from 'react';
 import { User, Sparkles, Trophy, BarChart3, Users, Cloud, ShieldCheck } from 'lucide-react';
+import { isFirebaseConfigured } from '../../services/firebase';
 
 export default function GuestProfileView({ onLogin, onClose }) {
   return (
@@ -76,10 +77,16 @@ export default function GuestProfileView({ onLogin, onClose }) {
 
       {/* Pulsante Login con Google */}
       <div className="pt-2 max-w-sm mx-auto space-y-2.5">
+        {!isFirebaseConfigured && (
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/40 text-amber-200 text-[11px] font-semibold leading-snug">
+            Modalità locale attiva: l&apos;accesso con Google e la sincronizzazione cloud richiedono le variabili Firebase configurate.
+          </div>
+        )}
         <button
           type="button"
           onClick={onLogin}
-          className="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-zinc-100 text-zinc-900 font-black text-sm shadow-xl hover:shadow-amber-400/20 flex items-center justify-center gap-3 cursor-pointer transition-all active:scale-95 group"
+          disabled={!isFirebaseConfigured}
+          className="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-zinc-100 disabled:bg-zinc-300 disabled:text-zinc-600 disabled:cursor-not-allowed text-zinc-900 font-black text-sm shadow-xl hover:shadow-amber-400/20 flex items-center justify-center gap-3 cursor-pointer transition-all active:scale-95 group"
         >
           <svg className="w-5 h-5 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -87,7 +94,7 @@ export default function GuestProfileView({ onLogin, onClose }) {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
           </svg>
-          <span>Accedi con Google</span>
+          <span>{isFirebaseConfigured ? 'Accedi con Google' : 'Accesso Cloud Disabilitato'}</span>
         </button>
 
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-emerald-400/60 font-medium">

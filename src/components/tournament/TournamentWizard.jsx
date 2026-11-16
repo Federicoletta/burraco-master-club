@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Users, Sparkles, Award, Dices, Wand2, Trash2, ArrowLeftRight, Check, User } from 'lucide-react';
+import { Users, Sparkles, Award, Dices, Wand2, Trash2, ArrowLeftRight, Check } from 'lucide-react';
 import { DEFAULT_TARGET_SCORES } from '../../constants/burraco';
 import PlayerAutocompleteInput from '../PlayerAutocompleteInput';
 import { sound } from '../../utils/soundEffects';
@@ -13,7 +13,6 @@ export default function TournamentWizard({
   setScoringSystem,
   numTeams,
   onNumTeamsChange,
-  playersList = [],
   currentUser = null,
   friendsList = [],
   teamsForm = [],

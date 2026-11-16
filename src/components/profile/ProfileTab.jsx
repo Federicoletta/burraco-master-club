@@ -1,6 +1,7 @@
 import React from 'react';
 import { Mail, ShieldCheck, Award, CheckCircle2, Lock, Flame } from 'lucide-react';
-import DeveloperBadge, { isDeveloperAccount } from '../DeveloperBadge';
+import DeveloperBadge from '../DeveloperBadge';
+import { isDeveloperAccount } from '../../utils/developer';
 import TrendScoreChart from './TrendScoreChart';
 import BurracoDonutChart from './BurracoDonutChart';
 
@@ -12,14 +13,12 @@ export default function ProfileTab({
   onlineCount = 0,
   myTrophiesData,
   gamesCount = 0,
-  wonCount = 0,
   winRate = 0,
   totalScore = 0,
   totalBurrachi = 0,
   cleanBurrachi = 0,
   semiCleanBurrachi = 0,
   dirtyBurrachi = 0,
-  closures = 0,
   bestHandScore = 0,
   avgPointsPerHand = 0,
   scoresHistory = []
@@ -61,6 +60,7 @@ export default function ProfileTab({
             <h3 className="text-base sm:text-lg font-black text-white m-0 truncate">
               {userDisplayName}
             </h3>
+            {isDeveloperAccount(currentUser) && <DeveloperBadge size="xs" />}
             <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/90 text-emerald-300 border border-emerald-500/40">
               <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
               <span>Google Verificato</span>

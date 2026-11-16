@@ -1,8 +1,9 @@
 import React from 'react';
 import { Users, Bell, UserPlus, Check, Trash2, Search, Send } from 'lucide-react';
 import { getFriendOnlineStatus } from '../../services/social';
-import { useConfirm } from '../../context/ConfirmContext';
-import DeveloperBadge, { isDeveloperAccount } from '../DeveloperBadge';
+import { useConfirm } from '../../context/confirmContextStore';
+import DeveloperBadge from '../DeveloperBadge';
+import { isDeveloperAccount } from '../../utils/developer';
 
 export default function FriendsTab({
   incomingFriendRequests = [],

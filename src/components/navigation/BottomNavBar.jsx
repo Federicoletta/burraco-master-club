@@ -3,9 +3,7 @@ import {
   Users, 
   Trophy, 
   History, 
-  User, 
-  Flame,
-  Bell
+  User
 } from 'lucide-react';
 
 /**

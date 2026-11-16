@@ -1,10 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { X, Users, ArrowLeftRight, Check, AlertCircle, Sparkles, Wand2, Plus } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Users, ArrowLeftRight, Check, AlertCircle, Wand2, Plus } from 'lucide-react';
 import PlayerAutocompleteInput from './PlayerAutocompleteInput';
-import { useAlert } from '../context/ConfirmContext';
+import { useAlert } from '../context/confirmContextStore';
+import { useModalEscape } from '../hooks/useModalEscape';
 
-export default function EditTeamsModal({
-  isOpen,
+function getInitialTargetField(activeGame, isPairs) {
+  if (!activeGame.team1?.players?.[0]) return 't1P1';
+  if (isPairs && !activeGame.team1?.players?.[1]) return 't1P2';
+  if (!activeGame.team2?.players?.[0]) return 't2P1';
+  if (isPairs && !activeGame.team2?.players?.[1]) return 't2P2';
+  return 't1P1';
+}
+
+function EditTeamsModalContent({
   onClose,
   activeGame,
   tablePlayers = [],
@@ -15,47 +23,21 @@ export default function EditTeamsModal({
   const isTrio = activeGame?.mode === 'trio';
   const isPairs = !isTrio && (activeGame?.mode === 'pairs' || ((activeGame?.team1?.players?.length || 0) > 1));
 
-  const [t1Name, setT1Name] = useState('');
-  const [t1P1, setT1P1] = useState('');
-  const [t1P2, setT1P2] = useState('');
+  const [t1Name, setT1Name] = useState(() => activeGame.team1?.name || (isTrio ? 'Giocatore 1' : 'Coppia 1'));
+  const [t1P1, setT1P1] = useState(() => activeGame.team1?.players?.[0] || '');
+  const [t1P2, setT1P2] = useState(() => activeGame.team1?.players?.[1] || '');
 
-  const [t2Name, setT2Name] = useState('');
-  const [t2P1, setT2P1] = useState('');
-  const [t2P2, setT2P2] = useState('');
+  const [t2Name, setT2Name] = useState(() => activeGame.team2?.name || (isTrio ? 'Giocatore 2' : 'Coppia 2'));
+  const [t2P1, setT2P1] = useState(() => activeGame.team2?.players?.[0] || '');
+  const [t2P2, setT2P2] = useState(() => activeGame.team2?.players?.[1] || '');
 
-  const [t3Name, setT3Name] = useState('');
-  const [t3P1, setT3P1] = useState('');
+  const [t3Name, setT3Name] = useState(() => (isTrio ? (activeGame.team3?.name || 'Giocatore 3') : ''));
+  const [t3P1, setT3P1] = useState(() => (isTrio ? (activeGame.team3?.players?.[0] || '') : ''));
 
   // Campo attualmente selezionato per l'inserimento rapido con un tocco
-  const [activeTargetField, setActiveTargetField] = useState('t1P1');
+  const [activeTargetField, setActiveTargetField] = useState(() => getInitialTargetField(activeGame, isPairs));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const customAlert = useAlert();
-
-  // Sincronizza lo stato ogni volta che il modale si apre o activeGame cambia
-  useEffect(() => {
-    setIsSubmitting(false);
-    if (activeGame && isOpen) {
-      setT1Name(activeGame.team1?.name || (isTrio ? 'Giocatore 1' : 'Coppia 1'));
-      setT1P1(activeGame.team1?.players?.[0] || '');
-      setT1P2(activeGame.team1?.players?.[1] || '');
-
-      setT2Name(activeGame.team2?.name || (isTrio ? 'Giocatore 2' : 'Coppia 2'));
-      setT2P1(activeGame.team2?.players?.[0] || '');
-      setT2P2(activeGame.team2?.players?.[1] || '');
-
-      if (isTrio) {
-        setT3Name(activeGame.team3?.name || 'Giocatore 3');
-        setT3P1(activeGame.team3?.players?.[0] || '');
-      }
-
-      // Seleziona il primo campo vuoto, oppure 't1P1'
-      if (!activeGame.team1?.players?.[0]) setActiveTargetField('t1P1');
-      else if (isPairs && !activeGame.team1?.players?.[1]) setActiveTargetField('t1P2');
-      else if (!activeGame.team2?.players?.[0]) setActiveTargetField('t2P1');
-      else if (isPairs && !activeGame.team2?.players?.[1]) setActiveTargetField('t2P2');
-      else setActiveTargetField('t1P1');
-    }
-  }, [activeGame, isOpen, isTrio, isPairs]);
 
   // 1. Giocatori Online al Tavolo (Massima priorità!)
   const onlineTablePlayers = useMemo(() => {
@@ -142,8 +124,6 @@ export default function EditTeamsModal({
     if (t3P1.trim()) map[t3P1.trim().toLowerCase()] = 'Sq. 3';
     return map;
   }, [t1P1, t1P2, t2P1, t2P2, t3P1]);
-
-  if (!isOpen || !activeGame) return null;
 
   // Inverte le due formazioni complete (Squadra 1 <-> Squadra 2)
   const handleSwapTeams = () => {
@@ -280,7 +260,13 @@ export default function EditTeamsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modifica squadre e giocatori"
+    >
       <datalist id="burraco-known-players">
         {allKnownPlayerNames.map(name => (
           <option key={name} value={name} />
@@ -292,6 +278,7 @@ export default function EditTeamsModal({
         style={{
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)'
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         
         {/* Header Modale */}
@@ -729,4 +716,12 @@ export default function EditTeamsModal({
       </div>
     </div>
   );
+}
+
+export default function EditTeamsModal(props) {
+  useModalEscape(props.isOpen, props.onClose);
+
+  if (!props.isOpen || !props.activeGame) return null;
+
+  return <EditTeamsModalContent key={props.activeGame.id} {...props} />;
 }

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { useAlert, useConfirm } from '../context/ConfirmContext';
+import { useAlert, useConfirm } from '../context/confirmContextStore';
+import { useModalEscape } from '../hooks/useModalEscape';
 import { 
   X, 
   History, 
@@ -52,6 +53,7 @@ export default function HistoryModal({
   const fileInputRef = useRef(null);
   const customAlert = useAlert();
   const customConfirm = useConfirm();
+  useModalEscape(Boolean(isOpen && !isPage), onClose);
 
   const handleDeleteGameWithConfirm = async (game) => {
     if (!game || !onDeleteGame) return;
@@ -160,7 +162,10 @@ export default function HistoryModal({
   if (!isOpen) return null;
 
   const cardContent = (
-    <div className={`relative w-full ${isPage ? 'max-w-3xl mx-auto my-0' : 'max-w-2xl my-4'} felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200`}>
+    <div
+      className={`relative w-full ${isPage ? 'max-w-3xl mx-auto my-0' : 'max-w-2xl my-4'} felt-card rounded-3xl border border-amber-500/40 p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200`}
+      onClick={isPage ? undefined : (e) => e.stopPropagation()}
+    >
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-emerald-700/50">
@@ -637,7 +642,13 @@ export default function HistoryModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Archivio partite"
+    >
       {cardContent}
     </div>
   );
