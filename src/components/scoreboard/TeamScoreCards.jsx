@@ -22,22 +22,23 @@ export default function TeamScoreCards({
     <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'md:grid-cols-2'} gap-2.5 sm:gap-3.5`}>
       
       {/* CARD SQUADRA 1 (TEMA ORO / AMBRA) */}
-      <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-amber-400 felt-card transition-all duration-300 ${
+      <div className={`relative flex flex-col justify-between min-w-0 overflow-hidden p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-amber-400 felt-card transition-all duration-300 ${
         leader === 'team1' 
           ? 'border-amber-400/80 ring-2 ring-amber-400/30 shadow-xl shadow-amber-950/30' 
           : 'hover:border-amber-500/40 shadow-md'
       }`}>
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="text-sm text-amber-300">♦</span> {activeGame.team1?.name || 'Squadra 1'}
+        <div className="flex items-start justify-between gap-2 mb-1.5 min-w-0">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-1.5 min-w-0">
+              <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-start gap-1.5 min-w-0 break-words">
+                <span className="text-sm text-amber-300 shrink-0 leading-none mt-0.5">♦</span>
+                <span className="min-w-0 break-words">{activeGame.team1?.name || 'Squadra 1'}</span>
               </span>
               {onOpenEditTeams && (
                 <button
                   type="button"
                   onClick={onOpenEditTeams}
-                  className="p-1 rounded-md text-emerald-400/70 hover:text-amber-300 hover:bg-emerald-900/60 transition-colors cursor-pointer"
+                  className="p-1 rounded-md text-emerald-400/70 hover:text-amber-300 hover:bg-emerald-900/60 transition-colors cursor-pointer shrink-0"
                   title="Modifica squadra e giocatori"
                 >
                   <Edit2 className="w-3 h-3" />
@@ -103,22 +104,23 @@ export default function TeamScoreCards({
       </div>
 
       {/* CARD SQUADRA 2 (TEMA BLU NOTTE / ZAFFIRO) */}
-      <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-blue-400 felt-card transition-all duration-300 ${
+      <div className={`relative flex flex-col justify-between min-w-0 overflow-hidden p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-blue-400 felt-card transition-all duration-300 ${
         leader === 'team2' 
           ? 'border-blue-400/80 ring-2 ring-blue-400/30 shadow-xl shadow-blue-950/30' 
           : 'hover:border-blue-500/40 shadow-md'
       }`}>
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="text-sm text-blue-400">♠</span> {activeGame.team2?.name || 'Squadra 2'}
+        <div className="flex items-start justify-between gap-2 mb-1.5 min-w-0">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-1.5 min-w-0">
+              <span className="text-xs font-black text-blue-300 uppercase tracking-wider flex items-start gap-1.5 min-w-0 break-words">
+                <span className="text-sm text-blue-400 shrink-0 leading-none mt-0.5">♠</span>
+                <span className="min-w-0 break-words">{activeGame.team2?.name || 'Squadra 2'}</span>
               </span>
               {onOpenEditTeams && (
                 <button
                   type="button"
                   onClick={onOpenEditTeams}
-                  className="p-1 rounded-md text-emerald-400/70 hover:text-blue-300 hover:bg-emerald-900/60 transition-colors cursor-pointer"
+                  className="p-1 rounded-md text-emerald-400/70 hover:text-blue-300 hover:bg-emerald-900/60 transition-colors cursor-pointer shrink-0"
                   title="Modifica squadra e giocatori"
                 >
                   <Edit2 className="w-3 h-3" />
@@ -185,22 +187,23 @@ export default function TeamScoreCards({
 
       {/* CARD SQUADRA 3 (TEMA RUBINO / ROSA - SOLO SE A 3) */}
       {isTrio && (
-        <div className={`relative p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-rose-400 felt-card transition-all duration-300 ${
+        <div className={`relative flex flex-col justify-between min-w-0 overflow-hidden p-3.5 sm:p-4 rounded-2xl border border-t-4 border-t-rose-400 felt-card transition-all duration-300 ${
           leader === 'team3' 
             ? 'border-rose-400/80 ring-2 ring-rose-400/30 shadow-xl shadow-rose-950/30' 
             : 'hover:border-rose-500/40 shadow-md'
         }`}>
-          <div className="flex items-start justify-between gap-2 mb-1.5">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="text-sm text-rose-400">♥</span> {activeGame.team3?.name || 'Giocatore 3'}
+          <div className="flex items-start justify-between gap-2 mb-1.5 min-w-0">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start gap-1.5 min-w-0">
+                <span className="text-xs font-black text-rose-300 uppercase tracking-wider flex items-start gap-1.5 min-w-0 break-words">
+                  <span className="text-sm text-rose-400 shrink-0 leading-none mt-0.5">♥</span>
+                  <span className="min-w-0 break-words">{activeGame.team3?.name || 'Giocatore 3'}</span>
                 </span>
                 {onOpenEditTeams && (
                   <button
                     type="button"
                     onClick={onOpenEditTeams}
-                    className="p-1 rounded-md text-emerald-400/70 hover:text-rose-300 hover:bg-emerald-900/60 transition-colors cursor-pointer"
+                    className="p-1 rounded-md text-emerald-400/70 hover:text-rose-300 hover:bg-emerald-900/60 transition-colors cursor-pointer shrink-0"
                     title="Modifica squadra e giocatori"
                   >
                     <Edit2 className="w-3 h-3" />

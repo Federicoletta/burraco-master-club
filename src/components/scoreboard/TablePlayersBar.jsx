@@ -105,18 +105,21 @@ export default function TablePlayersBar({
   const shortPin = rawDigits.length >= 6 ? rawDigits.slice(-6) : (activeGame?.id || '').slice(-6).toUpperCase();
 
   return (
-    <div className="p-2.5 sm:p-3.5 rounded-2xl felt-card shadow-lg">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 mb-2 border-b border-white/10">
-        <div className="flex items-start sm:items-center gap-2 min-w-0">
-          <span className="relative flex h-2.5 w-2.5 shrink-0 mt-1 sm:mt-0">
+    <div className="p-2.5 sm:p-3.5 rounded-2xl felt-card shadow-lg min-w-0 overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 pb-2 mb-2 border-b border-white/10 min-w-0">
+        <div className="flex items-start gap-2 min-w-0 flex-1">
+          <span className="relative flex h-2.5 w-2.5 shrink-0 mt-1.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-sm"></span>
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <h3 className="text-xs sm:text-sm font-black text-white m-0 flex items-center gap-1.5 uppercase tracking-wider">
-                <span>Tavolo:</span>
-                <span className="text-amber-300 normal-case font-bold truncate">
+            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+              <h3 className="text-xs sm:text-sm font-black text-white m-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 uppercase tracking-wider min-w-0 max-w-full">
+                <span className="shrink-0">Tavolo:</span>
+                <span
+                  className="text-amber-300 normal-case font-bold min-w-0 break-words"
+                  title={`${activeGame.team1?.name || 'Squadra 1'} vs ${activeGame.team2?.name || 'Squadra 2'}${isTrio && activeGame.team3?.name ? ` vs ${activeGame.team3.name}` : ''}`}
+                >
                   {activeGame.team1?.name || 'Squadra 1'} vs {activeGame.team2?.name || 'Squadra 2'}
                   {isTrio && activeGame.team3?.name ? ` vs ${activeGame.team3.name}` : ''}
                 </span>
@@ -125,7 +128,7 @@ export default function TablePlayersBar({
                 <button
                   type="button"
                   onClick={onShareGame}
-                  className="px-2 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 text-[10px] font-mono font-black cursor-pointer transition-all flex items-center gap-1 shadow-xs"
+                  className="px-2 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 text-[10px] font-mono font-black cursor-pointer transition-all flex items-center gap-1 shadow-xs shrink-0 whitespace-nowrap"
                   title="PIN rapido per unirsi al tavolo (clicca per QR Code)"
                 >
                   <span className="text-white/60">PIN:</span>
@@ -134,19 +137,19 @@ export default function TablePlayersBar({
               )}
               {activeGame?.ledgerChain && activeGame.ledgerChain.length > 0 && (
                 <span
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shrink-0 whitespace-nowrap"
                   title={`Tavolo Distribuito CRDT: ${activeGame.ledgerChain.length} blocchi certificati`}
                 >
                   <span>⛓️ #{activeGame.ledgerChain.length}</span>
                 </span>
               )}
               {isCloudJoined && (
-                <span className="px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shrink-0 whitespace-nowrap">
                   Collegato
                 </span>
               )}
               {displayTablePlayers.length > 0 && (
-                <span className="text-emerald-400 font-mono text-[10px] sm:text-[11px] font-bold">
+                <span className="text-emerald-400 font-mono text-[10px] sm:text-[11px] font-bold shrink-0 whitespace-nowrap">
                   ({displayTablePlayers.length} {displayTablePlayers.length === 1 ? 'collegato' : 'collegati'})
                 </span>
               )}
@@ -231,7 +234,7 @@ export default function TablePlayersBar({
             return (
               <div
                 key={playerKey}
-                className={`p-1.5 sm:p-2.5 rounded-xl border flex items-center justify-between gap-1.5 sm:gap-2 transition-all ${
+                className={`min-w-0 overflow-hidden p-1.5 sm:p-2.5 rounded-xl border flex items-center justify-between gap-1.5 sm:gap-2 transition-all ${
                   isMe
                     ? 'bg-white/10 border-amber-400/40'
                     : isFriend
