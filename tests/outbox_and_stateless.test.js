@@ -3,7 +3,6 @@ import {
   addToOutboxQueue,
   getOutboxQueue,
   removeFromOutboxQueue,
-  clearOutboxQueue
 } from '../src/utils/storage';
 import {
   encodeGameToUrlToken,

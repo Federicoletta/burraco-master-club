@@ -61,11 +61,17 @@ export default function TournamentModal({
   const selectedRoundFilter = roundState.base === baseRoundFilter ? roundState.value : baseRoundFilter;
   const setSelectedRoundFilter = (nextFilter) => setRoundState({ base: baseRoundFilter, value: nextFilter });
 
-  // 'auto' | 'hub' | 'detail' | 'create'
-  const [requestedView, setRequestedView] = useState('auto');
+  // 'hub' (default dashboard) | 'detail' | 'create' | 'historical'
+  const [requestedView, setRequestedView] = useState(() => (initialTab && initialTab !== 'hub' && activeTournament ? 'detail' : 'hub'));
   const [localHistory, setLocalHistory] = useState(() => getTournamentsHistory());
   const tournamentsHistory = externalHistory ?? localHistory;
   const [viewingHistoricalTournament, setViewingHistoricalTournament] = useState(null);
+
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
+  if (prevInitialTab !== initialTab) {
+    setPrevInitialTab(initialTab);
+    setRequestedView(initialTab === 'hub' ? 'hub' : activeTournament ? 'detail' : 'hub');
+  }
 
   // Stato modale pausa / modifica nota
   const [pauseModalState, setPauseModalState] = useState({
@@ -92,18 +98,17 @@ export default function TournamentModal({
   const [manualScore2, setManualScore2] = useState('');
   const [activePlayerField, setActivePlayerField] = useState({ teamIndex: 0, playerSlot: 1 });
 
-  const hasPausedOrHistory = pausedTournaments.length > 0 || tournamentsHistory.length > 0;
   const effectiveView = viewingHistoricalTournament
     ? 'historical'
     : requestedView === 'create'
       ? 'create'
-      : requestedView === 'hub'
-        ? 'hub'
-        : activeTournament
-          ? 'detail'
-          : hasPausedOrHistory
-            ? 'hub'
-            : 'create';
+      : requestedView === 'detail' && activeTournament
+        ? 'detail'
+        : requestedView === 'hub'
+          ? 'hub'
+          : initialTab && initialTab !== 'hub' && activeTournament
+            ? 'detail'
+            : 'hub';
 
   const handleAssignPlayer = useCallback((playerName) => {
     if (!playerName) return;
@@ -195,6 +200,16 @@ export default function TournamentModal({
     });
     setActivePlayerField({ teamIndex: 0, playerSlot: 1 });
   }, []);
+
+  const handleStartWithPreset = useCallback((preset = null) => {
+    if (preset) {
+      if (preset.name) setTournamentName(preset.name);
+      if (preset.targetScore) setTargetScore(preset.targetScore);
+      if (preset.scoringSystem) setScoringSystem(preset.scoringSystem);
+      if (preset.numTeams) handleNumTeamsChange(preset.numTeams);
+    }
+    setRequestedView('create');
+  }, [handleNumTeamsChange]);
 
   const tournamentRounds = activeTournament?.rounds;
   const tournamentTeams = activeTournament?.teams;
@@ -437,7 +452,7 @@ export default function TournamentModal({
     : effectiveView === 'create'
       ? 'Nuovo Torneo del Club'
       : effectiveView === 'hub'
-        ? 'Hub Tornei del Club'
+        ? 'Dashboard Tornei'
         : activeTournament?.name || 'Torneo';
 
   const headerSubtitle = effectiveView === 'historical'
@@ -488,6 +503,45 @@ export default function TournamentModal({
             </button>
           )}
 
+          {effectiveView === 'create' && (
+            <button
+              type="button"
+              onClick={() => setRequestedView(activeTournament ? 'detail' : 'hub')}
+              className="min-h-[42px] px-3 rounded-xl club-btn-secondary text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4 club-text-gold" />
+              <span>{activeTournament ? 'Torneo Live' : 'Dashboard'}</span>
+            </button>
+          )}
+
+          {effectiveView === 'hub' && (
+            <>
+              {activeTournament && (
+                <button
+                  type="button"
+                  onClick={() => setRequestedView('detail')}
+                  className="min-h-[42px] px-3 rounded-xl gold-gradient text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-sm"
+                  title="Torna al torneo attualmente in corso"
+                >
+                  <Trophy className="w-4 h-4" />
+                  <span>Torneo Live</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => handleStartWithPreset(null)}
+                className={`min-h-[42px] px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                  activeTournament ? 'club-btn-secondary' : 'gold-gradient font-bold'
+                }`}
+                title="Crea un nuovo torneo"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuovo</span>
+              </button>
+            </>
+          )}
+
           {effectiveView === 'detail' && activeTournament && (
             <>
               <button
@@ -497,7 +551,7 @@ export default function TournamentModal({
                 title="Gestisci tutti i tornei in corso, in pausa e conclusi"
               >
                 <LayoutGrid className="w-4 h-4 club-text-gold" />
-                <span>Hub{pausedTournaments.length > 0 ? ` (${pausedTournaments.length} in pausa)` : ''}</span>
+                <span>Dashboard{pausedTournaments.length > 0 ? ` (${pausedTournaments.length})` : ''}</span>
               </button>
 
               {onPauseTournament && (
@@ -514,7 +568,7 @@ export default function TournamentModal({
 
               <button
                 type="button"
-                onClick={() => setRequestedView('create')}
+                onClick={() => handleStartWithPreset(null)}
                 className="hidden sm:flex min-h-[42px] px-3 rounded-xl club-btn-secondary text-xs font-semibold items-center gap-1.5 cursor-pointer active:scale-95"
                 title="Crea un nuovo torneo (quello attuale resta salvato in pausa)"
               >
@@ -558,7 +612,7 @@ export default function TournamentModal({
           onAssignPlayer={handleAssignPlayer}
           onCreateTournament={handleCreateTournament}
           activeTournament={activeTournament}
-          hasPausedOrHistory={hasPausedOrHistory}
+          hasPausedOrHistory={true}
           onCancelCreating={() => setRequestedView(activeTournament ? 'detail' : 'hub')}
         />
       )}
@@ -580,7 +634,7 @@ export default function TournamentModal({
             pausedTournaments={pausedTournaments}
             tournamentsHistory={tournamentsHistory}
             onOpenActiveTournament={() => setRequestedView('detail')}
-            onStartNewTournament={() => setRequestedView('create')}
+            onStartNewTournament={handleStartWithPreset}
             onRequestPauseTournament={(t) => setPauseModalState({ isOpen: true, tournament: t, mode: 'pause' })}
             onEditPausedMetadata={(t) => setPauseModalState({ isOpen: true, tournament: t, mode: 'edit' })}
             onResumeTournament={handleResumeAndOpen}
@@ -695,7 +749,7 @@ export default function TournamentModal({
                 onUpdateTeams={handleUpdateTeamsInTournament}
                 onPauseTournament={() => setPauseModalState({ isOpen: true, tournament: activeTournament, mode: 'pause' })}
                 onFinishAndCelebrate={() => handleFinishAndCelebrate(activeTournament.id)}
-                onStartNewTournament={() => setRequestedView('create')}
+                onStartNewTournament={handleStartWithPreset}
                 tournamentsHistory={tournamentsHistory}
                 onDeleteHistoricalTournament={handleDeleteHistoricalTournament}
                 onViewHistoricalStandings={(t) => setViewingHistoricalTournament(t)}

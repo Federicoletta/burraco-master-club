@@ -12,13 +12,16 @@ class WakeLockManager {
     this.active = false;
     this.listeners = new Set();
     this.isSupported = typeof navigator !== 'undefined' && 'wakeLock' in navigator;
+    this.nativeFailed = false;
 
     if (typeof window !== 'undefined') {
-      // 1. Al primo tocco dello schermo, attiva il blocco sonno se abilitato
+      // 1. Al primo tocco dello schermo, tenta l'attivazione del blocco sonno se abilitato
       const handleFirstTouch = () => {
         if (this.enabled && !this.active) {
           this.requestLock();
         }
+        window.removeEventListener('pointerdown', handleFirstTouch);
+        window.removeEventListener('touchstart', handleFirstTouch);
       };
       window.addEventListener('pointerdown', handleFirstTouch, { passive: true });
       window.addEventListener('touchstart', handleFirstTouch, { passive: true });
@@ -56,8 +59,8 @@ class WakeLockManager {
     for (const listener of this.listeners) {
       try {
         listener(state);
-      } catch (err) {
-        console.error('Error in wakeLock listener:', err);
+      } catch {
+        // Ignora errori listener isolati
       }
     }
   }
@@ -66,7 +69,8 @@ class WakeLockManager {
     if (!this.enabled) return false;
 
     // Tentativo 1: Screen Wake Lock API nativa (Standard W3C, supportato su iPadOS 16.4+)
-    if (this.isSupported) {
+    // Se ha già fallito per policy iframe o permessi mancanti, usa direttamente il fallback silente
+    if (this.isSupported && !this.nativeFailed) {
       try {
         if (this.sentinel) {
           try {
@@ -92,12 +96,13 @@ class WakeLockManager {
 
         this.notify();
         return true;
-      } catch (err) {
-        console.warn('Wake Lock nativo non riuscito, avvio fallback:', err);
+      } catch {
+        // In iframe o contesti protetti, la richiesta nativa può fallire: disabilita tentativi ripetuti
+        this.nativeFailed = true;
       }
     }
 
-    // Tentativo 2: Fallback tramite micro-video invisibile loop (per Safari iOS legacy)
+    // Tentativo 2: Fallback tramite micro-video invisibile loop (per Safari iOS legacy o iframe)
     this.startVideoFallback();
     return true;
   }
@@ -134,7 +139,7 @@ class WakeLockManager {
             this.notify();
           })
           .catch(() => {
-            // Riproduzione non riuscita (blocco browser prima del tocco utente)
+            // Riproduzione non riuscita prima del tocco utente
           });
       }
     } catch {
@@ -174,6 +179,7 @@ class WakeLockManager {
     }
 
     if (this.enabled) {
+      this.nativeFailed = false;
       this.requestLock();
     } else {
       this.releaseLock();

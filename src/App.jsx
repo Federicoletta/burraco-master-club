@@ -31,7 +31,7 @@ function BurracoAppContent() {
   const [roundToEdit, setRoundToEdit] = useState(null);
   const [currentTheme, setCurrentTheme] = useState(() => getStoredTheme());
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
-  const [tournamentInitialTab, setTournamentInitialTab] = useState('standings');
+  const [tournamentInitialTab, setTournamentInitialTab] = useState('hub');
   const [tournamentInitialRound, setTournamentInitialRound] = useState('all');
   const [activeNavTab, setActiveNavTab] = useState('table'); // 'table' | 'tournament' | 'history' | 'profile'
 

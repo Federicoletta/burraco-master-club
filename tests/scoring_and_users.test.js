@@ -2,14 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateCardsPoints,
   calculateTeamRoundScore,
-  HONOR_POINTS,
   CARD_VALUES,
 } from '../src/constants/burraco';
 import {
   calculatePlayerStats,
   computeUserCareerStats,
 } from '../src/utils/storage';
-import { sanitizeForFirestore } from '../src/services/firebase';
 
 describe('Motore di Calcolo Punteggi - Scoring Engine', () => {
   it('calcola correttamente i valori individuali di tutte le carte', () => {

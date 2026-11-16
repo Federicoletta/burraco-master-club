@@ -5,8 +5,6 @@ import {
   addToOutboxQueue,
   getOutboxQueue,
   removeFromOutboxQueue,
-  archiveCurrentGame,
-  getGamesHistory,
 } from '../src/utils/storage';
 import {
   encodeGameToUrlToken,

@@ -213,7 +213,7 @@ describe('Game Engine - End-to-End Match Lifecycle Simulation', () => {
     };
 
     let tournamentUpdated = false;
-    const handleUpdateTournament = (t) => {
+    const handleUpdateTournament = (_t) => {
       tournamentUpdated = true;
     };
 
