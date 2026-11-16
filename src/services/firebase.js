@@ -26,13 +26,13 @@ import {
 
 // Configurazione Firebase del progetto dedicato "burraco-score-fedec"
 const firebaseConfig = {
-  projectId: "burraco-score-fedec",
-  appId: "1:453081841776:web:0e44d414aad67a818b34b5",
-  storageBucket: "burraco-score-fedec.firebasestorage.app",
-  apiKey: "AIzaSyAto2ITLoaMtUvRkanYacdK1yrqLm48J68",
-  authDomain: "burraco-score-fedec.firebaseapp.com",
-  messagingSenderId: "453081841776",
-  projectNumber: "453081841776",
+  projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || "burraco-score-fedec",
+  appId: import.meta.env?.VITE_FIREBASE_APP_ID || "1:453081841776:web:0e44d414aad67a818b34b5",
+  storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || "burraco-score-fedec.firebasestorage.app",
+  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || "AIzaSyAto2ITLoaMtUvRkanYacdK1yrqLm48J68",
+  authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || "burraco-score-fedec.firebaseapp.com",
+  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "453081841776",
+  projectNumber: import.meta.env?.VITE_FIREBASE_PROJECT_NUMBER || "453081841776",
 };
 
 let app;
