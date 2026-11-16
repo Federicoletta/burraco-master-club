@@ -8,33 +8,57 @@ on:
     branches:
       - main
 
+# Permessi minimi richiesti per GitHub Actions
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: ⚙️ Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: npm ci
 
-      - name: Run unit & integration tests
+      - name: 🧪 Run unit & integration tests
         run: npm run test
 
-      - name: Build production bundle
+      - name: 🏗️ Build production bundle
         run: npm run build
+        env:
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID || 'burraco-score-fedec' }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID || '1:453081841776:web:0e44d414aad67a818b34b5' }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET || 'burraco-score-fedec.firebasestorage.app' }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || 'AIzaSyAto2ITLoaMtUvRkanYacdK1yrqLm48J68' }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN || 'burraco-score-fedec.firebaseapp.com' }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID || '453081841776' }}
+          VITE_FIREBASE_PROJECT_NUMBER: ${{ secrets.VITE_FIREBASE_PROJECT_NUMBER || '453081841776' }}
 
-      - name: Deploy to Firebase Hosting
+      - name: 🔐 Authenticate to Google Cloud (for Firestore rules)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT || secrets.FIREBASE_SERVICE_ACCOUNT_BURRACO_SCORE_FEDEC }}
+
+      - name: 🛡️ Deploy Firestore Rules
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npx firebase-tools deploy --only firestore:rules --project burraco-score-fedec
+
+      - name: 🚀 Deploy to Firebase Hosting
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT || secrets.FIREBASE_SERVICE_ACCOUNT_BURRACO_SCORE_FEDEC }}
           channelId: live
           projectId: burraco-score-fedec
