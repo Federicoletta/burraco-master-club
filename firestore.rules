@@ -41,7 +41,6 @@ service cloud.firestore {
       return isAuthenticated() &&
              request.auth.token.email != null &&
              request.auth.token.email_verified == true &&
-             emailVal is string &&
              emailVal == request.auth.token.email.lower();
     }
 
@@ -339,7 +338,7 @@ service cloud.firestore {
       allow get: if isValidId(gameId);
       allow list: if isAuthenticated() &&
                      (resource.data.ownerUid == request.auth.uid ||
-                      (resource.data.playerUids is list && request.auth.uid in resource.data.playerUids));
+                      request.auth.uid in resource.data.playerUids);
       allow create: if isValidId(gameId) &&
                        isValidGame(incoming(), gameId) &&
                        (!('ownerUid' in incoming()) || incoming().ownerUid == null || (isAuthenticated() && incoming().ownerUid == request.auth.uid));
@@ -422,7 +421,7 @@ service cloud.firestore {
     // Public Club Directory (Zero PII - displayName, photoURL, lastSeen, careerStats only)
     match /burraco_public_profiles/{userId} {
       allow get: if isAuthenticated() && isValidId(userId);
-      allow list: if isAuthenticated() && resource.data.uid is string;
+      allow list: if isAuthenticated();
       allow create: if isAuthenticated() &&
                        isValidId(userId) &&
                        request.auth.uid == userId &&
@@ -483,9 +482,9 @@ service cloud.firestore {
     match /burraco_friends/{friendshipId} {
       allow get: if isAuthenticated() &&
                     isValidId(friendshipId) &&
-                    (existing().users is list && request.auth.uid in existing().users);
+                    request.auth.uid in existing().users;
       allow list: if isAuthenticated() &&
-                     (resource.data.users is list && request.auth.uid in resource.data.users);
+                     request.auth.uid in resource.data.users;
       allow create: if isAuthenticated() &&
                        isValidId(friendshipId) &&
                        isValidFriendship(incoming(), friendshipId) &&

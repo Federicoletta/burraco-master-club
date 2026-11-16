@@ -302,17 +302,17 @@ export function useBurracoGame({
       };
     }
 
-    const unsubHistory = subscribeToCloudGamesHistory({ uid: currentUid }, (cloudHistory) => {
+    const unsubHistory = subscribeToCloudGamesHistory({ uid: currentUid }, (cloudHistory, meta = {}) => {
       if (cancelled || !Array.isArray(cloudHistory)) return;
       const localGames = getGamesHistory(userKey);
       const outboxIds = new Set((getOutboxQueue() || []).map(g => g?.id).filter(Boolean));
       const activeId = activeGameRef.current?.id;
 
       const map = new Map();
-      // Conserva localmente solo partite ancora in coda offline, in corso di sync, o attive sul tavolo
+      // Conserva localmente le partite se la risposta cloud è parziale, in coda offline, in sync, o attiva
       localGames.forEach(g => {
         if (!g?.id) return;
-        if (outboxIds.has(g.id) || pendingSyncIdsRef.current.has(g.id) || g.id === activeId) {
+        if (meta?.isPartial || outboxIds.has(g.id) || pendingSyncIdsRef.current.has(g.id) || g.id === activeId) {
           map.set(g.id, g);
         }
       });

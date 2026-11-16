@@ -674,7 +674,7 @@ export async function deleteGameFromCloud(gameId) {
   }
 }
 
-function subscribeWithOrderFallback(orderedQ, fallbackQ, onData, path) {
+function subscribeWithOrderFallback(orderedQ, fallbackQ, onData, path, onError = null) {
   let activeUnsub = () => {};
   let unsubscribed = false;
 
@@ -685,6 +685,9 @@ function subscribeWithOrderFallback(orderedQ, fallbackQ, onData, path) {
         activeUnsub();
         attach(fallbackQ, false);
         return;
+      }
+      if (typeof onError === 'function') {
+        onError(err);
       }
       if (isPermissionOrQuotaError(err)) {
         handleFirestoreError(err, OperationType.LIST, path);
@@ -708,15 +711,22 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
   if (!db) return () => {};
   try {
     if (!currentUser?.uid) {
-      if (onUpdate) onUpdate([]);
+      if (onUpdate) onUpdate([], { isPartial: false });
       return () => {};
     }
 
     const colRef = collection(db, 'burraco_games');
     let ownerMap = new Map();
     let partMap = new Map();
+    let ownerReady = false;
+    let partReady = false;
+    let ownerFailed = false;
+    let partFailed = false;
 
     const emitMerged = () => {
+      if ((!ownerReady && !ownerFailed) || (!partReady && !partFailed)) return;
+      if (!ownerReady && !partReady) return;
+
       const merged = new Map();
       partMap.forEach((val, key) => merged.set(key, val));
       ownerMap.forEach((val, key) => merged.set(key, val));
@@ -724,7 +734,7 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
       const list = Array.from(merged.values())
         .filter(data => data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0) || (data.createdAt && (Date.now() - new Date(data.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000))))
         .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      if (onUpdate) onUpdate(list);
+      if (onUpdate) onUpdate(list, { isPartial: ownerFailed || partFailed });
     };
 
     const unsubOwner = subscribeWithOrderFallback(
@@ -734,9 +744,15 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
         const nextOwner = new Map();
         snapshot.forEach(docSnap => nextOwner.set(docSnap.id, docSnap.data()));
         ownerMap = nextOwner;
+        ownerReady = true;
+        ownerFailed = false;
         emitMerged();
       },
-      'burraco_games'
+      'burraco_games',
+      () => {
+        ownerFailed = true;
+        emitMerged();
+      }
     );
 
     const unsubPart = subscribeWithOrderFallback(
@@ -746,9 +762,15 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
         const nextPart = new Map();
         snapshot.forEach(docSnap => nextPart.set(docSnap.id, docSnap.data()));
         partMap = nextPart;
+        partReady = true;
+        partFailed = false;
         emitMerged();
       },
-      'burraco_games'
+      'burraco_games',
+      () => {
+        partFailed = true;
+        emitMerged();
+      }
     );
 
     return () => {
