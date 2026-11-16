@@ -1,16 +1,81 @@
-# React + Vite
+# ♣ Burraco Master Club
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+PWA professionale, moderna ed elegante per il segnapunti e la gestione delle partite di **Burraco** (a Coppie 2v2, Singolo 1v1, A Tre), tornei federali, statistiche carriera e sincronizzazione cloud in tempo reale.
 
-Currently, two official plugins are available:
+Disponibile online: **[https://burraco-score-fedec.web.app](https://burraco-score-fedec.web.app)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## ✨ Funzionalità Principali
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* **🎴 Calcolatore Smazzata Intelligente**:
+  * Inserimento rapido di carte, burrachi (puliti, semipuliti da 150 pt, sporchi), pozzetti e chiusura.
+  * Tastierino ergonomico integrato con incrementi rapidi (+5, +10, +20, +50, +100).
+  * Modalità affiancata (Side-by-Side) ottimizzata per iPad e tablet.
+  * Scontrino riepilogativo trasparente della mano.
 
-## Expanding the Oxlint configuration
+* **🪑 Tavolo da Gioco Virtuale (Dark Luxury Felt)**:
+  * Pianta dall'alto realistica in panno verde smeraldo con finiture dorate e poltrone tattili.
+  * Assegnazione immediata dei giocatori al tavolo con avanzamento automatico.
+  * Funzioni tattiche al centro del tavolo: *Sorteggia Posti*, *Scambia Partner*, *Inverti Squadre*.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+* **👥 Profilo Club & Statistiche Carriera**:
+  * Tracciamento partite giocate, vinte, perse e percentuale di vittoria (Win Rate).
+  * Record di punti personali e trofei sbloccati.
+  * Rubrica amici Google e gestione amici preferiti con stella ⭐.
+
+* **🏆 Modalità Torneo a Gironi & Eliminazione Diretta**:
+  * Gestione tabellone completo con avanzamento turni e calcolo differenziale punti.
+
+* **🛡️ Affidabilità & Architettura Offline-First**:
+  * Sincronizzazione automatica su Google Cloud Firebase Firestore.
+  * Coda transazionale Outbox per giocare anche in caso di disconnessione o assenza di segnale.
+  * Paracadute Stateless (condivisione stato partita via URL compresso e token crittografato).
+
+---
+
+## 🛠️ Stack Tecnologico
+
+* **Frontend**: [React 19](https://react.dev/), [Vite](https://vite.dev/), [Tailwind CSS](https://tailwindcss.com/)
+* **Icone & UI**: [Lucide React](https://lucide.dev/), Canvas Confetti
+* **Audio**: Web Audio API con sintesi sonora procedurale offline
+* **Database & Auth**: [Google Firebase](https://firebase.google.com/) (Firestore & Authentication)
+* **Testing**: [Vitest](https://vitest.dev/) (suite completa di 87 unit & integration test)
+
+---
+
+## 🚀 Avvio Rapido Locale
+
+### Prerequisiti
+* [Node.js](https://nodejs.org/) (versione 18 o superiore raccomandata)
+* npm o pnpm
+
+### Installazione
+```bash
+# Clona il repository
+git clone https://github.com/Federicoletta/burraco-master-club.git
+cd burraco-master-club
+
+# Installa le dipendenze
+npm install
+
+# Configura le variabili d'ambiente (opzionale se usi il progetto predefinito)
+cp .env.example .env
+
+# Avvia il server di sviluppo locale
+npm run dev
+```
+
+### Test & Build
+```bash
+# Esegui la suite di test
+npm run test
+
+# Compila il bundle di produzione
+npm run build
+```
+
+---
+
+## 📄 Licenza
+Progetto ad uso personale e per club di Burraco. Tutti i diritti riservati.
