@@ -34,6 +34,80 @@ import {
   EVENT_TYPES
 } from '../utils/ledger';
 
+function computeTeamTotalsAndWinner(rounds, mode, targetScore = 2505, forceWinner = false) {
+  const isTrio = mode === 'trio';
+  let t1Total = 0;
+  let t2Total = 0;
+  let t3Total = 0;
+
+  (rounds || []).forEach(r => {
+    t1Total += Number(r?.team1Score) || 0;
+    t2Total += Number(r?.team2Score) || 0;
+    t3Total += Number(r?.team3Score) || 0;
+  });
+
+  const target = Number(targetScore) || 2505;
+  const isTargetReached = isTrio
+    ? (t1Total >= target || t2Total >= target || t3Total >= target)
+    : (t1Total >= target || t2Total >= target);
+
+  let winner = null;
+  if (isTargetReached || forceWinner) {
+    if (isTrio) {
+      if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
+      else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
+      else winner = 'team3';
+    } else {
+      winner = t1Total >= t2Total ? 'team1' : 'team2';
+    }
+  }
+
+  return { t1Total, t2Total, t3Total, isTargetReached, winner };
+}
+
+function appendLedgerEvent(game, eventType, payload, author) {
+  let chain = null;
+  try {
+    chain = migrateLegacyGameToLedger(game, author);
+    if (chain) {
+      chain = appendBlock(chain, eventType, payload, author);
+    }
+  } catch (chainErr) {
+    console.warn(`Avviso registrazione blocco ledger (${eventType}):`, chainErr);
+  }
+  return {
+    ledgerChain: chain || game?.ledgerChain || null,
+    ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (game?.ledgerLastHash || null),
+  };
+}
+
+function upsertHistoryGame(userKey, game, setGamesHistory) {
+  try {
+    const history = getGamesHistory(userKey);
+    const hIndex = history.findIndex(g => g?.id === game.id);
+    if (hIndex >= 0) {
+      const newHistory = [...history];
+      newHistory[hIndex] = game;
+      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
+      setGamesHistory(newHistory);
+      return newHistory;
+    }
+  } catch (histErr) {
+    console.warn('Errore salvataggio storico locale:', histErr);
+  }
+  return null;
+}
+
+function updateCareerStatsInBackground(user, updatedHistory, targetGame) {
+  if (!user?.uid) return;
+  const stats = computeUserCareerStats(user, updatedHistory, targetGame);
+  if (stats) {
+    updateUserCareerStats(user.uid, stats).catch(err => {
+      console.warn('Avviso aggiornamento careerStats cloud:', err);
+    });
+  }
+}
+
 export function useBurracoGame({
   currentUser,
   friendsList = [],
@@ -61,8 +135,39 @@ export function useBurracoGame({
   const [tablePlayers, setTablePlayers] = useState([]);
   const [newGameInitialSetup, setNewGameInitialSetup] = useState(null);
   const [syncStatus, setSyncStatus] = useState(() => (typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced'));
+
   const lastFetchedRosterKeyRef = useRef('');
   const offlineEventsCountRef = useRef(0);
+  const pendingSyncIdsRef = useRef(new Set());
+
+  const currentUserRef = useRef(currentUser);
+  const friendsListRef = useRef(friendsList);
+  const activeTournamentRef = useRef(activeTournament);
+  const handleUpdateTournamentRef = useRef(handleUpdateTournament);
+  const onCelebrateRef = useRef(onCelebrate);
+  const activeGameRef = useRef(activeGame);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+  useEffect(() => {
+    friendsListRef.current = friendsList;
+  }, [friendsList]);
+  useEffect(() => {
+    activeTournamentRef.current = activeTournament;
+  }, [activeTournament]);
+  useEffect(() => {
+    handleUpdateTournamentRef.current = handleUpdateTournament;
+  }, [handleUpdateTournament]);
+  useEffect(() => {
+    onCelebrateRef.current = onCelebrate;
+  }, [onCelebrate]);
+  useEffect(() => {
+    activeGameRef.current = activeGame;
+  }, [activeGame]);
+
+  const currentUid = currentUser?.uid || null;
+  const currentEmail = (currentUser?.email || '').trim().toLowerCase();
 
   const flushOutboxQueue = useCallback(async () => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
@@ -72,7 +177,7 @@ export function useBurracoGame({
     setSyncStatus('syncing');
     for (const item of queue) {
       try {
-        const ok = await syncGameToCloud(item, currentUser, true);
+        const ok = await syncGameToCloud(item, currentUserRef.current, true);
         if (ok) {
           removeFromOutboxQueue(item.id);
         }
@@ -82,7 +187,7 @@ export function useBurracoGame({
     }
     const remaining = getOutboxQueue();
     setSyncStatus(remaining.length === 0 ? 'synced' : 'offline');
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -111,14 +216,17 @@ export function useBurracoGame({
   }, [flushOutboxQueue]);
 
   const syncWithStatus = useCallback(async (gameToSync, force = false) => {
-    if (!gameToSync) return false;
+    if (!gameToSync?.id) return false;
     setSyncStatus('syncing');
+    pendingSyncIdsRef.current.add(gameToSync.id);
     let ok = false;
     try {
-      ok = await syncGameToCloud(gameToSync, currentUser, force);
+      ok = await syncGameToCloud(gameToSync, currentUserRef.current, force);
     } catch (err) {
       console.warn('[syncWithStatus] Errore sincronizzazione cloud:', err?.message || err);
       ok = false;
+    } finally {
+      pendingSyncIdsRef.current.delete(gameToSync.id);
     }
     if (!ok) {
       addToOutboxQueue(gameToSync);
@@ -127,7 +235,7 @@ export function useBurracoGame({
     }
     setSyncStatus(ok ? 'synced' : 'offline');
     return ok;
-  }, [currentUser]);
+  }, []);
 
   // Giocatori ricavati dinamicamente dallo storico partite e dalla partita in corso
   const recentPlayers = useMemo(() => {
@@ -177,9 +285,9 @@ export function useBurracoGame({
     };
   }, [customAlert, syncWithStatus]);
 
-  // 2. Isolamento dati storico partite per account utente
+  // 2. Isolamento dati storico partite per account utente & sync cloud (senza resuscitare partite eliminate)
   useEffect(() => {
-    const userKey = currentUser ? currentUser.uid : 'guest';
+    const userKey = currentUid || 'guest';
     let cancelled = false;
 
     Promise.resolve().then(() => {
@@ -188,39 +296,79 @@ export function useBurracoGame({
       }
     });
 
-    const unsubHistory = subscribeToCloudGamesHistory(currentUser, (cloudHistory) => {
-      if (Array.isArray(cloudHistory)) {
-        const localGames = getGamesHistory(userKey);
-        const map = new Map();
-        localGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
-        cloudHistory.forEach(g => { if (g && g.id) map.set(g.id, g); });
-        const merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    if (!currentUid) {
+      return () => {
+        cancelled = true;
+      };
+    }
 
-        setGamesHistory(merged);
-        safeSetItem(getHistoryKey(userKey), JSON.stringify(merged));
-      }
+    const unsubHistory = subscribeToCloudGamesHistory({ uid: currentUid }, (cloudHistory) => {
+      if (cancelled || !Array.isArray(cloudHistory)) return;
+      const localGames = getGamesHistory(userKey);
+      const outboxIds = new Set((getOutboxQueue() || []).map(g => g?.id).filter(Boolean));
+      const activeId = activeGameRef.current?.id;
+
+      const map = new Map();
+      // Conserva localmente solo partite ancora in coda offline, in corso di sync, o attive sul tavolo
+      localGames.forEach(g => {
+        if (!g?.id) return;
+        if (outboxIds.has(g.id) || pendingSyncIdsRef.current.has(g.id) || g.id === activeId) {
+          map.set(g.id, g);
+        }
+      });
+
+      cloudHistory.forEach(cloudGame => {
+        if (!cloudGame?.id) return;
+        const localMatch = map.get(cloudGame.id);
+        if (localMatch && (localMatch.rounds?.length || 0) > (cloudGame.rounds?.length || 0)) {
+          return;
+        }
+        map.set(cloudGame.id, cloudGame);
+      });
+
+      const merged = Array.from(map.values()).sort(
+        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+      );
+
+      setGamesHistory(merged);
+      safeSetItem(getHistoryKey(userKey), JSON.stringify(merged));
     });
 
     return () => {
       cancelled = true;
       unsubHistory();
     };
-  }, [currentUser]);
+  }, [currentUid]);
 
   // 3. Ascolto real-time della partita attiva da Firestore (Multi-device live sync)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlGameId = params.get('game');
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const urlGameId = params ? params.get('game') : null;
     const targetId = urlGameId || activeGame?.id;
 
     if (!targetId) return;
 
-    if (currentUser) {
-      joinCloudGame(targetId, currentUser);
+    lastFetchedRosterKeyRef.current = '';
+
+    // Esegue joinCloudGame solo se l'utente autenticato non è già registrato sul tavolo
+    const user = currentUserRef.current;
+    if (currentUid && user) {
+      const currentActive = activeGameRef.current;
+      const alreadyHasUid = currentActive?.id === targetId &&
+        Array.isArray(currentActive.playerUids) &&
+        currentActive.playerUids.includes(currentUid);
+      const alreadyHasEmail = !currentEmail || (
+        currentActive?.id === targetId &&
+        Array.isArray(currentActive.playerEmails) &&
+        currentActive.playerEmails.some(e => (e || '').toLowerCase() === currentEmail)
+      );
+      if (!alreadyHasUid || !alreadyHasEmail) {
+        joinCloudGame(targetId, user);
+      }
     }
 
     const unsubscribe = subscribeToCloudGame(
-      targetId, 
+      targetId,
       (cloudGame) => {
         if (cloudGame && cloudGame.id === targetId) {
           // Se l'host ha chiuso il tavolo, avvisa i partecipanti e svuota il tavolo
@@ -329,16 +477,20 @@ export function useBurracoGame({
     );
 
     return () => unsubscribe();
-  }, [activeGame?.id, currentUser, customAlert]);
+  }, [activeGame?.id, currentUid, currentEmail, customAlert]);
 
   // Avvio nuova partita
-  const handleStartGame = (newGame) => {
+  const handleStartGame = useCallback((newGame) => {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem('burraco_table_closed_explicitly');
     }
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    if (activeGame && activeGame.rounds && activeGame.rounds.length > 0) {
-      const updatedHistory = archiveCurrentGame(activeGame, userKey);
+    const user = currentUserRef.current;
+    const friends = friendsListRef.current || [];
+    const currentActive = activeGameRef.current;
+    const userKey = user?.uid || 'guest';
+
+    if (currentActive && currentActive.rounds && currentActive.rounds.length > 0) {
+      const updatedHistory = archiveCurrentGame(currentActive, userKey);
       setGamesHistory(updatedHistory);
       if (updatedHistory && updatedHistory[0]) {
         syncWithStatus(updatedHistory[0], false);
@@ -352,30 +504,28 @@ export function useBurracoGame({
     ].map(p => typeof p === 'string' ? p.trim() : '').filter(Boolean);
 
     // Separa gli amici in gioco tra Amici Stretti (entrano direttamente) e Amici Normali (richiedono invito)
-    const registeredPlayerUids = currentUser ? [currentUser.uid] : [];
-    const registeredPlayerEmails = currentUser?.email ? [currentUser.email] : [];
+    const registeredPlayerUids = user?.uid ? [user.uid] : [];
+    const registeredPlayerEmails = user?.email ? [user.email] : [];
     const pendingInviteFriends = [];
 
-    if (currentUser && friendsList.length > 0) {
-      friendsList.forEach(friend => {
-        const friendName = friend.displayName || friend.email;
+    if (user && friends.length > 0) {
+      friends.forEach(friend => {
+        const friendName = friend.displayName || friend.email || '';
         const isInGame = allPlayers.some(
           p => p.toLowerCase() === friendName.toLowerCase() || p.toLowerCase() === (friend.email || '').toLowerCase()
         );
         if (isInGame) {
           if (friend.isCloseFriend) {
-            // ⭐ Amico Stretto: entra direttamente al tavolo senza dover attendere invito
             if (friend.uid && !registeredPlayerUids.includes(friend.uid)) registeredPlayerUids.push(friend.uid);
             if (friend.email && !registeredPlayerEmails.includes(friend.email)) registeredPlayerEmails.push(friend.email);
           } else {
-            // 👤 Amico Normale: deve accettare l'invito prima di entrare nel tavolo
             pendingInviteFriends.push(friend);
           }
         }
       });
     }
 
-    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
+    const author = user ? { uid: user.uid, name: user.displayName } : null;
     let initialChain = null;
     try {
       initialChain = migrateLegacyGameToLedger(newGame, author);
@@ -385,9 +535,9 @@ export function useBurracoGame({
 
     const gameWithOwnership = {
       ...newGame,
-      ownerUid: currentUser ? currentUser.uid : null,
-      ownerEmail: currentUser?.email || null,
-      ownerName: currentUser?.displayName || null,
+      ownerUid: user ? user.uid : null,
+      ownerEmail: user?.email || null,
+      ownerName: user?.displayName || null,
       playerUids: registeredPlayerUids,
       playerEmails: registeredPlayerEmails,
       ledgerChain: initialChain,
@@ -397,100 +547,67 @@ export function useBurracoGame({
     setActiveGame(gameWithOwnership);
     saveActiveGame(gameWithOwnership);
 
-    // Salva subito nella cronologia locale per non perdere mai la partita appena avviata
     const currentHistory = getGamesHistory(userKey);
     const updatedHistory = [gameWithOwnership, ...currentHistory.filter(g => g.id !== gameWithOwnership.id)];
     setGamesHistory(updatedHistory);
     safeSetItem(getHistoryKey(userKey), JSON.stringify(updatedHistory));
 
-    // Sincronizza IMMEDIATAMENTE e incondizionatamente su Firestore nel Cloud (force = true)
     syncWithStatus(gameWithOwnership, true);
 
-    // Invia inviti di gioco SOLO agli Amici Normali (gli Amici Stretti sono già dentro)
-    if (currentUser && pendingInviteFriends.length > 0) {
+    if (user && pendingInviteFriends.length > 0) {
       pendingInviteFriends.forEach(friend => {
-        const friendName = friend.displayName || friend.email;
+        const friendName = friend.displayName || friend.email || '';
         const teamName = (newGame.team1?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
           ? newGame.team1?.name
           : (newGame.team2?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
           ? newGame.team2?.name
           : newGame.team3?.name || 'In Partita';
 
-        sendGameInvite(currentUser, friend, gameWithOwnership, teamName).catch(err => {
+        sendGameInvite(user, friend, gameWithOwnership, teamName).catch(err => {
           console.warn('Avviso invio notifica partita:', err);
         });
       });
     }
-  };
+  }, [syncWithStatus]);
 
   // Salva o aggiorna una mano
-  const handleSaveRound = (roundData) => {
-    if (!activeGame) return;
+  const handleSaveRound = useCallback((roundData) => {
+    const current = activeGameRef.current;
+    if (!current) return;
+    const user = currentUserRef.current;
+    const userKey = user?.uid || 'guest';
 
     let updatedRounds;
-    const existingIndex = (activeGame.rounds || []).findIndex(
+    const existingIndex = (current.rounds || []).findIndex(
       r => r.roundNumber === roundData.roundNumber
     );
 
     if (existingIndex >= 0) {
-      updatedRounds = [...activeGame.rounds];
+      updatedRounds = [...current.rounds];
       updatedRounds[existingIndex] = roundData;
     } else {
-      updatedRounds = [...(activeGame.rounds || []), roundData];
+      updatedRounds = [...(current.rounds || []), roundData];
     }
 
-    let t1Total = 0;
-    let t2Total = 0;
-    let t3Total = 0;
-    const isTrio = activeGame.mode === 'trio';
+    const { t1Total, t2Total, isTargetReached, winner } = computeTeamTotalsAndWinner(
+      updatedRounds,
+      current.mode,
+      current.targetScore
+    );
 
-    updatedRounds.forEach(r => {
-      t1Total += r.team1Score || 0;
-      t2Total += r.team2Score || 0;
-      t3Total += r.team3Score || 0;
-    });
+    const author = user ? { uid: user.uid, name: user.displayName } : null;
+    const ledger = appendLedgerEvent(current, EVENT_TYPES.ROUND_ADDED, roundData, author);
 
-    const target = activeGame.targetScore || 2505;
-    let winner = null;
-    let shouldCelebrate = false;
-
-    if (isTrio) {
-      if (t1Total >= target || t2Total >= target || t3Total >= target) {
-        if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
-        else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
-        else winner = 'team3';
-        shouldCelebrate = true;
-      }
-    } else {
-      if (t1Total >= target || t2Total >= target) {
-        winner = t1Total >= t2Total ? 'team1' : 'team2';
-        shouldCelebrate = true;
-      }
-    }
-
-    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
-    let chain = null;
-    try {
-      chain = migrateLegacyGameToLedger(activeGame, author);
-      if (chain) {
-        chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, roundData, author);
-      }
-    } catch (chainErr) {
-      console.warn('Avviso registrazione blocco ledger round:', chainErr);
-    }
-
-    const isFinished = Boolean(winner);
     const updatedGame = {
-      ...activeGame,
+      ...current,
       rounds: updatedRounds,
       winner: winner || null,
-      isFinished,
-      completedAt: isFinished ? (activeGame.completedAt || new Date().toISOString()) : null,
-      ledgerChain: chain || activeGame.ledgerChain || null,
-      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
+      isFinished: isTargetReached,
+      completedAt: isTargetReached ? (current.completedAt || new Date().toISOString()) : null,
+      ...ledger,
     };
 
-    if (isFinished) {
+    if (isTargetReached) {
       updatedGame.telemetry = computeGameTelemetry(updatedGame, {
         offlineEventsCount: offlineEventsCountRef.current
       });
@@ -499,27 +616,15 @@ export function useBurracoGame({
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
     syncWithStatus(updatedGame, true);
+    upsertHistoryGame(userKey, updatedGame, setGamesHistory);
 
-    try {
-      const userKey = currentUser ? currentUser.uid : 'guest';
-      const history = getGamesHistory(userKey);
-      const hIndex = history.findIndex(g => g.id === updatedGame.id);
-      if (hIndex >= 0) {
-        const newHistory = [...history];
-        newHistory[hIndex] = updatedGame;
-        safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
-        setGamesHistory(newHistory);
-      }
-    } catch (histErr) {
-      console.warn('Errore salvataggio storico locale:', histErr);
-    }
-
-    if (activeGame.tournamentMatchId && activeTournament?.rounds) {
+    const tourn = activeTournamentRef.current;
+    if (current.tournamentMatchId && tourn?.rounds) {
       try {
-        const tournUpdatedRounds = (activeTournament.rounds || []).map(r => ({
+        const tournUpdatedRounds = (tourn.rounds || []).map(r => ({
           ...r,
           matches: (r.matches || []).map(m => {
-            if (m.id === activeGame.tournamentMatchId) {
+            if (m.id === current.tournamentMatchId) {
               return {
                 ...m,
                 team1Score: t1Total,
@@ -532,24 +637,26 @@ export function useBurracoGame({
             return m;
           })
         }));
-        handleUpdateTournament({ ...activeTournament, rounds: tournUpdatedRounds });
+        handleUpdateTournamentRef.current({ ...tourn, rounds: tournUpdatedRounds });
       } catch (tournErr) {
         console.warn('Errore sync match torneo:', tournErr);
       }
     }
 
-    if (shouldCelebrate) {
+    if (isTargetReached) {
       try {
-        onCelebrate();
+        onCelebrateRef.current();
       } catch (celErr) {
         console.warn('Errore celebrazione vittoria:', celErr);
       }
     }
-  };
+  }, [syncWithStatus]);
 
   // Annulla l'ultima mano
-  const handleDeleteLastRound = async (customConfirm) => {
-    if (!activeGame || !activeGame.rounds || activeGame.rounds.length === 0) return;
+  const handleDeleteLastRound = useCallback(async (customConfirm) => {
+    const current = activeGameRef.current;
+    if (!current || !current.rounds || current.rounds.length === 0) return;
+
     const ok = typeof customConfirm === 'function'
       ? await customConfirm({
           title: 'Annulla Ultima Mano',
@@ -560,53 +667,48 @@ export function useBurracoGame({
       : window.confirm("Vuoi davvero cancellare l'ultima mano inserita?");
     if (!ok) return;
 
-    const updatedRounds = activeGame.rounds.slice(0, -1);
-    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
-    let chain = null;
-    try {
-      chain = migrateLegacyGameToLedger(activeGame, author);
-      if (chain) {
-        chain = appendBlock(chain, EVENT_TYPES.ROUND_REVERTED, { roundNumber: activeGame.rounds?.length }, author);
-      }
-    } catch (chainErr) {
-      console.warn('Avviso registrazione blocco revert ledger:', chainErr);
-    }
+    const latest = activeGameRef.current;
+    if (!latest || !latest.rounds || latest.rounds.length === 0) return;
+
+    const user = currentUserRef.current;
+    const userKey = user?.uid || 'guest';
+    const updatedRounds = latest.rounds.slice(0, -1);
+    const { isTargetReached, winner } = computeTeamTotalsAndWinner(
+      updatedRounds,
+      latest.mode,
+      latest.targetScore
+    );
+
+    const author = user ? { uid: user.uid, name: user.displayName } : null;
+    const ledger = appendLedgerEvent(latest, EVENT_TYPES.ROUND_REVERTED, { roundNumber: latest.rounds.length }, author);
 
     const updatedGame = {
-      ...activeGame,
+      ...latest,
       rounds: updatedRounds,
-      winner: null,
-      isFinished: false,
-      ledgerChain: chain || activeGame.ledgerChain || null,
-      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
+      winner,
+      isFinished: isTargetReached,
+      completedAt: isTargetReached ? (latest.completedAt || new Date().toISOString()) : null,
+      ...ledger,
     };
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
     syncWithStatus(updatedGame, true);
-
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    const history = getGamesHistory(userKey);
-    const hIndex = history.findIndex(g => g.id === updatedGame.id);
-    if (hIndex >= 0) {
-      const newHistory = [...history];
-      newHistory[hIndex] = updatedGame;
-      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
-      setGamesHistory(newHistory);
-    }
-  };
+    upsertHistoryGame(userKey, updatedGame, setGamesHistory);
+  }, [syncWithStatus]);
 
   // Cancella una specifica mano dal tabellone (foglio segnapunti)
-  const handleDeleteRound = async (roundNumber, customConfirm) => {
-    if (!activeGame || !activeGame.rounds || activeGame.rounds.length === 0) return;
+  const handleDeleteRound = useCallback(async (roundNumber, customConfirm) => {
+    const current = activeGameRef.current;
+    if (!current || !current.rounds || current.rounds.length === 0) return;
 
-    const roundIndex = (activeGame.rounds || []).findIndex(
+    const roundIndex = (current.rounds || []).findIndex(
       r => r.roundNumber === roundNumber
     );
     if (roundIndex === -1) return;
 
-    const targetRound = activeGame.rounds[roundIndex];
-    const isTrio = activeGame.mode === 'trio';
+    const targetRound = current.rounds[roundIndex];
+    const isTrio = current.mode === 'trio';
     const scoreSummary = isTrio
       ? `${targetRound.team1Score || 0} vs ${targetRound.team2Score || 0} vs ${targetRound.team3Score || 0} pt`
       : `${targetRound.team1Score || 0} vs ${targetRound.team2Score || 0} pt`;
@@ -619,156 +721,103 @@ export function useBurracoGame({
           variant: "danger"
         })
       : window.confirm(`Vuoi davvero cancellare la Mano #${roundNumber}?`);
-
     if (!ok) return;
 
-    // Rimuovi la mano e riallinea i numeri di mano (1, 2, 3...)
-    const remainingRounds = activeGame.rounds
-      .filter((_, idx) => idx !== roundIndex)
+    const latest = activeGameRef.current;
+    if (!latest || !latest.rounds) return;
+    const latestIdx = latest.rounds.findIndex(r => r.roundNumber === roundNumber);
+    if (latestIdx === -1) return;
+
+    const remainingRounds = latest.rounds
+      .filter((_, idx) => idx !== latestIdx)
       .map((r, newIdx) => ({
         ...r,
         roundNumber: newIdx + 1
       }));
 
-    // Ricalcola totali e traguardo
-    let t1Total = 0;
-    let t2Total = 0;
-    let t3Total = 0;
-    remainingRounds.forEach(r => {
-      t1Total += Number(r.team1Score) || 0;
-      t2Total += Number(r.team2Score) || 0;
-      t3Total += Number(r.team3Score) || 0;
-    });
+    const { isTargetReached, winner } = computeTeamTotalsAndWinner(
+      remainingRounds,
+      latest.mode,
+      latest.targetScore
+    );
 
-    const target = activeGame.targetScore || 2505;
-    const isTargetReached = isTrio
-      ? (t1Total >= target || t2Total >= target || t3Total >= target)
-      : (t1Total >= target || t2Total >= target);
-
-    let winner = null;
-    if (isTargetReached) {
-      if (isTrio) {
-        if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
-        else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
-        else winner = 'team3';
-      } else {
-        winner = t1Total >= t2Total ? 'team1' : 'team2';
-      }
-    }
-
-    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
-    let chain = null;
-    try {
-      chain = migrateLegacyGameToLedger(activeGame, author);
-      if (chain) {
-        chain = appendBlock(chain, EVENT_TYPES.ROUND_REVERTED, { roundNumber }, author);
-      }
-    } catch (chainErr) {
-      console.warn('Avviso registrazione blocco revert ledger:', chainErr);
-    }
+    const user = currentUserRef.current;
+    const userKey = user?.uid || 'guest';
+    const author = user ? { uid: user.uid, name: user.displayName } : null;
+    const ledger = appendLedgerEvent(latest, EVENT_TYPES.ROUND_REVERTED, { roundNumber }, author);
 
     const updatedGame = {
-      ...activeGame,
+      ...latest,
       rounds: remainingRounds,
       winner,
       isFinished: isTargetReached,
-      ledgerChain: chain || activeGame.ledgerChain || null,
-      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
+      completedAt: isTargetReached ? (latest.completedAt || new Date().toISOString()) : null,
+      ...ledger,
     };
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
     syncWithStatus(updatedGame, true);
-
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    const history = getGamesHistory(userKey);
-    const hIndex = history.findIndex(g => g.id === updatedGame.id);
-    if (hIndex >= 0) {
-      const newHistory = [...history];
-      newHistory[hIndex] = updatedGame;
-      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
-      setGamesHistory(newHistory);
-    }
-  };
+    upsertHistoryGame(userKey, updatedGame, setGamesHistory);
+  }, [syncWithStatus]);
 
   // Aggiorna squadre
-  const handleUpdateTeams = (updatedTeam1, updatedTeam2, updatedTeam3) => {
-    if (!activeGame) return;
+  const handleUpdateTeams = useCallback((updatedTeam1, updatedTeam2, updatedTeam3) => {
+    const current = activeGameRef.current;
+    if (!current) return;
 
-    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
-    let chain = null;
-    try {
-      chain = migrateLegacyGameToLedger(activeGame, author);
-      if (chain) {
-        chain = appendBlock(chain, EVENT_TYPES.TEAMS_UPDATED, {
-          team1: updatedTeam1,
-          team2: updatedTeam2,
-          team3: activeGame.mode === 'trio' && updatedTeam3 ? updatedTeam3 : null,
-        }, author);
-      }
-    } catch (chainErr) {
-      console.warn('Avviso teams updated ledger:', chainErr);
-    }
+    const user = currentUserRef.current;
+    const userKey = user?.uid || 'guest';
+    const author = user ? { uid: user.uid, name: user.displayName } : null;
+    const ledger = appendLedgerEvent(
+      current,
+      EVENT_TYPES.TEAMS_UPDATED,
+      {
+        team1: updatedTeam1,
+        team2: updatedTeam2,
+        team3: current.mode === 'trio' && updatedTeam3 ? updatedTeam3 : null,
+      },
+      author
+    );
 
     const updatedGame = {
-      ...activeGame,
+      ...current,
       team1: updatedTeam1,
       team2: updatedTeam2,
-      ...(activeGame.mode === 'trio' && updatedTeam3 ? { team3: updatedTeam3 } : {}),
-      ledgerChain: chain || activeGame.ledgerChain || null,
-      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
+      ...(current.mode === 'trio' && updatedTeam3 ? { team3: updatedTeam3 } : {}),
+      ...ledger,
     };
 
     setActiveGame(updatedGame);
     saveActiveGame(updatedGame);
     syncWithStatus(updatedGame, true);
+    upsertHistoryGame(userKey, updatedGame, setGamesHistory);
+  }, [syncWithStatus]);
 
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    const history = getGamesHistory(userKey);
-    const hIndex = history.findIndex(g => g.id === updatedGame.id);
-    if (hIndex >= 0) {
-      const newHistory = [...history];
-      newHistory[hIndex] = updatedGame;
-      safeSetItem(getHistoryKey(userKey), JSON.stringify(newHistory));
-      setGamesHistory(newHistory);
-    }
-  };
+  // Conclude la partita (accetta un eventuale gameOverride per chiusura diretta da Archivio)
+  const handleEndGame = useCallback((gameOverride = null) => {
+    const current = (gameOverride && gameOverride.id) ? gameOverride : activeGameRef.current;
+    if (!current) return;
 
-  // Conclude la partita
-  const handleEndGame = () => {
-    if (!activeGame) return;
-    const isTrio = activeGame.mode === 'trio';
-    const t1Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
-    const t2Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
-    const t3Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
+    const user = currentUserRef.current;
+    const userKey = user?.uid || 'guest';
+    const { t1Total, t2Total, winner } = computeTeamTotalsAndWinner(
+      current.rounds,
+      current.mode,
+      current.targetScore,
+      true
+    );
 
-    let winner = 'team1';
-    if (isTrio) {
-      if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
-      else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
-      else winner = 'team3';
-    } else {
-      winner = t1Total >= t2Total ? 'team1' : 'team2';
-    }
-
-    const author = currentUser ? { uid: currentUser.uid, name: currentUser.displayName } : null;
-    let chain = null;
-    try {
-      chain = migrateLegacyGameToLedger(activeGame, author);
-      if (chain) {
-        chain = appendBlock(chain, EVENT_TYPES.GAME_FINISHED, { winner }, author);
-      }
-    } catch (chainErr) {
-      console.warn('Avviso game finished ledger:', chainErr);
-    }
+    const author = user ? { uid: user.uid, name: user.displayName } : null;
+    const ledger = appendLedgerEvent(current, EVENT_TYPES.GAME_FINISHED, { winner }, author);
 
     const updatedGame = {
-      ...activeGame,
+      ...current,
+      tableClosed: false,
       winner,
       isFinished: true,
       completedAt: new Date().toISOString(),
-      ledgerChain: chain || activeGame.ledgerChain || null,
-      ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (activeGame.ledgerLastHash || null),
+      ...ledger,
     };
     updatedGame.telemetry = computeGameTelemetry(updatedGame, {
       offlineEventsCount: offlineEventsCountRef.current
@@ -778,12 +827,13 @@ export function useBurracoGame({
     saveActiveGame(updatedGame);
     syncWithStatus(updatedGame, true);
 
-    if (activeGame.tournamentMatchId && activeTournament?.rounds) {
-      const winnerTeamId = winner === 'team1' ? activeGame.team1?.id : activeGame.team2?.id;
-      const tournUpdatedRounds = activeTournament.rounds.map(r => ({
+    const tourn = activeTournamentRef.current;
+    if (current.tournamentMatchId && tourn?.rounds) {
+      const winnerTeamId = winner === 'team1' ? current.team1?.id : current.team2?.id;
+      const tournUpdatedRounds = tourn.rounds.map(r => ({
         ...r,
         matches: r.matches.map(m => {
-          if (m.id === activeGame.tournamentMatchId) {
+          if (m.id === current.tournamentMatchId) {
             return {
               ...m,
               team1Score: t1Total,
@@ -796,109 +846,79 @@ export function useBurracoGame({
           return m;
         })
       }));
-      handleUpdateTournament({ ...activeTournament, rounds: tournUpdatedRounds });
+      handleUpdateTournamentRef.current({ ...tourn, rounds: tournUpdatedRounds });
     }
 
-    const userKey = currentUser ? currentUser.uid : 'guest';
     const updatedHistory = archiveCurrentGame(updatedGame, userKey);
     setGamesHistory(updatedHistory);
-
-    if (currentUser) {
-      const stats = computeUserCareerStats(currentUser, updatedHistory, updatedGame);
-      if (stats) {
-        updateUserCareerStats(currentUser.uid, stats).catch(err => {
-          console.warn('Avviso aggiornamento careerStats cloud:', err);
-        });
-      }
-    }
-
-    onCelebrate();
-  };
+    updateCareerStatsInBackground(user, updatedHistory, updatedGame);
+    onCelebrateRef.current();
+  }, [syncWithStatus]);
 
   // Rivincita
-  const handleRematch = () => {
-    if (!activeGame) return;
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    const updatedHistory = archiveCurrentGame(activeGame, userKey);
+  const handleRematch = useCallback(() => {
+    const current = activeGameRef.current;
+    if (!current) return;
+    const user = currentUserRef.current;
+    const userKey = user?.uid || 'guest';
+    const updatedHistory = archiveCurrentGame(current, userKey);
     setGamesHistory(updatedHistory);
     if (updatedHistory && updatedHistory[0]) {
       syncWithStatus(updatedHistory[0], true);
     }
-    if (currentUser) {
-      const stats = computeUserCareerStats(currentUser, updatedHistory, activeGame);
-      if (stats) {
-        updateUserCareerStats(currentUser.uid, stats).catch(err => {
-          console.warn('Avviso aggiornamento careerStats cloud:', err);
-        });
-      }
-    }
+    updateCareerStatsInBackground(user, updatedHistory, current);
 
     const rematchGame = {
       id: 'game_' + Date.now(),
       createdAt: new Date().toISOString(),
-      mode: activeGame.mode,
-      allowSemipulito: activeGame.allowSemipulito,
-      targetScore: activeGame.targetScore,
-      team1: activeGame.team1,
-      team2: activeGame.team2,
-      ...(activeGame.mode === 'trio' ? { team3: activeGame.team3 } : {}),
+      mode: current.mode,
+      allowSemipulito: current.allowSemipulito,
+      targetScore: current.targetScore,
+      team1: current.team1,
+      team2: current.team2,
+      ...(current.mode === 'trio' ? { team3: current.team3 } : {}),
       rounds: [],
       winner: null,
       isFinished: false,
-      ownerUid: activeGame.ownerUid || (currentUser ? currentUser.uid : null),
-      ownerEmail: activeGame.ownerEmail || currentUser?.email || null,
-      ownerName: activeGame.ownerName || currentUser?.displayName || null,
-      playerUids: activeGame.playerUids || (currentUser ? [currentUser.uid] : []),
-      playerEmails: activeGame.playerEmails || (currentUser?.email ? [currentUser.email] : []),
+      ownerUid: current.ownerUid || (user ? user.uid : null),
+      ownerEmail: current.ownerEmail || user?.email || null,
+      ownerName: current.ownerName || user?.displayName || null,
+      playerUids: current.playerUids || (user ? [user.uid] : []),
+      playerEmails: current.playerEmails || (user?.email ? [user.email] : []),
     };
 
     setActiveGame(rematchGame);
     saveActiveGame(rematchGame);
     syncWithStatus(rematchGame, true);
-  };
+  }, [syncWithStatus]);
 
   // Archivia e prepara nuova partita pulita
-  const handleArchiveAndNew = (onOpenNewGame) => {
-    if (activeGame) {
-      const userKey = currentUser ? currentUser.uid : 'guest';
-      const isTrio = activeGame.mode === 'trio';
-      const t1Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
-      const t2Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
-      const t3Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
-
-      let winner = activeGame.winner;
-      if (!winner) {
-        if (isTrio) {
-          if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
-          else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
-          else winner = 'team3';
-        } else {
-          winner = t1Total >= t2Total ? 'team1' : 'team2';
-        }
-      }
+  const handleArchiveAndNew = useCallback((onOpenNewGame) => {
+    const current = activeGameRef.current;
+    if (current) {
+      const user = currentUserRef.current;
+      const userKey = user?.uid || 'guest';
+      const { winner: computedWinner } = computeTeamTotalsAndWinner(
+        current.rounds,
+        current.mode,
+        current.targetScore,
+        true
+      );
 
       const finishedGame = {
-        ...activeGame,
-        winner,
+        ...current,
+        winner: current.winner || computedWinner,
         isFinished: true,
-        completedAt: activeGame.completedAt || new Date().toISOString(),
+        completedAt: current.completedAt || new Date().toISOString(),
       };
 
       const updatedHistory = archiveCurrentGame(finishedGame, userKey);
       setGamesHistory(updatedHistory);
       syncWithStatus(finishedGame, true);
-
-      if (currentUser) {
-        const stats = computeUserCareerStats(currentUser, updatedHistory, finishedGame);
-        if (stats) {
-          updateUserCareerStats(currentUser.uid, stats).catch(err => {
-            console.warn('Avviso aggiornamento careerStats cloud:', err);
-          });
-        }
-      }
+      updateCareerStatsInBackground(user, updatedHistory, finishedGame);
     }
 
-    if (window.location.search.includes('game=')) {
+    if (typeof window !== 'undefined' && window.location.search.includes('game=')) {
       const url = new URL(window.location.href);
       url.searchParams.delete('game');
       window.history.replaceState({}, '', url.pathname);
@@ -911,45 +931,43 @@ export function useBurracoGame({
     if (typeof onOpenNewGame === 'function') {
       onOpenNewGame();
     }
-  };
+  }, [syncWithStatus]);
 
   // Chiudi tavolo di gioco (sospendi e torna alla schermata principale)
-  const handleCloseTable = async (customConfirm) => {
-    if (!activeGame) return;
+  const handleCloseTable = useCallback(async (customConfirm) => {
+    const current = activeGameRef.current;
+    if (!current) return;
 
-    const hasRounds = activeGame.rounds && activeGame.rounds.length > 0;
+    const hasRounds = current.rounds && current.rounds.length > 0;
     const ok = typeof customConfirm === 'function'
       ? await customConfirm({
           title: 'Chiudi Tavolo',
           message: hasRounds
-            ? `Vuoi chiudere questo tavolo? La partita corrente (${activeGame.rounds.length} mani) rimarrà salvata al sicuro nell'archivio cloud e potrai riprenderla quando vuoi.`
+            ? `Vuoi chiudere questo tavolo? La partita corrente (${current.rounds.length} mani) rimarrà salvata al sicuro nell'archivio cloud e potrai riprenderla quando vuoi.`
             : 'Vuoi chiudere questo tavolo e tornare alla schermata iniziale?',
           confirmText: 'Chiudi Tavolo',
           cancelText: 'Continua a giocare',
           variant: 'warning'
         })
       : window.confirm('Vuoi chiudere questo tavolo?');
-
     if (!ok) return;
 
-    // 1. Marca il tavolo come chiuso nel cloud per avvisare gli altri dispositivi collegati
+    const latest = activeGameRef.current || current;
     const closedGame = {
-      ...activeGame,
+      ...latest,
       tableClosed: true,
-      telemetry: computeGameTelemetry({ ...activeGame, tableClosed: true }, {
+      telemetry: computeGameTelemetry({ ...latest, tableClosed: true }, {
         offlineEventsCount: offlineEventsCountRef.current
       })
     };
     await syncWithStatus(closedGame, true);
 
-    // 2. Salva la partita nello storico locale
-    const userKey = currentUser ? currentUser.uid : 'guest';
+    const userKey = currentUserRef.current?.uid || 'guest';
     const currentHistory = getGamesHistory(userKey);
     const updatedHistory = [closedGame, ...currentHistory.filter(g => g.id !== closedGame.id)];
     setGamesHistory(updatedHistory);
     safeSetItem(getHistoryKey(userKey), JSON.stringify(updatedHistory));
 
-    // 3. Rimuovi la partita attiva locale e memorizza che il tavolo è stato chiuso intenzionalmente
     saveActiveGame(null);
     setActiveGame(null);
     setIsCloudJoined(false);
@@ -957,7 +975,6 @@ export function useBurracoGame({
       sessionStorage.setItem('burraco_table_closed_explicitly', 'true');
     }
 
-    // 4. Rimuovi eventuale parametro ?game= dall'URL
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete('game');
@@ -965,10 +982,10 @@ export function useBurracoGame({
     } catch {
       // ignore
     }
-  };
+  }, [syncWithStatus]);
 
   // Scollegati dal tavolo condiviso
-  const handleLeaveCloudTable = async (customConfirm) => {
+  const handleLeaveCloudTable = useCallback(async (customConfirm) => {
     const ok = typeof customConfirm === 'function'
       ? await customConfirm({
           title: 'Scollegati dal Tavolo',
@@ -992,38 +1009,38 @@ export function useBurracoGame({
         sessionStorage.setItem('burraco_table_closed_explicitly', 'true');
       }
     }
-  };
+  }, []);
 
   // Eliminazione partita dallo storico
-  const handleDeleteGameHistory = (gameId) => {
-    const userKey = currentUser ? currentUser.uid : 'guest';
+  const handleDeleteGameHistory = useCallback((gameId) => {
+    const userKey = currentUserRef.current?.uid || 'guest';
     const updated = deleteGameFromHistory(gameId, userKey);
     setGamesHistory(updated);
+    removeFromOutboxQueue(gameId);
     deleteGameFromCloud(gameId).catch((err) => {
       console.warn('Errore eliminazione partita cloud:', err?.message || err);
     });
-  };
+  }, []);
 
   // Condivisione WhatsApp / Appunti
-  const handleShareGame = () => {
-    if (!activeGame) return;
-    const isTrio = activeGame.mode === 'trio';
-    const t1Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
-    const t2Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
-    const t3Total = (activeGame.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
+  const handleShareGame = useCallback(() => {
+    const current = activeGameRef.current;
+    if (!current) return;
+    const isTrio = current.mode === 'trio';
+    const { t1Total, t2Total, t3Total } = computeTeamTotalsAndWinner(current.rounds, current.mode, current.targetScore);
 
     let text;
     if (isTrio) {
       text = `🃏 Burraco a 3 Score:
-♦ ${activeGame.team1.name} (${(activeGame.team1.players || []).join(' & ')}): ${t1Total} pt
-♠ ${activeGame.team2.name} (${(activeGame.team2.players || []).join(' & ')}): ${t2Total} pt
-♥ ${activeGame.team3?.name || 'Giocatore 3'} (${(activeGame.team3?.players || []).join(' & ')}): ${t3Total} pt
-Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} pt)`;
+♦ ${current.team1.name} (${(current.team1.players || []).join(' & ')}): ${t1Total} pt
+♠ ${current.team2.name} (${(current.team2.players || []).join(' & ')}): ${t2Total} pt
+♥ ${current.team3?.name || 'Giocatore 3'} (${(current.team3?.players || []).join(' & ')}): ${t3Total} pt
+Mani giocate: ${current.rounds.length} (Traguardo: ${current.targetScore} pt)`;
     } else {
       text = `🃏 Burraco Score:
-♦ ${activeGame.team1.name} (${activeGame.team1.players.join(' & ')}): ${t1Total} pt
-♠ ${activeGame.team2.name} (${activeGame.team2.players.join(' & ')}): ${t2Total} pt
-Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} pt)`;
+♦ ${current.team1.name} (${current.team1.players.join(' & ')}): ${t1Total} pt
+♠ ${current.team2.name} (${current.team2.players.join(' & ')}): ${t2Total} pt
+Mani giocate: ${current.rounds.length} (Traguardo: ${current.targetScore} pt)`;
     }
 
     if (navigator.share) {
@@ -1036,10 +1053,10 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
         variant: 'success'
       });
     }
-  };
+  }, [customAlert]);
 
-  // Riprendi partita passata o tavolo da PIN
-  const handleResumeGame = async (gameOrId) => {
+  // Riprendi partita passata o tavolo da PIN (riapre tableClosed nel cloud PRIMA di attivare il listener)
+  const handleResumeGame = useCallback(async (gameOrId) => {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem('burraco_table_closed_explicitly');
     }
@@ -1047,19 +1064,27 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     if (typeof gameOrId === 'string') {
       targetGame = await findGameByPinOrId(gameOrId);
       if (!targetGame) {
-        const userKey = currentUser ? currentUser.uid : 'guest';
+        const userKey = currentUserRef.current?.uid || 'guest';
         targetGame = (getGamesHistory(userKey) || []).find(g => g?.id === gameOrId);
       }
     }
     if (!targetGame || typeof targetGame !== 'object' || !targetGame.id) {
       console.warn('handleResumeGame: partita non valida', gameOrId);
-      return;
+      return null;
     }
 
     const resumedGame = {
       ...targetGame,
       tableClosed: false,
     };
+
+    // Rimuove subito tableClosed: true su Firestore prima di montare il listener real-time
+    if (targetGame.tableClosed && (typeof navigator === 'undefined' || navigator.onLine)) {
+      await syncWithStatus(resumedGame, true);
+    } else {
+      syncWithStatus(resumedGame, true);
+    }
+
     setActiveGame(resumedGame);
     saveActiveGame(resumedGame);
     setIsCloudJoined(true);
@@ -1070,27 +1095,28 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       window.history.replaceState({}, '', url.toString());
     } catch {}
 
-    syncWithStatus(resumedGame, true);
-  };
+    return resumedGame;
+  }, [syncWithStatus]);
 
   // Salvataggio manuale forzato con feedback (Cloud Firestore + Locale)
   const handleManualSave = useCallback(async () => {
-    if (!activeGame) return { success: false, reason: 'no_game' };
+    const current = activeGameRef.current;
+    if (!current) return { success: false, reason: 'no_game' };
 
-    const userKey = currentUser ? currentUser.uid : 'guest';
-    // 1. Salva subito in localStorage (stato attivo e storico)
-    saveActiveGame(activeGame);
+    const user = currentUserRef.current;
+    const userKey = user?.uid || 'guest';
+    saveActiveGame(current);
     setGamesHistory(prev => {
-      const filtered = (prev || []).filter(g => g?.id !== activeGame.id);
-      const updated = [activeGame, ...filtered];
+      const filtered = (prev || []).filter(g => g?.id !== current.id);
+      const updated = [current, ...filtered];
       safeSetItem(getHistoryKey(userKey), JSON.stringify(updated));
       return updated;
     });
 
-    // 2. Sincronizza nel Cloud Firestore (force: true)
     setSyncStatus('syncing');
     try {
-      const ok = await syncGameToCloud(activeGame, currentUser, true);
+      const ok = await syncGameToCloud(current, user, true);
+      if (ok) removeFromOutboxQueue(current.id);
       setSyncStatus(ok ? 'synced' : 'offline');
       return { success: ok, isOffline: !ok };
     } catch (err) {
@@ -1098,34 +1124,40 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
       setSyncStatus('offline');
       return { success: false, isOffline: true, error: err };
     }
-  }, [activeGame, currentUser]);
+  }, []);
 
   // Importazione dati
-  const handleDataImported = (importedGames) => {
-    const userKey = currentUser ? currentUser.uid : 'guest';
+  const handleDataImported = useCallback((importedGames, replaceCloud = false) => {
+    const userKey = currentUserRef.current?.uid || 'guest';
     const localGames = getGamesHistory(userKey);
     if (Array.isArray(importedGames)) {
-      const map = new Map();
-      localGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
-      importedGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
-      const merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      let merged;
+      if (replaceCloud) {
+        merged = [...importedGames].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      } else {
+        const map = new Map();
+        localGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
+        importedGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
+        merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      }
 
-      localStorage.setItem(getHistoryKey(userKey), JSON.stringify(merged));
+      safeSetItem(getHistoryKey(userKey), JSON.stringify(merged));
       setGamesHistory(merged);
     } else {
       setGamesHistory(localGames);
     }
     const current = getActiveGame();
     if (current) setActiveGame(current);
-  };
+  }, []);
 
   // Gioca incontro torneo sul tavolo principale
-  const handlePlayTournamentMatch = (match, tournament, onTournamentMatchStarted) => {
+  const handlePlayTournamentMatch = useCallback((match, tournament, onTournamentMatchStarted) => {
     if (!match || !tournament) return;
 
-    if (activeGame && activeGame.rounds && activeGame.rounds.length > 0 && activeGame.tournamentMatchId !== match.id) {
-      const userKey = currentUser ? currentUser.uid : 'guest';
-      const updatedHistory = archiveCurrentGame(activeGame, userKey);
+    const current = activeGameRef.current;
+    if (current && current.rounds && current.rounds.length > 0 && current.tournamentMatchId !== match.id) {
+      const userKey = currentUserRef.current?.uid || 'guest';
+      const updatedHistory = archiveCurrentGame(current, userKey);
       setGamesHistory(updatedHistory);
       if (updatedHistory && updatedHistory[0]) {
         syncWithStatus(updatedHistory[0], false);
@@ -1172,7 +1204,7 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
           return m;
         })
       }));
-      handleUpdateTournament({ ...tournament, rounds: updatedRounds });
+      handleUpdateTournamentRef.current({ ...tournament, rounds: updatedRounds });
     }
 
     setActiveGame(tournamentGame);
@@ -1182,11 +1214,11 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     if (typeof onTournamentMatchStarted === 'function') {
       onTournamentMatchStarted();
     }
-  };
+  }, [syncWithStatus]);
 
   // Sfida un amico
-  const handleChallengeFriend = (friend, onOpenNewGameModal) => {
-    const myName = currentUser?.displayName || 'Io';
+  const handleChallengeFriend = useCallback((friend, onOpenNewGameModal) => {
+    const myName = currentUserRef.current?.displayName || 'Io';
     const friendName = friend.displayName || friend.email || 'Amico';
     setNewGameInitialSetup({
       mode: 'pairs',
@@ -1198,9 +1230,9 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     if (typeof onOpenNewGameModal === 'function') {
       onOpenNewGameModal();
     }
-  };
+  }, []);
 
-  return {
+  return useMemo(() => ({
     activeGame,
     setActiveGame,
     gamesHistory,
@@ -1230,5 +1262,30 @@ Mani giocate: ${activeGame.rounds.length} (Traguardo: ${activeGame.targetScore} 
     handleDataImported,
     handlePlayTournamentMatch,
     handleChallengeFriend,
-  };
+  }), [
+    activeGame,
+    gamesHistory,
+    recentPlayers,
+    isCloudJoined,
+    syncStatus,
+    tablePlayers,
+    newGameInitialSetup,
+    handleStartGame,
+    handleSaveRound,
+    handleDeleteRound,
+    handleDeleteLastRound,
+    handleUpdateTeams,
+    handleEndGame,
+    handleCloseTable,
+    handleManualSave,
+    handleRematch,
+    handleArchiveAndNew,
+    handleLeaveCloudTable,
+    handleDeleteGameHistory,
+    handleShareGame,
+    handleResumeGame,
+    handleDataImported,
+    handlePlayTournamentMatch,
+    handleChallengeFriend,
+  ]);
 }

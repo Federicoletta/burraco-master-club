@@ -244,6 +244,10 @@ export async function loginWithGoogle() {
     if (db && user) {
       try {
         await syncUserProfiles(user, { includeLastLogin: true });
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('burraco_last_seen_sync', String(Date.now()));
+          sessionStorage.setItem('burraco_public_profile_synced_v1', user.uid);
+        }
       } catch (firestoreErr) {
         if (isPermissionOrQuotaError(firestoreErr)) {
           handleFirestoreError(firestoreErr, OperationType.WRITE, `burraco_users/${user.uid}`);
@@ -264,6 +268,11 @@ export async function loginWithGoogle() {
 export async function logoutUser() {
   if (!auth) return;
   try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('burraco_last_seen_sync');
+      sessionStorage.removeItem('burraco_public_profile_synced_v1');
+    }
+    userProfilesCache.clear();
     await signOut(auth);
   } catch (err) {
     console.error('Errore logout:', err);
@@ -577,31 +586,6 @@ export function subscribeToCloudGame(gameId, onUpdate, onNotFound) {
   }
 }
 
-/**
- * Verifica in modo robusto (UID, email case-insensitive o nome giocatore) se una partita appartiene all'utente
- */
-export function isGameAssociatedWithUser(data, currentUser) {
-  if (!data) return false;
-  if (!currentUser) {
-    return !data.ownerUid;
-  }
-  const userUid = (currentUser.uid || '').trim();
-  const userEmail = (currentUser.email || '').trim().toLowerCase();
-  const userName = (currentUser.displayName || '').trim().toLowerCase();
-
-  if (userUid && data.ownerUid === userUid) return true;
-  if (userUid && Array.isArray(data.playerUids) && data.playerUids.includes(userUid)) return true;
-  if (userEmail && Array.isArray(data.playerEmails) && data.playerEmails.some(e => (e || '').trim().toLowerCase() === userEmail)) return true;
-
-  if (userName) {
-    const checkNames = (players) => (players || []).some(p => typeof p === 'string' && p.trim().toLowerCase() === userName);
-    if (checkNames(data.team1?.players) || checkNames(data.team2?.players) || checkNames(data.team3?.players)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 async function getDocsWithOrderFallback(orderedQuery, fallbackQuery, path) {
   try {
     return await getDocs(orderedQuery);
@@ -690,65 +674,6 @@ export async function deleteGameFromCloud(gameId) {
   }
 }
 
-/**
- * Salva la lista dei partecipanti sul cloud (disattivata: nessun archivio globale di nomi)
- */
-export async function syncPlayersToCloud() {
-  return true;
-}
-
-/**
- * Salva la rubrica ospiti specifica per l'utente loggato nel suo documento profilo privato
- */
-export async function syncUserGuestsToCloud(userId, guests) {
-  if (!db || !userId) return false;
-  const path = `burraco_users/${userId}`;
-  try {
-    const userRef = doc(db, 'burraco_users', userId);
-    await setDoc(userRef, { guests: guests || [] }, { merge: true });
-    return true;
-  } catch (err) {
-    if (isPermissionOrQuotaError(err)) {
-      handleFirestoreError(err, OperationType.WRITE, path);
-    }
-    console.warn('Errore syncUserGuestsToCloud:', err.message);
-    return false;
-  }
-}
-
-/**
- * Ascolta in tempo reale la rubrica ospiti dell'utente
- */
-export function subscribeToUserGuests(userId, onUpdate) {
-  if (!db || !userId) return () => {};
-  const path = `burraco_users/${userId}`;
-  try {
-    const userRef = doc(db, 'burraco_users', userId);
-    return onSnapshot(userRef, (docSnap) => {
-      if (docSnap.exists() && Array.isArray(docSnap.data().guests)) {
-        onUpdate(docSnap.data().guests);
-      } else {
-        onUpdate([]);
-      }
-    }, (err) => {
-      if (isPermissionOrQuotaError(err)) {
-        handleFirestoreError(err, OperationType.GET, path);
-      }
-      console.warn('Errore subscribeToUserGuests:', err.message);
-    });
-  } catch (err) {
-    console.warn('subscribeToUserGuests error:', err);
-    return () => {};
-  }
-}
-
-/**
- * Ascolta in tempo reale le modifiche alla lista partecipanti su Firestore (disattivata: nessun listener globale)
- */
-export function subscribeToCloudPlayers() {
-  return () => {};
-}
-
 function subscribeWithOrderFallback(orderedQ, fallbackQ, onData, path) {
   let activeUnsub = () => {};
   let unsubscribed = false;
@@ -777,7 +702,7 @@ function subscribeWithOrderFallback(orderedQ, fallbackQ, onData, path) {
 }
 
 /**
- * Ascolta in tempo reale lo storico partite da Firestore con isolamento utente e ordinamento decrescente
+ * Ascolta in tempo reale lo storico partite da Firestore con isolamento utente e propagazione eliminazioni
  */
 export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
   if (!db) return () => {};
@@ -788,10 +713,15 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
     }
 
     const colRef = collection(db, 'burraco_games');
-    const gamesMap = new Map();
+    let ownerMap = new Map();
+    let partMap = new Map();
 
     const emitMerged = () => {
-      const list = Array.from(gamesMap.values())
+      const merged = new Map();
+      partMap.forEach((val, key) => merged.set(key, val));
+      ownerMap.forEach((val, key) => merged.set(key, val));
+
+      const list = Array.from(merged.values())
         .filter(data => data && data.id && (data.isFinished || (data.rounds && data.rounds.length > 0) || (data.createdAt && (Date.now() - new Date(data.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000))))
         .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       if (onUpdate) onUpdate(list);
@@ -801,7 +731,9 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
       query(colRef, where('ownerUid', '==', currentUser.uid), orderBy('createdAt', 'desc'), limit(60)),
       query(colRef, where('ownerUid', '==', currentUser.uid), limit(60)),
       (snapshot) => {
-        snapshot.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
+        const nextOwner = new Map();
+        snapshot.forEach(docSnap => nextOwner.set(docSnap.id, docSnap.data()));
+        ownerMap = nextOwner;
         emitMerged();
       },
       'burraco_games'
@@ -811,7 +743,9 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
       query(colRef, where('playerUids', 'array-contains', currentUser.uid), orderBy('createdAt', 'desc'), limit(40)),
       query(colRef, where('playerUids', 'array-contains', currentUser.uid), limit(40)),
       (snapshot) => {
-        snapshot.forEach(docSnap => gamesMap.set(docSnap.id, docSnap.data()));
+        const nextPart = new Map();
+        snapshot.forEach(docSnap => nextPart.set(docSnap.id, docSnap.data()));
+        partMap = nextPart;
         emitMerged();
       },
       'burraco_games'
@@ -825,13 +759,6 @@ export function subscribeToCloudGamesHistory(currentUser, onUpdate) {
     console.warn('subscribeToCloudGamesHistory error:', err);
     return () => {};
   }
-}
-
-/**
- * Funzione disattivata per salvaguardia: nessuna pulizia distruttiva di partite o localStorage
- */
-export async function cleanupLegacyCloudDatabase() {
-  return true;
 }
 
 // ==========================================
@@ -1029,9 +956,10 @@ export async function fetchTablePlayers(uids = [], emails = []) {
     }
 
     // Assicura che eventuali partecipanti non ancora su burraco_public_profiles abbiano comunque un entry visiva dal contesto del tavolo
+    const canMatchEmailByIndex = Array.isArray(emails) && emails.length === uniqueUids.length;
     uniqueUids.forEach((uid, idx) => {
       if (!seenUids.has(uid)) {
-        const fallbackEmail = Array.isArray(emails) && emails[idx] ? String(emails[idx]).toLowerCase() : null;
+        const fallbackEmail = canMatchEmailByIndex && emails[idx] ? String(emails[idx]).toLowerCase() : null;
         profiles.push({
           uid,
           displayName: fallbackEmail ? fallbackEmail.split('@')[0] : 'Giocatore al Tavolo',
@@ -1097,48 +1025,4 @@ export async function updateUserCareerStats(userId, stats) {
     console.warn('Errore updateUserCareerStats:', err.message);
     return false;
   }
-}
-
-/**
- * Ascolta in tempo reale i profili pubblici e le statistiche di carriera di tutti i propri amici
- */
-export function subscribeToFriendsLiveProfiles(friendsList, onUpdate) {
-  if (!db || !Array.isArray(friendsList) || friendsList.length === 0) {
-    if (onUpdate) onUpdate([]);
-    return () => {};
-  }
-
-  const unsubs = [];
-  const profilesMap = {};
-
-  friendsList.forEach(friend => {
-    const uid = friend.uid;
-    if (!uid) return;
-    try {
-      const pubRef = doc(db, 'burraco_public_profiles', uid);
-      const unsub = onSnapshot(pubRef, (snap) => {
-        if (snap.exists()) {
-          profilesMap[uid] = {
-            ...friend,
-            ...snap.data()
-          };
-        } else {
-          profilesMap[uid] = friend;
-        }
-        if (onUpdate) onUpdate(Object.values(profilesMap));
-      }, (err) => {
-        if (isPermissionOrQuotaError(err)) {
-          handleFirestoreError(err, OperationType.GET, `burraco_public_profiles/${uid}`);
-        }
-        console.warn('Errore listener amico:', uid, err.message);
-      });
-      unsubs.push(unsub);
-    } catch (e) {
-      console.warn('Errore subscription amico:', uid, e);
-    }
-  });
-
-  return () => {
-    unsubs.forEach(unsub => unsub());
-  };
 }

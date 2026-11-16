@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAlert } from '../context/confirmContextStore';
-import { 
-  loginWithGoogle, 
-  logoutUser, 
+import {
+  loginWithGoogle,
+  logoutUser,
   subscribeToAuth,
   joinCloudGame
 } from '../services/firebase';
-import { 
+import {
   sendFriendRequest,
   respondToFriendRequest,
   sendGameInvite,
@@ -34,11 +34,18 @@ export function useSocialClub() {
   const [profileInitialTab, setProfileInitialTab] = useState('profile');
 
   const prevNotifIdsRef = useRef([]);
+  const currentUserRef = useRef(currentUser);
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
-  const handleOpenProfile = (tab = 'profile') => {
+  const currentUid = currentUser?.uid || null;
+  const currentEmail = currentUser?.email || '';
+
+  const handleOpenProfile = useCallback((tab = 'profile') => {
     setProfileInitialTab(tab);
     setIsProfileOpen(true);
-  };
+  }, []);
 
   // 1. Ascolto stato autenticazione Google
   useEffect(() => {
@@ -56,19 +63,21 @@ export function useSocialClub() {
     return () => unsubAuth();
   }, []);
 
-  // 2. Ascolto real-time Notifiche, Amici, Profilo (Amici Stretti) e Membri Club
+  // 2. Ascolto real-time Notifiche, Amici e Profilo (dipende da UID/email stabili)
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUid) {
       return;
     }
 
-    const unsubProfile = subscribeToMyProfile(currentUser, (profileData) => {
+    const userIdentity = { uid: currentUid, email: currentEmail };
+
+    const unsubProfile = subscribeToMyProfile(userIdentity, (profileData) => {
       if (profileData && Array.isArray(profileData.closeFriends)) {
         setCloseFriends(profileData.closeFriends);
       }
     });
 
-    const unsubNotifs = subscribeToMyNotifications(currentUser, (notifs) => {
+    const unsubNotifs = subscribeToMyNotifications(userIdentity, (notifs) => {
       if (Array.isArray(notifs)) {
         setToastNotification(prevToast => {
           if (!prevToast) return null;
@@ -88,7 +97,7 @@ export function useSocialClub() {
       setNotifications(notifs);
     });
 
-    const unsubFriends = subscribeToMyFriends(currentUser, (friends) => {
+    const unsubFriends = subscribeToMyFriends(userIdentity, (friends) => {
       setRawFriendsList(friends);
     });
 
@@ -97,7 +106,7 @@ export function useSocialClub() {
       unsubNotifs();
       unsubFriends();
     };
-  }, [currentUser]);
+  }, [currentUid, currentEmail]);
 
   // Arricchisce gli amici con il flag isCloseFriend e ordina prima gli Amici Stretti in cima
   const friendsList = useMemo(() => {
@@ -111,19 +120,19 @@ export function useSocialClub() {
     });
   }, [rawFriendsList, closeFriends]);
 
-  // 3. Ascolto soci e membri club su richiesta (attivato solo all'apertura del profilo/ricerca amici per risparmio letture DB)
+  // 3. Ascolto soci e membri club su richiesta (solo ad apertura profilo per risparmio letture DB)
   useEffect(() => {
-    if (!currentUser || !isProfileOpen) {
+    if (!currentUid || !isProfileOpen) {
       return;
     }
-    const unsubClub = subscribeToClubUsers(currentUser, (cUsers) => {
+    const unsubClub = subscribeToClubUsers({ uid: currentUid }, (cUsers) => {
       setClubUsers(cUsers);
     });
     return () => unsubClub();
-  }, [currentUser, isProfileOpen]);
+  }, [currentUid, isProfileOpen]);
 
   // Login
-  const handleLogin = async () => {
+  const handleLogin = useCallback(async () => {
     try {
       const user = await loginWithGoogle();
       if (user?.isFirstLogin) {
@@ -140,31 +149,33 @@ export function useSocialClub() {
         });
       }
     }
-  };
+  }, [customAlert]);
 
   // Logout
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await logoutUser();
       setIsProfileOpen(false);
     } catch (err) {
       console.error("Logout fallito:", err);
     }
-  };
+  }, []);
 
   // Richiesta di amicizia
-  const handleSendFriendRequest = async (target) => {
-    if (!currentUser) throw new Error('Devi prima accedere con il tuo account Google');
-    return await sendFriendRequest(currentUser, target);
-  };
+  const handleSendFriendRequest = useCallback(async (target) => {
+    const user = currentUserRef.current;
+    if (!user) throw new Error('Devi prima accedere con il tuo account Google');
+    return await sendFriendRequest(user, target);
+  }, []);
 
   // Rimozione amico (accetta sia oggetto friend che friendshipId stringa)
-  const handleRemoveFriend = async (friendOrId) => {
+  const handleRemoveFriend = useCallback(async (friendOrId) => {
+    const user = currentUserRef.current;
     const friendshipId = typeof friendOrId === 'string' ? friendOrId : friendOrId?.friendshipId;
     const friendUid = typeof friendOrId === 'object' && friendOrId !== null ? friendOrId.uid : null;
     if (!friendshipId) return;
     try {
-      await removeFriend(friendshipId, currentUser, friendUid);
+      await removeFriend(friendshipId, user, friendUid);
       if (friendUid) {
         setCloseFriends(prev => prev.filter(id => id !== friendUid));
       }
@@ -176,11 +187,12 @@ export function useSocialClub() {
         variant: 'danger'
       });
     }
-  };
+  }, [customAlert]);
 
   // Imposta o rimuove un amico dagli Amici Stretti ⭐
-  const handleToggleCloseFriend = async (friend) => {
-    if (!currentUser || !friend?.uid) return;
+  const handleToggleCloseFriend = useCallback(async (friend) => {
+    const user = currentUserRef.current;
+    if (!user || !friend?.uid) return;
     const friendUid = friend.uid;
     // Aggiornamento ottimistico
     setCloseFriends(prev => {
@@ -188,7 +200,7 @@ export function useSocialClub() {
       return isClose ? prev.filter(id => id !== friendUid) : [...prev, friendUid];
     });
     try {
-      const isNowClose = await toggleCloseFriend(currentUser, friendUid);
+      const isNowClose = await toggleCloseFriend(user, friendUid);
       sound.playTrophy();
       return isNowClose;
     } catch (err) {
@@ -204,17 +216,17 @@ export function useSocialClub() {
         variant: 'danger'
       });
     }
-  };
+  }, [customAlert]);
 
   // Accetta richiesta amicizia
-  const handleAcceptFriendRequest = async (notification) => {
+  const handleAcceptFriendRequest = useCallback(async (notification) => {
     try {
       setToastNotification(null);
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
       if (!prevNotifIdsRef.current.includes(notification.id)) {
         prevNotifIdsRef.current.push(notification.id);
       }
-      await respondToFriendRequest(notification, true, currentUser);
+      await respondToFriendRequest(notification, true, currentUserRef.current);
     } catch (err) {
       console.error('Errore accettazione amicizia:', err);
       customAlert({
@@ -223,21 +235,21 @@ export function useSocialClub() {
         variant: 'danger'
       });
     }
-  };
+  }, [customAlert]);
 
   // Rifiuta richiesta amicizia
-  const handleDeclineFriendRequest = async (notification) => {
+  const handleDeclineFriendRequest = useCallback(async (notification) => {
     try {
       setToastNotification(null);
-      await respondToFriendRequest(notification, false, currentUser);
+      await respondToFriendRequest(notification, false, currentUserRef.current);
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
     } catch (err) {
       console.error('Errore rifiuto amicizia:', err);
     }
-  };
+  }, []);
 
   // Accetta invito al tavolo
-  const handleAcceptGameInvite = async (notification, onJoinedCloudGame) => {
+  const handleAcceptGameInvite = useCallback(async (notification, onJoinedCloudGame) => {
     try {
       setToastNotification(null);
       await respondToGameInvite(notification, true);
@@ -265,10 +277,10 @@ export function useSocialClub() {
         variant: 'warning'
       });
     }
-  };
+  }, [customAlert]);
 
   // Rifiuta invito al tavolo
-  const handleDeclineGameInvite = async (notification) => {
+  const handleDeclineGameInvite = useCallback(async (notification) => {
     try {
       setToastNotification(null);
       await respondToGameInvite(notification, false);
@@ -276,11 +288,12 @@ export function useSocialClub() {
     } catch (err) {
       console.error('Errore rifiuto partita:', err);
     }
-  };
+  }, []);
 
   // Invita amico al tavolo attivo
-  const handleInviteFriendToActiveGame = async (friend, activeGame) => {
-    if (!currentUser || !activeGame || !friend) return;
+  const handleInviteFriendToActiveGame = useCallback(async (friend, activeGame) => {
+    const user = currentUserRef.current;
+    if (!user || !activeGame || !friend) return;
     try {
       let teamName = 'Al Tavolo';
       const t1Count = activeGame.team1?.players?.length || 0;
@@ -294,16 +307,16 @@ export function useSocialClub() {
         // ⭐ Amico Stretto: entra direttamente nel live sync del tavolo
         await joinCloudGame(activeGame.id, friend);
       }
-      await sendGameInvite(currentUser, friend, activeGame, teamName);
+      await sendGameInvite(user, friend, activeGame, teamName);
       sound.playTrophy();
       return { success: true };
     } catch (err) {
       console.error('Errore invio invito al tavolo attivo:', err);
       throw err;
     }
-  };
+  }, []);
 
-  return {
+  return useMemo(() => ({
     currentUser,
     friendsList,
     closeFriends,
@@ -330,5 +343,27 @@ export function useSocialClub() {
     handleAcceptGameInvite,
     handleDeclineGameInvite,
     handleInviteFriendToActiveGame,
-  };
+  }), [
+    currentUser,
+    friendsList,
+    closeFriends,
+    clubUsers,
+    notifications,
+    toastNotification,
+    welcomeUser,
+    isNotificationsOpen,
+    isProfileOpen,
+    profileInitialTab,
+    handleOpenProfile,
+    handleLogin,
+    handleLogout,
+    handleSendFriendRequest,
+    handleRemoveFriend,
+    handleToggleCloseFriend,
+    handleAcceptFriendRequest,
+    handleDeclineFriendRequest,
+    handleAcceptGameInvite,
+    handleDeclineGameInvite,
+    handleInviteFriendToActiveGame,
+  ]);
 }

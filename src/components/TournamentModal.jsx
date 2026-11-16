@@ -21,9 +21,11 @@ export default function TournamentModal({
   onClose,
   isPage = false,
   activeTournament,
+  tournamentsHistory: externalHistory = null,
   onStartTournament,
   onUpdateTournament,
   onFinishTournament,
+  onDeleteTournamentHistory = null,
   onPlayMatch,
   playersList = [],
   currentUser = null,
@@ -44,7 +46,8 @@ export default function TournamentModal({
 
   const [forceCreating, setForceCreating] = useState(false);
   const isCreating = forceCreating || !activeTournament;
-  const [tournamentsHistory, setTournamentsHistory] = useState(() => getTournamentsHistory());
+  const [localHistory, setLocalHistory] = useState(() => getTournamentsHistory());
+  const tournamentsHistory = externalHistory ?? localHistory;
   const [viewingHistoricalTournament, setViewingHistoricalTournament] = useState(null);
 
   useModalEscape(!isPage && isOpen, onClose);
@@ -328,7 +331,9 @@ export default function TournamentModal({
     } catch {}
 
     onFinishTournament();
-    setTournamentsHistory(getTournamentsHistory());
+    if (!externalHistory) {
+      setLocalHistory(getTournamentsHistory());
+    }
     setActiveTab('standings');
   };
 
@@ -342,8 +347,12 @@ export default function TournamentModal({
     });
     if (!ok) return;
 
-    const updated = deleteTournamentFromHistory(tournamentId);
-    setTournamentsHistory(updated);
+    if (typeof onDeleteTournamentHistory === 'function') {
+      onDeleteTournamentHistory(tournamentId);
+    } else {
+      const updated = deleteTournamentFromHistory(tournamentId);
+      setLocalHistory(updated);
+    }
     if (viewingHistoricalTournament?.id === tournamentId) {
       setViewingHistoricalTournament(null);
     }

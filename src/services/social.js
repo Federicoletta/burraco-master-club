@@ -317,8 +317,8 @@ export function subscribeToMyNotifications(currentUser, onNotificationsChange) {
   let unsubEmail = () => {};
   if (cleanEmail) {
     unsubEmail = subscribeOrderedNotifications(
-      query(notifsRef, where('toEmail', '==', cleanEmail), orderBy('createdAt', 'desc'), limit(50)),
-      query(notifsRef, where('toEmail', '==', cleanEmail), limit(50)),
+      query(notifsRef, where('toEmail', '==', cleanEmail), where('status', '==', 'pending'), orderBy('createdAt', 'desc'), limit(50)),
+      query(notifsRef, where('toEmail', '==', cleanEmail), where('status', '==', 'pending'), limit(50)),
       (snap) => {
         emailDocs = new Map();
         snap.docs.forEach(docSnap => {
@@ -333,8 +333,8 @@ export function subscribeToMyNotifications(currentUser, onNotificationsChange) {
   let unsubUid = () => {};
   if (currentUid) {
     unsubUid = subscribeOrderedNotifications(
-      query(notifsRef, where('toUid', '==', currentUid), orderBy('createdAt', 'desc'), limit(50)),
-      query(notifsRef, where('toUid', '==', currentUid), limit(50)),
+      query(notifsRef, where('toUid', '==', currentUid), where('status', '==', 'pending'), orderBy('createdAt', 'desc'), limit(50)),
+      query(notifsRef, where('toUid', '==', currentUid), where('status', '==', 'pending'), limit(50)),
       (snap) => {
         uidDocs = new Map();
         snap.docs.forEach(docSnap => {

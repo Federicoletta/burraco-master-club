@@ -18,7 +18,7 @@ import {
   Edit2,
   PlusCircle
 } from 'lucide-react';
-import { exportBackupData, importBackupData, getGamesHistory, getHistoryKey } from '../utils/storage';
+import { exportBackupData, importBackupData, getGamesHistory, getHistoryKey, getOutboxQueue, safeSetItem } from '../utils/storage';
 import { loadCloudGamesHistory } from '../services/firebase';
 
 const formatDate = (dateVal) => {
@@ -112,14 +112,32 @@ export default function HistoryModal({
       if (Array.isArray(cloudGames)) {
         const userKey = currentUser ? currentUser.uid : 'guest';
         const localGames = getGamesHistory(userKey);
+        const outboxIds = new Set((getOutboxQueue() || []).map(g => g?.id).filter(Boolean));
         const map = new Map();
-        localGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
-        cloudGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
+
+        if (currentUser?.uid) {
+          localGames.forEach(g => {
+            if (g?.id && (outboxIds.has(g.id) || g.id === activeGame?.id)) {
+              map.set(g.id, g);
+            }
+          });
+        } else {
+          localGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
+        }
+
+        cloudGames.forEach(g => {
+          if (g && g.id) {
+            const localMatch = map.get(g.id);
+            if (!localMatch || (g.rounds?.length || 0) >= (localMatch.rounds?.length || 0)) {
+              map.set(g.id, g);
+            }
+          }
+        });
         const merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
-        localStorage.setItem(getHistoryKey(userKey), JSON.stringify(merged));
+        safeSetItem(getHistoryKey(userKey), JSON.stringify(merged));
         if (onDataImported) {
-          onDataImported(merged);
+          onDataImported(merged, Boolean(currentUser?.uid));
         }
       }
       setSyncDone(true);
@@ -231,13 +249,13 @@ export default function HistoryModal({
                 <div className="flex items-center gap-2">
                   {onEndGame && !selectedGame.isFinished && (
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         try {
                           if (activeGame && activeGame.id === selectedGame.id) {
                             onEndGame();
                           } else if (onResumeGame) {
-                            onResumeGame(selectedGame);
-                            setTimeout(() => onEndGame(), 100);
+                            const resumed = await onResumeGame(selectedGame);
+                            onEndGame(resumed || selectedGame);
                           }
                         } finally {
                           onClose();
@@ -252,9 +270,9 @@ export default function HistoryModal({
 
                   {onResumeGame && (
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         try {
-                          onResumeGame(selectedGame);
+                          await onResumeGame(selectedGame);
                         } finally {
                           onClose();
                         }
@@ -408,9 +426,9 @@ export default function HistoryModal({
                         {onEditRound && onResumeGame && (
                           <td className="p-2 text-center">
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 try {
-                                  onResumeGame(selectedGame);
+                                  await onResumeGame(selectedGame);
                                   onEditRound(r);
                                 } finally {
                                   onClose();
@@ -433,9 +451,9 @@ export default function HistoryModal({
               {onAddRound && onResumeGame && (
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       try {
-                        onResumeGame(selectedGame);
+                        await onResumeGame(selectedGame);
                         onAddRound();
                       } finally {
                         onClose();

@@ -4,6 +4,7 @@ import {
   getTournamentsHistory,
   TOURNAMENT_STORAGE_KEYS
 } from './tournament';
+import { calculatePlayerTrophies } from './trophies';
 
 // Gestione persistenza dati su LocalStorage
 
@@ -753,6 +754,27 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
   const avgPointsPerHand = totalHands > 0 ? Math.round(totalPoints / totalHands) : 0;
   const avgPointsPerGame = gamesPlayed > 0 ? Math.round(totalPoints / gamesPlayed) : totalPoints;
 
+  const baseStats = {
+    name: myName || user.displayName || 'Giocatore',
+    totalPoints,
+    gamesPlayed,
+    gamesWon,
+    gamesLost,
+    winRate,
+    cleanBurrachi,
+    semiCleanBurrachi,
+    dirtyBurrachi,
+    totalBurrachi,
+    closures,
+    bestHandScore,
+    avgPointsPerHand,
+    avgPointsPerGame,
+    scoresHistory,
+    matchScores,
+  };
+
+  const trophiesResult = calculatePlayerTrophies(baseStats, allGames);
+
   return {
     totalPoints,
     gamesPlayed,
@@ -769,6 +791,6 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
     avgPointsPerGame,
     scoresHistory,
     matchScores,
-    trophiesCount: 0
+    trophiesCount: trophiesResult?.unlockedCount || 0
   };
 }

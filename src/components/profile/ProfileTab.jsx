@@ -172,9 +172,9 @@ export default function ProfileTab({
                     <Lock className="w-3 h-3 text-zinc-400" />
                   )}
                 </div>
-                <div className="text-[11px] font-bold text-white truncate">{t.name}</div>
+                <div className="text-[11px] font-bold text-white truncate">{t.title}</div>
                 <div className="text-[9px] text-emerald-300/70 truncate mt-0.5">
-                  {t.unlocked ? '✓ Conquistato' : `${t.current} / ${t.target}`}
+                  {t.unlocked ? '✓ Conquistato' : (t.progressText || `${t.progress} / ${t.max}`)}
                 </div>
               </div>
             ))}

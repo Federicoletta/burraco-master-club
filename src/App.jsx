@@ -1,4 +1,4 @@
-import React, { useState, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useCallback, useMemo, Suspense, lazy } from 'react';
 import Header from './components/Header';
 import ScoreBoard from './components/ScoreBoard';
 import HomeLobby from './components/HomeLobby';
@@ -119,6 +119,16 @@ function BurracoAppContent() {
     setActiveNavTab('profile');
   }, [social]);
 
+  const storedPlayers = useMemo(
+    () => (isNewGameOpen ? getStoredPlayers(social.currentUser?.uid) : []),
+    [social.currentUser?.uid, isNewGameOpen]
+  );
+
+  const onlineFriendsCount = useMemo(
+    () => (social.friendsList || []).filter(f => f?.isOnline).length,
+    [social.friendsList]
+  );
+
   const handleSelectNavTab = useCallback((tabId) => {
     setActiveNavTab(tabId);
   }, []);
@@ -128,32 +138,23 @@ function BurracoAppContent() {
       
       {/* Barra Superiore */}
       <Header
-        onNewGame={handleOpenNewGame}
-        onOpenHistory={handleOpenHistory}
-        onOpenCloud={handleOpenCloud}
-        onOpenTournament={handleOpenTournament}
-        hasActiveTournament={Boolean(tournament.activeTournament)}
         onOpenRules={handleOpenRules}
         onShareGame={game.handleShareGame}
         hasActiveGame={Boolean(game.activeGame)}
-        currentUser={social.currentUser}
-        onOpenProfile={social.handleOpenProfile}
-        onLogin={social.handleLogin}
         notificationCount={social.notifications.length}
         onOpenNotifications={handleOpenNotifications}
-        friendsList={social.friendsList}
         onOpenThemeSelector={handleOpenThemeSelector}
-        currentTheme={currentTheme}
       />
 
       {/* Toast Notifiche in tempo reale */}
       <NotificationToast
+        key={social.toastNotification?.id || 'empty'}
         notification={social.toastNotification}
         onAccept={async (notif) => {
           social.setToastNotification(null);
           if (notif.type === 'game_invite') {
-            await social.handleAcceptGameInvite(notif, (gameId) => {
-              game.handleResumeGame(gameId);
+            await social.handleAcceptGameInvite(notif, async (gameId) => {
+              await game.handleResumeGame(gameId);
               setActiveNavTab('table');
             });
           } else {
@@ -235,7 +236,7 @@ function BurracoAppContent() {
             <HomeLobby
               currentUser={social.currentUser}
               friendsList={social.friendsList}
-              storedPlayers={getStoredPlayers(social.currentUser?.uid)}
+              storedPlayers={storedPlayers}
               gamesHistory={game.gamesHistory}
               onStartGame={game.handleStartGame}
               onResumeGame={game.handleResumeGame}
@@ -258,9 +259,11 @@ function BurracoAppContent() {
               isOpen={true}
               onClose={() => setActiveNavTab('table')}
               activeTournament={tournament.activeTournament}
+              tournamentsHistory={tournament.tournamentsHistory}
               onStartTournament={tournament.handleStartTournament}
               onUpdateTournament={tournament.handleUpdateTournament}
               onFinishTournament={tournament.handleFinishTournament}
+              onDeleteTournamentHistory={tournament.handleDeleteTournamentHistory}
               onPlayMatch={(match) => game.handlePlayTournamentMatch(match, tournament.activeTournament, () => setActiveNavTab('table'))}
               playersList={game.recentPlayers}
               currentUser={social.currentUser}
@@ -282,9 +285,10 @@ function BurracoAppContent() {
               activeGame={game.activeGame}
               currentUser={social.currentUser}
               onEndGame={game.handleEndGame}
-              onResumeGame={(g) => {
-                game.handleResumeGame(g);
+              onResumeGame={async (g) => {
+                const resumed = await game.handleResumeGame(g);
                 setActiveNavTab('table');
+                return resumed;
               }}
               onDeleteGame={game.handleDeleteGameHistory}
               onDataImported={game.handleDataImported}
@@ -334,7 +338,7 @@ function BurracoAppContent() {
         hasActiveTournament={Boolean(tournament.activeTournament)}
         currentUser={social.currentUser}
         notificationCount={social.notifications.length}
-        onlineFriendsCount={(social.friendsList || []).filter(f => f?.isOnline).length}
+        onlineFriendsCount={onlineFriendsCount}
       />
 
       {/* MODALI */}
@@ -348,7 +352,7 @@ function BurracoAppContent() {
           }}
           onStartGame={game.handleStartGame}
           friendsList={social.friendsList}
-          storedPlayers={getStoredPlayers(social.currentUser?.uid)}
+          storedPlayers={storedPlayers}
           currentUser={social.currentUser}
           lastGame={game.gamesHistory?.[0] || null}
           hasActiveGame={Boolean(game.activeGame && game.activeGame.rounds && game.activeGame.rounds.length > 0)}

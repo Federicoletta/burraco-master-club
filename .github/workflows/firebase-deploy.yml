@@ -59,3 +59,25 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: burraco-score-fedec
+
+      - name: Deploy Firestore Rules & Indexes
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.HAS_FIREBASE_SA == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TARGET_DATABASE_ID: ${{ secrets.VITE_FIREBASE_DATABASE_ID || '(default)' }}
+        run: |
+          umask 077
+          SA_FILE="$RUNNER_TEMP/firebase-sa.json"
+          trap 'rm -f "$SA_FILE"' EXIT
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$SA_FILE"
+          export GOOGLE_APPLICATION_CREDENTIALS="$SA_FILE"
+          if [ "$TARGET_DATABASE_ID" != "(default)" ] && [ -n "$TARGET_DATABASE_ID" ]; then
+            node -e "
+              const fs = require('fs');
+              const cfg = JSON.parse(fs.readFileSync('firebase.json', 'utf8'));
+              cfg.firestore = Object.assign({}, cfg.firestore, { database: process.env.TARGET_DATABASE_ID });
+              fs.writeFileSync('firebase.json', JSON.stringify(cfg, null, 2));
+            "
+          fi
+          npx --yes firebase-tools deploy --only firestore:rules,firestore:indexes --project burraco-score-fedec --non-interactive
+          git checkout -- firebase.json 2>/dev/null || true

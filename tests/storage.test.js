@@ -171,6 +171,7 @@ describe('Storage & Database Layer - Career Stats Computation', () => {
     expect(stats.totalBurrachi).toBe(5);
     expect(stats.closures).toBe(2);
     expect(stats.bestHandScore).toBe(420);
+    expect(stats.trophiesCount).toBeGreaterThanOrEqual(1);
   });
 
   it('handles trio matches and losses accurately in career stats', () => {
@@ -205,6 +206,7 @@ describe('Storage & Database Layer - Career Stats Computation', () => {
     expect(stats.winRate).toBe(0);
     expect(stats.totalPoints).toBe(200);
     expect(stats.cleanBurrachi).toBe(1);
+    expect(typeof stats.trophiesCount).toBe('number');
   });
 });
 

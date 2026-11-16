@@ -1,4 +1,4 @@
-const CACHE_NAME = 'burraco-cache-v3';
+const CACHE_NAME = 'burraco-cache-v4';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/version.json'
