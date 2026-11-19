@@ -265,6 +265,10 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
 
   const baseStats = {
     name: myName || user.displayName || 'Giocatore',
+    displayName: user.displayName || myName || '',
+    email: user.email || '',
+    uid: user.uid || '',
+    aliases: Array.from(aliases),
     totalPoints,
     gamesPlayed,
     gamesWon,
@@ -285,21 +289,7 @@ export function computeUserCareerStats(user, gamesHistory = [], activeGame = nul
   const trophiesResult = calculatePlayerTrophies(baseStats, allGames);
 
   return {
-    totalPoints,
-    gamesPlayed,
-    gamesWon,
-    gamesLost,
-    winRate,
-    cleanBurrachi,
-    semiCleanBurrachi,
-    dirtyBurrachi,
-    totalBurrachi,
-    closures,
-    bestHandScore,
-    avgPointsPerHand,
-    avgPointsPerGame,
-    scoresHistory,
-    matchScores,
-    trophiesCount: trophiesResult?.unlockedCount || 0
+    ...baseStats,
+    trophiesCount: trophiesResult?.unlockedCount || 0,
   };
 }

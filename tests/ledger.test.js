@@ -201,4 +201,32 @@ describe('Burraco Distributed Ledger & CRDT Event-Sourcing', () => {
     expect(state.rounds.length).toBe(2);
     expect(state.team1.name).toBe('Vecchia 1');
   });
+
+  it('mantiene aperta la partita sul ledger in caso di parità esatta al targetScore fino allo spareggio', () => {
+    let chain = [createGenesisBlock({ id: 'game_tie_ledger', targetScore: 2005 })];
+    chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, {
+      roundNumber: 1,
+      team1Score: 1000,
+      team2Score: 1005,
+    });
+    chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, {
+      roundNumber: 2,
+      team1Score: 1005,
+      team2Score: 1000, // 2005 vs 2005
+    });
+
+    const tiedState = reconstructGameStateFromChain(chain);
+    expect(tiedState.isFinished).toBe(false);
+    expect(tiedState.winner).toBeNull();
+
+    chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, {
+      roundNumber: 3,
+      team1Score: 200,
+      team2Score: 300, // 2205 vs 2305
+    });
+
+    const finalState = reconstructGameStateFromChain(chain);
+    expect(finalState.isFinished).toBe(true);
+    expect(finalState.winner).toBe('team2');
+  });
 });

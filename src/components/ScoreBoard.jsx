@@ -1,7 +1,10 @@
 import React, { useMemo, memo } from 'react';
-import { Trophy, Plus, RotateCcw } from 'lucide-react';
+import { Trophy, Plus, RotateCcw, Scale } from 'lucide-react';
 import { getGamesHistory, calculatePlayerStats } from '../utils/storage';
 import { getPlayerTitle } from '../utils/trophies';
+import { computeGameShortPin } from '../services/firebase';
+import { DEFAULT_TARGET_SCORE } from '../constants/burraco';
+import { computeTeamTotalsAndWinner } from '../utils/gameHelpers';
 
 import TablePlayersBar from './scoreboard/TablePlayersBar';
 import TeamScoreCards from './scoreboard/TeamScoreCards';
@@ -84,7 +87,8 @@ function ScoreBoard({
 
   if (!activeGame) return null;
 
-  const targetScore = activeGame.targetScore || 2005;
+  const targetScore = activeGame.targetScore || DEFAULT_TARGET_SCORE;
+  const tablePin = activeGame.pin || computeGameShortPin(activeGame.id);
 
   let leader = 'tie';
   let diff = 0;
@@ -112,19 +116,58 @@ function ScoreBoard({
   const t2Percent = Math.min(100, Math.max(0, Math.round((totalTeam2 / targetScore) * 100)));
   const t3Percent = Math.min(100, Math.max(0, Math.round((totalTeam3 / targetScore) * 100)));
 
-  const isTargetReached = totalTeam1 >= targetScore || totalTeam2 >= targetScore || (isTrio && totalTeam3 >= targetScore);
+  const { isTargetReached, isTieAtTarget, winner: computedWinner } = computeTeamTotalsAndWinner(
+    activeGame.rounds,
+    activeGame.mode,
+    targetScore
+  );
 
-  const winningTeam = isTrio
-    ? (totalTeam1 >= totalTeam2 && totalTeam1 >= totalTeam3 ? activeGame.team1 : totalTeam2 >= totalTeam1 && totalTeam2 >= totalTeam3 ? activeGame.team2 : activeGame.team3)
-    : (totalTeam1 >= totalTeam2 ? activeGame.team1 : activeGame.team2);
+  const winningTeam = computedWinner === 'team1'
+    ? activeGame.team1
+    : computedWinner === 'team2'
+      ? activeGame.team2
+      : computedWinner === 'team3'
+        ? activeGame.team3
+        : null;
   const winningScore = isTrio
     ? Math.max(totalTeam1, totalTeam2, totalTeam3)
     : Math.max(totalTeam1, totalTeam2);
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      {/* AVVISO PARITÀ AL TRAGUARDO (SPAREGGIO OBBLIGATORIO) */}
+      {isTargetReached && isTieAtTarget && !activeGame.isFinished && (
+        <div
+          role="status"
+          className="p-4 rounded-2xl club-card border-amber-400/75 bg-amber-950/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
+              <Scale className="w-5 h-5" />
+            </span>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-white">
+                Parità al traguardo ({winningScore.toLocaleString('it-IT')} pt) — Spareggio!
+              </h3>
+              <p className="text-xs club-text-gold font-medium">
+                Nessun vincitore decretato: giocate una smazzata di spareggio per rompere la parità.
+              </p>
+            </div>
+          </div>
+          {onAddRound && (
+            <button
+              type="button"
+              onClick={onAddRound}
+              className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl gold-gradient font-bold text-sm cursor-pointer active:scale-[0.98]"
+            >
+              Registra Smazzata di Spareggio
+            </button>
+          )}
+        </div>
+      )}
+
       {/* AVVISO TRAGUARDO RAGGIUNTO */}
-      {isTargetReached && !activeGame.isFinished && (
+      {isTargetReached && !isTieAtTarget && !activeGame.isFinished && (
         <div className="p-4 rounded-2xl club-card border-amber-400/75 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
@@ -188,11 +231,11 @@ function ScoreBoard({
             }`}
           />
           <span className="font-semibold text-white">Tavolo Live</span>
-          {activeGame.pin && (
+          {tablePin && (
             <>
               <span className="club-text-subtle">·</span>
               <span className="font-mono-num font-bold club-text-gold">
-                PIN {activeGame.pin}
+                PIN {tablePin}
               </span>
             </>
           )}

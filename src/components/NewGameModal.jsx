@@ -6,6 +6,7 @@ import BurracoTableFormation from './newgame/BurracoTableFormation';
 import TableSeatAssignmentTray from './newgame/TableSeatAssignmentTray';
 import TargetScoreSelector from './newgame/TargetScoreSelector';
 import SemipulitoToggle from './newgame/SemipulitoToggle';
+import { DEFAULT_TARGET_SCORE, validateTargetScore } from '../constants/burraco';
 import { sound } from '../utils/soundEffects';
 import { useModalEscape } from '../hooks/useModalEscape';
 
@@ -32,10 +33,15 @@ function NewGameModalContent({
   const [activeSlot, setActiveSlot] = useState('p1A');
   const [showTeamNamesEdit, setShowTeamNamesEdit] = useState(false);
 
-  const [targetScore, setTargetScore] = useState(() => initialSetup?.targetScore || 2005);
+  const [targetScore, setTargetScore] = useState(() => initialSetup?.targetScore || DEFAULT_TARGET_SCORE);
   const [customTarget, setCustomTarget] = useState('');
   const [allowSemipulito, setAllowSemipulito] = useState(() => initialSetup?.allowSemipulito ?? true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const targetValidation = customTarget.trim() !== ''
+    ? validateTargetScore(customTarget)
+    : validateTargetScore(targetScore);
+  const targetError = customTarget.trim() !== '' ? targetValidation.error : null;
 
   const handleModeChange = useCallback((nextMode) => {
     setMode(nextMode);
@@ -81,7 +87,8 @@ function NewGameModalContent({
     setP2A(t2[0] || '');
     setP2B(t2[1] || '');
     setP3A(t3[0] || '');
-    setTargetScore(lastGame.targetScore || 2005);
+    setTargetScore(lastGame.targetScore || DEFAULT_TARGET_SCORE);
+    setCustomTarget('');
     setAllowSemipulito(lastGame.allowSemipulito ?? true);
   }, [lastGame, handleModeChange]);
 
@@ -113,16 +120,15 @@ function NewGameModalContent({
 
   const handleStart = (e) => {
     e.preventDefault();
+    if (!targetValidation.valid) return;
     try { sound.playSuccess(); } catch {}
-
-    const finalTarget = customTarget ? Number(customTarget) : Number(targetScore);
 
     const newGame = {
       id: 'game_' + Date.now(),
       createdAt: new Date().toISOString(),
       mode,
       allowSemipulito,
-      targetScore: finalTarget > 0 ? finalTarget : 2005,
+      targetScore: targetValidation.value,
       team1: {
         name: finalTeam1Name,
         players: t1Players.length > 0 ? t1Players : [finalTeam1Name],
@@ -215,7 +221,7 @@ function NewGameModalContent({
               <div className="truncate min-w-0">
                 <span className="club-text-gold font-bold">Ultima formazione: </span>
                 <span className="text-white truncate">
-                  {lastGame.team1?.name} vs {lastGame.team2?.name} ({lastGame.targetScore || 2005} pt)
+                  {lastGame.team1?.name} vs {lastGame.team2?.name} ({lastGame.targetScore || DEFAULT_TARGET_SCORE} pt)
                 </span>
               </div>
               <button
@@ -331,6 +337,7 @@ function NewGameModalContent({
                     setTargetScore={setTargetScore}
                     customTarget={customTarget}
                     setCustomTarget={setCustomTarget}
+                    error={targetError}
                   />
                 </div>
 
@@ -362,9 +369,9 @@ function NewGameModalContent({
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !targetValidation.valid}
                   className={`w-full min-h-[50px] px-4 rounded-2xl gold-gradient font-bold text-base shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                    isSubmitting || !targetValidation.valid ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   <Play className="w-5 h-5 fill-current" />
@@ -386,7 +393,7 @@ export default function NewGameModal(props) {
   if (!props.isOpen || typeof document === 'undefined') return null;
 
   const setupKey = props.initialSetup
-    ? `${props.initialSetup.mode || 'pairs'}_${props.initialSetup.team1Name || ''}_${props.initialSetup.team2Name || ''}_${props.initialSetup.p1A || ''}_${props.initialSetup.p2A || ''}_${props.initialSetup.targetScore || 2005}`
+    ? `${props.initialSetup.mode || 'pairs'}_${props.initialSetup.team1Name || ''}_${props.initialSetup.team2Name || ''}_${props.initialSetup.p1A || ''}_${props.initialSetup.p2A || ''}_${props.initialSetup.targetScore || DEFAULT_TARGET_SCORE}`
     : 'default';
 
   return <NewGameModalContent key={setupKey} {...props} />;

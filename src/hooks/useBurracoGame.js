@@ -243,7 +243,7 @@ export function useBurracoGame({
       updatedRounds = [...(current.rounds || []), roundData];
     }
 
-    const { t1Total, t2Total, isTargetReached, winner } = computeTeamTotalsAndWinner(
+    const { t1Total, t2Total, isFinished: matchConcluded, winner } = computeTeamTotalsAndWinner(
       updatedRounds,
       current.mode,
       current.targetScore
@@ -256,12 +256,12 @@ export function useBurracoGame({
       ...current,
       rounds: updatedRounds,
       winner: winner || null,
-      isFinished: isTargetReached,
-      completedAt: isTargetReached ? (current.completedAt || new Date().toISOString()) : null,
+      isFinished: matchConcluded,
+      completedAt: matchConcluded ? (current.completedAt || new Date().toISOString()) : null,
       ...ledger,
     };
 
-    if (isTargetReached) {
+    if (matchConcluded) {
       updatedGame.telemetry = computeGameTelemetry(updatedGame, {
         offlineEventsCount: offlineEventsCountRef.current
       });
@@ -311,7 +311,7 @@ export function useBurracoGame({
       }
     }
 
-    if (isTargetReached) {
+    if (matchConcluded) {
       try {
         onCelebrateRef.current();
       } catch (celErr) {
@@ -341,7 +341,7 @@ export function useBurracoGame({
     const user = currentUserRef.current;
     const userKey = user?.uid || 'guest';
     const updatedRounds = latest.rounds.slice(0, -1);
-    const { isTargetReached, winner } = computeTeamTotalsAndWinner(
+    const { isFinished: matchConcluded, winner } = computeTeamTotalsAndWinner(
       updatedRounds,
       latest.mode,
       latest.targetScore
@@ -354,8 +354,8 @@ export function useBurracoGame({
       ...latest,
       rounds: updatedRounds,
       winner,
-      isFinished: isTargetReached,
-      completedAt: isTargetReached ? (latest.completedAt || new Date().toISOString()) : null,
+      isFinished: matchConcluded,
+      completedAt: matchConcluded ? (latest.completedAt || new Date().toISOString()) : null,
       ...ledger,
     };
 
@@ -403,7 +403,7 @@ export function useBurracoGame({
         roundNumber: newIdx + 1
       }));
 
-    const { isTargetReached, winner } = computeTeamTotalsAndWinner(
+    const { isFinished: matchConcluded, winner } = computeTeamTotalsAndWinner(
       remainingRounds,
       latest.mode,
       latest.targetScore
@@ -418,8 +418,8 @@ export function useBurracoGame({
       ...latest,
       rounds: remainingRounds,
       winner,
-      isFinished: isTargetReached,
-      completedAt: isTargetReached ? (latest.completedAt || new Date().toISOString()) : null,
+      isFinished: matchConcluded,
+      completedAt: matchConcluded ? (latest.completedAt || new Date().toISOString()) : null,
       ...ledger,
     };
 

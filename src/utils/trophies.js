@@ -2,12 +2,84 @@
  * Sistema di Trofei, Obiettivi e Titoli Onorifici per i giocatori di Burraco
  */
 
+import { DEFAULT_TARGET_SCORE } from '../constants/burraco';
+
 export const TROPHY_RARITY = {
   COMMON: { label: 'Comune', color: 'bg-emerald-900/60 text-emerald-300 border-emerald-600/40' },
   RARE: { label: 'Raro', color: 'bg-blue-900/60 text-blue-300 border-blue-500/40' },
   EPIC: { label: 'Epico', color: 'bg-purple-900/60 text-purple-300 border-purple-500/40' },
   LEGENDARY: { label: 'Leggendario', color: 'bg-amber-900/60 text-amber-300 border-amber-400/50' },
 };
+
+/**
+ * Costruisce l'insieme di alias normalizzati (lowercase) di un giocatore/utente,
+ * allineato alla logica di computeUserCareerStats().
+ */
+export function buildPlayerAliases(stats = {}) {
+  const aliases = new Set();
+  const addTokenized = (raw) => {
+    if (!raw || typeof raw !== 'string') return;
+    const full = raw.trim().toLowerCase();
+    if (!full) return;
+    aliases.add(full);
+    full.split(/\s+/).forEach(part => {
+      if (part.length >= 2) aliases.add(part);
+    });
+  };
+
+  if (Array.isArray(stats?.aliases)) {
+    stats.aliases.forEach(a => {
+      if (typeof a === 'string' && a.trim()) aliases.add(a.trim().toLowerCase());
+    });
+  }
+
+  addTokenized(stats?.name);
+  addTokenized(stats?.displayName);
+
+  if (typeof stats?.email === 'string' && stats.email.trim()) {
+    const cleanEmail = stats.email.trim().toLowerCase();
+    aliases.add(cleanEmail);
+    const emailPrefix = cleanEmail.split('@')[0];
+    if (emailPrefix && emailPrefix.length >= 2) aliases.add(emailPrefix);
+  }
+  if (stats?.uid) {
+    aliases.add(String(stats.uid).trim().toLowerCase());
+    aliases.add('tu');
+  }
+
+  return aliases;
+}
+
+/**
+ * Verifica se almeno un membro della squadra corrisponde agli alias normalizzati del giocatore.
+ */
+export function doesTeamMatchPlayer(players, aliases) {
+  if (!Array.isArray(players) || !aliases || aliases.size === 0) return false;
+  return players.some(p => {
+    if (!p) return false;
+    if (typeof p === 'string') {
+      return aliases.has(p.trim().toLowerCase());
+    }
+    if (typeof p === 'object') {
+      const n = (p.name || p.displayName || '').trim().toLowerCase();
+      const em = (p.email || '').trim().toLowerCase();
+      const id = (p.uid || '').trim().toLowerCase();
+      return (Boolean(n) && aliases.has(n)) || (Boolean(em) && aliases.has(em)) || (Boolean(id) && aliases.has(id));
+    }
+    return false;
+  });
+}
+
+function getMatchedPlayerTeamKey(game, stats, aliases) {
+  const isT1 = doesTeamMatchPlayer(game.team1?.players, aliases);
+  const isT2 = doesTeamMatchPlayer(game.team2?.players, aliases);
+  const isT3 = doesTeamMatchPlayer(game.team3?.players, aliases);
+  if (isT1) return 'team1';
+  if (isT2) return 'team2';
+  if (isT3) return 'team3';
+  if (stats?.uid && game.ownerUid === stats.uid) return 'team1';
+  return null;
+}
 
 export const TROPHY_DEFINITIONS = [
   {
@@ -81,24 +153,20 @@ export const TROPHY_DEFINITIONS = [
     rarity: 'RARE',
     description: 'Vinci una partita superando la soglia con un margine inferiore a 100 pt.',
     check: (stats, games) => {
+      const aliases = buildPlayerAliases(stats);
       let found = false;
       (games || []).filter(Boolean).forEach(g => {
         if (!g || !g.isFinished) return;
-        const isT1 = (g.team1?.players || []).includes(stats.name);
-        const isT2 = (g.team2?.players || []).includes(stats.name);
-        const isT3 = (g.team3?.players || []).includes(stats.name);
-        if (!isT1 && !isT2 && !isT3) return;
+        const teamKey = getMatchedPlayerTeamKey(g, stats, aliases);
+        if (!teamKey || g.winner !== teamKey) return;
 
-        const won = (isT1 && g.winner === 'team1') || (isT2 && g.winner === 'team2') || (isT3 && g.winner === 'team3');
-        if (won) {
-          const target = g.targetScore || 2505;
-          const t1Total = (g.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
-          const t2Total = (g.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
-          const t3Total = (g.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
-          const winnerTotal = isT1 ? t1Total : isT2 ? t2Total : t3Total;
-          if (winnerTotal >= target && (winnerTotal - target) < 100) {
-            found = true;
-          }
+        const target = g.targetScore || DEFAULT_TARGET_SCORE;
+        const t1Total = (g.rounds || []).reduce((acc, r) => acc + (r.team1Score || 0), 0);
+        const t2Total = (g.rounds || []).reduce((acc, r) => acc + (r.team2Score || 0), 0);
+        const t3Total = (g.rounds || []).reduce((acc, r) => acc + (r.team3Score || 0), 0);
+        const winnerTotal = teamKey === 'team1' ? t1Total : teamKey === 'team2' ? t2Total : t3Total;
+        if (winnerTotal >= target && (winnerTotal - target) < 100) {
+          found = true;
         }
       });
       return {
@@ -116,18 +184,15 @@ export const TROPHY_DEFINITIONS = [
     rarity: 'RARE',
     description: 'Vinci una partita senza aver mai subito la penalità del pozzetto non preso.',
     check: (stats, games) => {
+      const aliases = buildPlayerAliases(stats);
       let found = false;
       (games || []).filter(Boolean).forEach(g => {
         if (!g || !g.isFinished) return;
-        const isT1 = (g.team1?.players || []).includes(stats.name);
-        const isT2 = (g.team2?.players || []).includes(stats.name);
-        const isT3 = (g.team3?.players || []).includes(stats.name);
-        if (!isT1 && !isT2 && !isT3) return;
-        const won = (isT1 && g.winner === 'team1') || (isT2 && g.winner === 'team2') || (isT3 && g.winner === 'team3');
-        if (!won) return;
+        const matchedTeam = getMatchedPlayerTeamKey(g, stats, aliases);
+        if (!matchedTeam || g.winner !== matchedTeam) return;
 
         // Verifica che in nessun round abbia avuto penalità pozzetto
-        const teamKey = isT1 ? 'team1Details' : isT2 ? 'team2Details' : 'team3Details';
+        const teamKey = `${matchedTeam}Details`;
         const hadPenalty = (g.rounds || []).filter(Boolean).some(r => {
           const details = r[teamKey];
           return details && (details.pozzetto === 'non_preso' || details.pozzetto === 'preso_non_giocato');
@@ -234,16 +299,14 @@ export const TROPHY_DEFINITIONS = [
     rarity: 'LEGENDARY',
     description: 'Vinci una partita dopo essere stato in svantaggio di almeno 300 punti.',
     check: (stats, games) => {
+      const aliases = buildPlayerAliases(stats);
       let found = false;
       (games || []).filter(Boolean).forEach(g => {
         if (!g || !g.isFinished) return;
-        const isT1 = (g.team1?.players || []).includes(stats.name);
-        const isT2 = (g.team2?.players || []).includes(stats.name);
-        const isT3 = (g.team3?.players || []).includes(stats.name);
-        if (!isT1 && !isT2 && !isT3) return;
-        const won = (isT1 && g.winner === 'team1') || (isT2 && g.winner === 'team2') || (isT3 && g.winner === 'team3');
-        if (!won) return;
+        const matchedTeam = getMatchedPlayerTeamKey(g, stats, aliases);
+        if (!matchedTeam || g.winner !== matchedTeam) return;
 
+        const isTrio = g.mode === 'trio';
         // Controlla se durante la partita è mai stato sotto di 300 pt
         let rT1 = 0;
         let rT2 = 0;
@@ -253,9 +316,13 @@ export const TROPHY_DEFINITIONS = [
           rT1 += r.team1Score || 0;
           rT2 += r.team2Score || 0;
           rT3 += r.team3Score || 0;
-          const myScore = isT1 ? rT1 : isT2 ? rT2 : rT3;
-          const oppScores = [isT1 ? null : rT1, isT2 ? null : rT2, isT3 ? null : rT3].filter(s => s !== null);
-          const maxOppScore = Math.max(...oppScores);
+          const myScore = matchedTeam === 'team1' ? rT1 : matchedTeam === 'team2' ? rT2 : rT3;
+          const oppScores = [
+            matchedTeam === 'team1' ? null : rT1,
+            matchedTeam === 'team2' ? null : rT2,
+            isTrio && matchedTeam !== 'team3' ? rT3 : null,
+          ].filter(s => s !== null);
+          const maxOppScore = oppScores.length > 0 ? Math.max(...oppScores) : 0;
           if (maxOppScore - myScore >= 300) {
             wasDeficit300 = true;
           }

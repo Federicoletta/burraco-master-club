@@ -50,7 +50,7 @@ export default function TrioLoneSelector({
           Coppia: <strong className="text-white">{pairNames}</strong>
         </span>
         <span className="font-mono-num club-text-gold text-[11px] font-semibold">
-          {pairRawScore} ÷ 2 = {pairSplitScore} pt cad.
+          {pairRawScore} ÷ 2 = {pairSplitScore} pt cad. (FIBUR mult. 5)
         </span>
       </div>
     </div>

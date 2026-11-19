@@ -13,6 +13,7 @@ import {
   importBackupData,
   computeUserCareerStats,
 } from '../src/utils/storage';
+import { safeSetItem } from '../src/utils/storageCore';
 import {
   getActiveTournament,
   saveActiveTournament,
@@ -44,6 +45,10 @@ const localStorageMock = (() => {
     clear: () => {
       store = {};
     },
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: (index) => Object.keys(store)[index] ?? null,
   };
 })();
 
@@ -54,20 +59,82 @@ describe('Storage & Database Layer - Player Management', () => {
     localStorage.clear();
   });
 
-  it('filters out mock names and generic labels when loading players', () => {
-    localStorage.setItem('burraco_players_v1', JSON.stringify(['Federico', 'Marco', 'Coppia 1', 'Chiara']));
+  it('allows real Italian names (Marco, Anna, Luca, Sofia, Aurora, Elisa, Nicoletta) while filtering generic labels', () => {
+    const realNames = ['Marco', 'Anna', 'Luca', 'Sofia', 'Aurora', 'Elisa', 'Nicoletta'];
+    localStorage.setItem(
+      'burraco_players_v1',
+      JSON.stringify(['Federico', ...realNames, 'Coppia 1', 'Squadra 2', 'Chiara'])
+    );
     const players = getStoredPlayers();
-    expect(players).toEqual(['Federico', 'Chiara']); // Strips mock names and generic labels
+    expect(players).toEqual(['Federico', ...realNames, 'Chiara']);
+    expect(players).not.toContain('Coppia 1');
+    expect(players).not.toContain('Squadra 2');
   });
 
-  it('saves new player names ignoring duplicates and mock names', () => {
+  it('saves real player names ignoring duplicates, whitespace, and generic labels', () => {
     savePlayerName('Roberto');
     savePlayerName('Roberto');
-    savePlayerName('Marco'); // Mock name rejected
+    savePlayerName('Marco');
+    savePlayerName('Anna');
+    savePlayerName('Nicoletta');
     savePlayerName('giocatore 1'); // Generic label rejected
     savePlayerName('   '); // Whitespace rejected
     const players = getStoredPlayers();
-    expect(players).toEqual(['Roberto']);
+    expect(players).toEqual(['Anna', 'Marco', 'Nicoletta', 'Roberto']);
+  });
+
+  it('compacts old burraco_history entries on QuotaExceededError without touching burraco_tournaments keys', () => {
+    const makeGames = (count) =>
+      Array.from({ length: count }, (_, idx) => ({
+        id: `g_${idx}`,
+        rounds: [
+          { roundNumber: 1, team1Score: 100, team2Score: 50 },
+          { roundNumber: 2, team1Score: 200, team2Score: 100 },
+        ],
+      }));
+    const makeTournaments = (count) =>
+      Array.from({ length: count }, (_, idx) => ({
+        id: `t_${idx}`,
+        name: `Torneo ${idx}`,
+        rounds: [
+          { roundNumber: 1, tables: [{ id: `tbl_${idx}`, score: 500 }] },
+        ],
+      }));
+
+    localStorage.setItem('burraco_history_v1', JSON.stringify(makeGames(28)));
+    localStorage.setItem('burraco_tournaments_history_v1', JSON.stringify(makeTournaments(28)));
+
+    const originalSetItem = localStorage.setItem;
+    let firstAttempt = true;
+    localStorage.setItem = (k, v) => {
+      if (k === 'burraco_active_game_v1' && firstAttempt) {
+        firstAttempt = false;
+        const err = new Error('QuotaExceededError');
+        err.name = 'QuotaExceededError';
+        throw err;
+      }
+      return originalSetItem(k, v);
+    };
+
+    try {
+      const ok = safeSetItem('burraco_active_game_v1', JSON.stringify({ id: 'new_game' }));
+      expect(ok).toBe(true);
+    } finally {
+      localStorage.setItem = originalSetItem;
+    }
+
+    const compactedHistory = JSON.parse(localStorage.getItem('burraco_history_v1'));
+    expect(compactedHistory[0].rounds).toHaveLength(2);
+    expect(compactedHistory[19].rounds).toHaveLength(2);
+    expect(compactedHistory[20].rounds).toEqual([]);
+    expect(compactedHistory[20].roundsCount).toBe(2);
+    expect(compactedHistory[27].rounds).toEqual([]);
+
+    // Tournament keys must NOT be compacted or cleared
+    const untouchedTournaments = JSON.parse(localStorage.getItem('burraco_tournaments_history_v1'));
+    expect(untouchedTournaments).toHaveLength(28);
+    expect(untouchedTournaments[20].rounds).toHaveLength(1);
+    expect(untouchedTournaments[27].rounds).toHaveLength(1);
   });
 
   it('deletes player from stored list', () => {

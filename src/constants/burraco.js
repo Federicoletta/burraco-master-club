@@ -17,13 +17,57 @@ export const HONOR_POINTS = {
   POZZETTO_PRESO_NON_GIOCATO: -100,
 };
 
+export const MIN_TARGET_SCORE = 100;
+export const MAX_TARGET_SCORE = 10000;
+export const DEFAULT_TARGET_SCORE = 2005;
+
 export const DEFAULT_TARGET_SCORES = [
   { label: '1005 Punti (Veloce)', desc: 'Veloce', value: 1005 },
   { label: '1505 Punti (Media)', desc: 'Media', value: 1505 },
-  { label: '2005 Punti (Classica)', desc: 'Classica', value: 2005 },
-  { label: '2505 Punti (Predefinito)', desc: 'Predefinito', value: 2505 },
+  { label: '2005 Punti (Predefinito)', desc: 'Predefinito', value: 2005 },
+  { label: '2505 Punti (Federale)', desc: 'Federale', value: 2505 },
   { label: '3005 Punti (Lunga)', desc: 'Lunga', value: 3005 },
 ];
+
+/**
+ * Valida il traguardo punti allineandolo ai vincoli di firestore.rules (100 - 10000)
+ */
+export function validateTargetScore(value) {
+  const trimmed = typeof value === 'string' ? value.trim() : value;
+  if (trimmed === '' || trimmed === null || trimmed === undefined) {
+    return {
+      valid: false,
+      value: DEFAULT_TARGET_SCORE,
+      error: `Inserisci un traguardo compreso tra ${MIN_TARGET_SCORE} e ${MAX_TARGET_SCORE} punti.`,
+    };
+  }
+  const num = Number(trimmed);
+  if (!Number.isFinite(num) || !Number.isInteger(num)) {
+    return {
+      valid: false,
+      value: DEFAULT_TARGET_SCORE,
+      error: 'Inserisci un numero intero valido.',
+    };
+  }
+  if (num < MIN_TARGET_SCORE || num > MAX_TARGET_SCORE) {
+    return {
+      valid: false,
+      value: Math.min(MAX_TARGET_SCORE, Math.max(MIN_TARGET_SCORE, num)),
+      error: `Il traguardo deve essere compreso tra ${MIN_TARGET_SCORE} e ${MAX_TARGET_SCORE} punti.`,
+    };
+  }
+  return { valid: true, value: num, error: null };
+}
+
+/**
+ * Regola FIBUR Burraco a 3 (1 vs 2): divide il punteggio della coppia a metà
+ * arrotondando al multiplo di 5 (es. 375 / 2 = 187.5 -> 190).
+ */
+export function calculateTrioPairSplitScore(pairRawScore) {
+  const raw = Number(pairRawScore) || 0;
+  const rounded = Math.round(raw / 10) * 5;
+  return rounded === 0 ? 0 : rounded;
+}
 
 /**
  * Calcola il punteggio netto delle carte da un conteggio per tipo

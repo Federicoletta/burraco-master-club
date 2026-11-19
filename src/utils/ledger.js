@@ -300,21 +300,22 @@ function checkGameCompletion(state) {
   }
 
   const target = Number(state.targetScore) || 2005;
-  const isFinished = s1 >= target || s2 >= target || (state.mode === 'trio' && s3 >= target);
+  const hasReachedTarget = s1 >= target || s2 >= target || (state.mode === 'trio' && s3 >= target);
 
-  state.isFinished = isFinished;
-  if (isFinished) {
+  let computedWinner = null;
+  if (hasReachedTarget) {
     if (state.mode === 'trio') {
-      if (s1 > s2 && s1 > s3) state.winner = 'team1';
-      else if (s2 > s1 && s2 > s3) state.winner = 'team2';
-      else if (s3 > s1 && s3 > s2) state.winner = 'team3';
+      if (s1 > s2 && s1 > s3) computedWinner = 'team1';
+      else if (s2 > s1 && s2 > s3) computedWinner = 'team2';
+      else if (s3 > s1 && s3 > s2) computedWinner = 'team3';
     } else {
-      if (s1 > s2) state.winner = 'team1';
-      else if (s2 > s1) state.winner = 'team2';
+      if (s1 > s2) computedWinner = 'team1';
+      else if (s2 > s1) computedWinner = 'team2';
     }
-  } else {
-    state.winner = null;
   }
+
+  state.isFinished = Boolean(hasReachedTarget && computedWinner);
+  state.winner = computedWinner;
 }
 
 /**

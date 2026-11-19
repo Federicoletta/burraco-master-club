@@ -7,11 +7,6 @@ export const STORAGE_KEYS = {
   SETTINGS: 'burraco_settings_v1',
 };
 
-const MOCK_NAMES = ['Marco', 'Anna', 'Luca', 'Sofia'];
-const LEGACY_NAMES = [
-  'aurora', 'baffettu', 'baffu', 'elisa', 'nicoletta', 'stanis', 'sub',
-  'u pá di pá', 'u pa di pa'
-];
 const GENERIC_LABELS = ['coppia 1', 'coppia 2', 'giocatore 1', 'giocatore 2', 'squadra 1', 'squadra 2'];
 
 /**
@@ -57,7 +52,7 @@ export function safeSetItem(key, value) {
       const totalKeys = localStorage.length || 0;
       for (let i = 0; i < totalKeys; i++) {
         const k = localStorage.key(i);
-        if (k && (k.startsWith('burraco_history') || k.startsWith('burraco_tournaments'))) {
+        if (k && k.startsWith('burraco_history')) {
           keysToCompact.push(k);
         }
       }
@@ -112,10 +107,7 @@ export function getStoredPlayers(userKey) {
 
     const cleaned = parsed.filter(p => {
       const s = String(p).trim().toLowerCase();
-      return s &&
-        !MOCK_NAMES.map(m => m.toLowerCase()).includes(s) &&
-        !GENERIC_LABELS.includes(s) &&
-        !LEGACY_NAMES.includes(s);
+      return s && !GENERIC_LABELS.includes(s);
     });
     if (cleaned.length !== parsed.length) {
       localStorage.setItem(getPlayersKey(userKey), JSON.stringify(cleaned));
@@ -131,11 +123,7 @@ export function savePlayerName(name, userKey) {
   const clean = name.trim();
   if (!clean) return;
   const lower = clean.toLowerCase();
-  if (
-    MOCK_NAMES.map(m => m.toLowerCase()).includes(lower) ||
-    GENERIC_LABELS.includes(lower) ||
-    LEGACY_NAMES.includes(lower)
-  ) return;
+  if (GENERIC_LABELS.includes(lower)) return;
 
   const list = getStoredPlayers(userKey);
   if (!list.includes(clean)) {
@@ -244,10 +232,7 @@ export function setStoredPlayers(list, userKey) {
       .map(p => String(p).trim())
       .filter(p => {
         const s = p.toLowerCase();
-        return s &&
-          !MOCK_NAMES.map(m => m.toLowerCase()).includes(s) &&
-          !GENERIC_LABELS.includes(s) &&
-          !LEGACY_NAMES.includes(s);
+        return s && !GENERIC_LABELS.includes(s);
       })
   )).sort((a, b) => a.localeCompare(b));
   localStorage.setItem(getPlayersKey(userKey), JSON.stringify(unique));

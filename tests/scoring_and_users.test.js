@@ -8,6 +8,11 @@ import {
   calculatePlayerStats,
   computeUserCareerStats,
 } from '../src/utils/storage';
+import {
+  calculatePlayerTrophies,
+  buildPlayerAliases,
+  doesTeamMatchPlayer,
+} from '../src/utils/trophies';
 
 describe('Motore di Calcolo Punteggi - Scoring Engine', () => {
   it('calcola correttamente i valori individuali di tutte le carte', () => {
@@ -335,5 +340,89 @@ describe('Statistiche di Carriera Utente Autenticato - computeUserCareerStats', 
     expect(registeredPlayerUids).not.toContain('norm_2');
     expect(pendingInviteFriends.length).toBe(1);
     expect(pendingInviteFriends[0].uid).toBe('norm_2');
+  });
+});
+
+describe('Trofei Match-Based - Matching normalizzato e alias (allineato a computeUserCareerStats)', () => {
+  it('costruisce alias normalizzati (nome completo, token, email, prefisso, uid, Tu) e fa match case-insensitive', () => {
+    const aliases = buildPlayerAliases({
+      uid: 'uid_fede',
+      displayName: 'Federico Coletta',
+      email: 'fedecoletta@gmail.com',
+    });
+    expect(doesTeamMatchPlayer(['Federico'], aliases)).toBe(true);
+    expect(doesTeamMatchPlayer(['federico'], aliases)).toBe(true);
+    expect(doesTeamMatchPlayer(['Tu', 'Partner'], aliases)).toBe(true);
+    expect(doesTeamMatchPlayer([{ uid: 'uid_fede', name: 'Fede' }], aliases)).toBe(true);
+    expect(doesTeamMatchPlayer(['Marco', 'Anna'], aliases)).toBe(false);
+  });
+
+  it('sblocca Il Cecchino, Pozzetto Express e Rimonta Impossibile usando nome abbreviato/alias/UID', () => {
+    const user = {
+      uid: 'uid_fede_42',
+      displayName: 'Federico Coletta',
+      email: 'fedecoletta@gmail.com',
+    };
+
+    // Partita 1: Il Cecchino (target 2005, vittoria a 2050 -> margine 45 < 100) + Pozzetto Express (nessuna penalità pozzetto)
+    // Registrato con solo il nome "federico" (case-insensitive)
+    const sniperAndPozzettoGame = {
+      id: 'g_sniper_pozzetto',
+      mode: 'pairs',
+      isFinished: true,
+      targetScore: 2005,
+      winner: 'team1',
+      team1: { name: 'Noi', players: ['federico', 'Partner'] },
+      team2: { name: 'Loro', players: ['Marco', 'Anna'] },
+      rounds: [
+        {
+          team1Score: 1000,
+          team2Score: 900,
+          team1Details: { pozzetto: 'preso_giocato', burracoPulito: 1 },
+          team2Details: { pozzetto: 'preso_giocato' },
+        },
+        {
+          team1Score: 1050,
+          team2Score: 800,
+          team1Details: { pozzetto: 'preso_giocato', chiusura: true },
+          team2Details: { pozzetto: 'non_preso' },
+        },
+      ],
+    };
+
+    // Partita 2: Rimonta Impossibile (sotto di 400 pt dopo mano 1, poi vince)
+    // Registrato come alias "Tu" in team2
+    const comebackGame = {
+      id: 'g_comeback',
+      mode: 'pairs',
+      isFinished: true,
+      targetScore: 1005,
+      winner: 'team2',
+      team1: { name: 'Avversari', players: ['Luca', 'Sofia'] },
+      team2: { name: 'Tu & Partner', players: ['Tu', 'Partner'] },
+      rounds: [
+        {
+          team1Score: 500,
+          team2Score: 100, // deficit -400
+          team1Details: { pozzetto: 'preso_giocato' },
+          team2Details: { pozzetto: 'non_preso' },
+        },
+        {
+          team1Score: 200,
+          team2Score: 1050, // totale 700 vs 1150 -> vittoria team2
+          team1Details: { pozzetto: 'preso_giocato' },
+          team2Details: { pozzetto: 'preso_giocato', chiusura: true },
+        },
+      ],
+    };
+
+    const games = [sniperAndPozzettoGame, comebackGame];
+    const career = computeUserCareerStats(user, games);
+    const trophies = calculatePlayerTrophies(career, games);
+
+    const byId = Object.fromEntries(trophies.list.map((t) => [t.id, t]));
+    expect(byId.sniper.unlocked).toBe(true);
+    expect(byId.pozzetto_shield.unlocked).toBe(true);
+    expect(byId.comeback_hero.unlocked).toBe(true);
   });
 });

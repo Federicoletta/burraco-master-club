@@ -10,7 +10,9 @@ import {
   migrateLegacyGameToLedger
 } from '../utils/ledger';
 
-export function computeTeamTotalsAndWinner(rounds, mode, targetScore = 2505, forceWinner = false) {
+import { DEFAULT_TARGET_SCORE } from '../constants/burraco';
+
+export function computeTeamTotalsAndWinner(rounds, mode, targetScore = DEFAULT_TARGET_SCORE, forceWinner = false) {
   const isTrio = mode === 'trio';
   let t1Total = 0;
   let t2Total = 0;
@@ -22,23 +24,44 @@ export function computeTeamTotalsAndWinner(rounds, mode, targetScore = 2505, for
     t3Total += Number(r?.team3Score) || 0;
   });
 
-  const target = Number(targetScore) || 2505;
+  const target = Number(targetScore) || DEFAULT_TARGET_SCORE;
   const isTargetReached = isTrio
     ? (t1Total >= target || t2Total >= target || t3Total >= target)
     : (t1Total >= target || t2Total >= target);
 
-  let winner = null;
-  if (isTargetReached || forceWinner) {
-    if (isTrio) {
-      if (t1Total >= t2Total && t1Total >= t3Total) winner = 'team1';
-      else if (t2Total >= t1Total && t2Total >= t3Total) winner = 'team2';
-      else winner = 'team3';
+  let isTieAtTop = false;
+  let leader = null;
+
+  if (isTrio) {
+    const maxScore = Math.max(t1Total, t2Total, t3Total);
+    const leaders = [];
+    if (t1Total === maxScore) leaders.push('team1');
+    if (t2Total === maxScore) leaders.push('team2');
+    if (t3Total === maxScore) leaders.push('team3');
+    if (leaders.length === 1) {
+      leader = leaders[0];
     } else {
-      winner = t1Total >= t2Total ? 'team1' : 'team2';
+      isTieAtTop = true;
+    }
+  } else {
+    if (t1Total > t2Total) {
+      leader = 'team1';
+    } else if (t2Total > t1Total) {
+      leader = 'team2';
+    } else {
+      isTieAtTop = true;
     }
   }
 
-  return { t1Total, t2Total, t3Total, isTargetReached, winner };
+  const isTieAtTarget = isTargetReached && isTieAtTop;
+  let winner = null;
+  if ((isTargetReached && !isTieAtTarget) || (forceWinner && !isTieAtTop)) {
+    winner = leader;
+  }
+
+  const isFinished = Boolean(isTargetReached && !isTieAtTarget && winner);
+
+  return { t1Total, t2Total, t3Total, isTargetReached, isTieAtTarget, isFinished, winner };
 }
 
 export function appendLedgerEvent(game, eventType, payload, author) {

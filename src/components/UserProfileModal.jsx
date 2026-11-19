@@ -172,6 +172,9 @@ export default function UserProfileModal({
   const myTrophiesData = useMemo(() => {
     const myPlayerStats = {
       name: userDisplayName,
+      displayName: currentUser?.displayName || userDisplayName,
+      email: currentUser?.email || '',
+      uid: currentUser?.uid || '',
       totalPoints: totalScore,
       gamesPlayed: gamesCount,
       gamesWon: wonCount,
@@ -193,7 +196,7 @@ export default function UserProfileModal({
       }
     }
     return calculatePlayerTrophies(myPlayerStats, allGames);
-  }, [userDisplayName, totalScore, gamesCount, wonCount, winRate, cleanBurrachi, semiCleanBurrachi, dirtyBurrachi, totalBurrachi, closures, bestHandScore, avgPointsPerHand, gamesHistory, activeGame]);
+  }, [currentUser, userDisplayName, totalScore, gamesCount, wonCount, winRate, cleanBurrachi, semiCleanBurrachi, dirtyBurrachi, totalBurrachi, closures, bestHandScore, avgPointsPerHand, gamesHistory, activeGame]);
 
   const filteredSuggestions = useMemo(() => {
     if (friendSearchInput.trim().length < 2) return [];

@@ -1,4 +1,4 @@
-import { calculateTeamRoundScore } from '../../constants/burraco';
+import { calculateTeamRoundScore, calculateTrioPairSplitScore } from '../../constants/burraco';
 
 export const DEFAULT_ENTITY = {
   chiusura: false,
@@ -99,7 +99,7 @@ export function computeRoundDisplayScores({
 
   const loneScore = calculateTeamRoundScore(loneData);
   const pairRawScore = calculateTeamRoundScore(pairData);
-  const pairSplitScore = Math.round(pairRawScore / 2);
+  const pairSplitScore = calculateTrioPairSplitScore(pairRawScore);
 
   if (!isTrio) {
     return {
