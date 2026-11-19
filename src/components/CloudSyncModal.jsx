@@ -126,7 +126,7 @@ export default function CloudSyncModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
-          <span className="w-10 h-1 rounded-full bg-white/25" />
+          <span className="w-10 h-1 rounded-full club-handle" />
         </div>
 
         {/* Header */}
@@ -136,7 +136,7 @@ export default function CloudSyncModal({
               <Share2 className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="font-display text-lg sm:text-xl font-bold text-white m-0 truncate">
+              <h2 className="font-display text-lg sm:text-xl font-bold club-text-primary m-0 truncate">
                 Invita al Tavolo
               </h2>
               <p className="text-xs club-text-subtle m-0 truncate">
@@ -158,7 +158,7 @@ export default function CloudSyncModal({
           {activeGame && (
             <div className="p-4 rounded-2xl club-inset border border-[var(--accent-gold)]/45 space-y-3">
               {/* PIN Tavolo */}
-              <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-black/30 border club-divider">
+              <div className="flex items-center justify-between gap-3 p-3 rounded-xl club-card border club-divider">
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -245,7 +245,7 @@ export default function CloudSyncModal({
                   <Users className="w-4 h-4 club-text-gold" />
                   <span>Al Tavolo ({tablePlayers.length})</span>
                 </span>
-                <span className="text-[11px] text-emerald-300 font-semibold">Live</span>
+                <span className="text-[11px] club-success-text font-semibold">Live</span>
               </div>
 
               <div className="space-y-1.5">
@@ -261,7 +261,7 @@ export default function CloudSyncModal({
                   return (
                     <div
                       key={playerKey}
-                      className="p-2.5 rounded-xl bg-black/20 border club-divider flex items-center justify-between gap-2 text-xs"
+                      className="p-2.5 rounded-xl club-row-bg border club-divider flex items-center justify-between gap-2 text-xs"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         {player.photoURL ? (
@@ -271,7 +271,7 @@ export default function CloudSyncModal({
                             {(player.displayName || player.email || 'G').slice(0, 1).toUpperCase()}
                           </div>
                         )}
-                        <span className="text-white font-semibold truncate">{player.displayName || player.email}</span>
+                        <span className="club-text-primary font-semibold truncate">{player.displayName || player.email}</span>
                         {isDeveloperAccount(player, currentUser) && <DeveloperBadge size="xs" />}
                       </div>
 
@@ -281,7 +281,7 @@ export default function CloudSyncModal({
                         ) : isFriend ? (
                           <span className="text-[11px] font-bold club-text-gold">★ Amico</span>
                         ) : isSent ? (
-                          <span className="text-[11px] font-bold text-emerald-300">✓ Inviata</span>
+                          <span className="text-[11px] font-bold club-success-text">✓ Inviata</span>
                         ) : (player.email || player.uid) ? (
                           <button
                             type="button"
@@ -312,7 +312,7 @@ export default function CloudSyncModal({
               </div>
 
               {friendsNotAtTable.length === 0 ? (
-                <div className="p-3 rounded-xl bg-black/20 border club-divider text-center text-xs club-text-subtle">
+                <div className="p-3 rounded-xl club-row-bg border club-divider text-center text-xs club-text-subtle">
                   {friendsList.length === 0
                     ? 'Aggiungi amici dal tuo Profilo o condividi il PIN sopra.'
                     : 'Tutti i tuoi amici sono già collegati al tavolo.'}
@@ -327,7 +327,7 @@ export default function CloudSyncModal({
                     return (
                       <div
                         key={fKey}
-                        className="p-2.5 rounded-xl bg-black/20 border club-divider flex items-center justify-between gap-2 text-xs"
+                        className="p-2.5 rounded-xl club-row-bg border club-divider flex items-center justify-between gap-2 text-xs"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           {friend.photoURL ? (
@@ -338,7 +338,7 @@ export default function CloudSyncModal({
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-white truncate flex items-center gap-1.5 flex-wrap">
+                            <div className="font-bold club-text-primary truncate flex items-center gap-1.5 flex-wrap">
                               <span>{friend.displayName || 'Amico'}</span>
                               {isDeveloperAccount(friend, currentUser) && <DeveloperBadge size="xs" />}
                             </div>
@@ -348,7 +348,7 @@ export default function CloudSyncModal({
 
                         <div className="shrink-0">
                           {isInvited ? (
-                            <span className="min-h-[36px] px-3 rounded-xl bg-emerald-500/15 text-emerald-300 font-bold text-xs border border-emerald-400/35 inline-flex items-center gap-1">
+                            <span className="min-h-[36px] px-3 rounded-xl bg-emerald-500/15 club-success-text font-bold text-xs border border-emerald-500/35 inline-flex items-center gap-1">
                               <Check className="w-3.5 h-3.5" />
                               <span>Invitato</span>
                             </span>
@@ -429,7 +429,7 @@ export default function CloudSyncModal({
                 </button>
               </div>
               {joinError && (
-                <div className="text-xs text-rose-300 font-semibold">{joinError}</div>
+                <div className="text-xs club-danger-text font-semibold">{joinError}</div>
               )}
             </form>
           </div>

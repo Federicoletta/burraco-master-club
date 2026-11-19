@@ -16,8 +16,8 @@ export default function QuickEntryPad({
         Inserisci direttamente il punteggio netto finale della smazzata (supporta anche numeri negativi, es. -100).
       </p>
       <div className={`grid grid-cols-1 ${isTrio ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
-        <div className="p-4 rounded-2xl club-inset border-amber-400/40">
-          <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">
+        <div className="p-4 rounded-2xl club-inset border-[var(--accent-gold)]/40">
+          <span className="text-xs font-bold club-team1 uppercase tracking-wider block">
             ♦ {activeGame.team1.name}
           </span>
           <span className="text-xs club-text-subtle block mb-2.5 truncate">
@@ -33,8 +33,8 @@ export default function QuickEntryPad({
           />
         </div>
 
-        <div className="p-4 rounded-2xl club-inset border-sky-400/40">
-          <span className="text-xs font-bold text-sky-300 uppercase tracking-wider block">
+        <div className="p-4 rounded-2xl club-inset border-sky-500/40">
+          <span className="text-xs font-bold club-team2 uppercase tracking-wider block">
             ♠ {activeGame.team2.name}
           </span>
           <span className="text-xs club-text-subtle block mb-2.5 truncate">
@@ -51,8 +51,8 @@ export default function QuickEntryPad({
         </div>
 
         {isTrio && (
-          <div className="p-4 rounded-2xl club-inset border-rose-400/40">
-            <span className="text-xs font-bold text-rose-300 uppercase tracking-wider block">
+          <div className="p-4 rounded-2xl club-inset border-rose-500/40">
+            <span className="text-xs font-bold club-team3 uppercase tracking-wider block">
               ♥ {activeGame.team3?.name || 'Giocatore 3'}
             </span>
             <span className="text-xs club-text-subtle block mb-2.5 truncate">

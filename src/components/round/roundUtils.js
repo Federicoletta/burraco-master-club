@@ -1,4 +1,5 @@
-import { calculateTeamRoundScore, calculateTrioPairSplitScore } from '../../constants/burraco';
+import { calculateTeamRoundScore, calculateTrioPairSplitScore, calculateCardsPoints } from '../../constants/burraco';
+import { generateRoundId } from '../../utils/roundSync';
 
 export const DEFAULT_ENTITY = {
   chiusura: false,
@@ -146,7 +147,9 @@ export function buildRoundPayload({
   loneData,
   pairData,
 }) {
+  const nowIso = new Date().toISOString();
   return {
+    roundId: roundToEdit?.roundId || generateRoundId(),
     roundNumber: roundToEdit ? roundToEdit.roundNumber : roundNumber,
     entryMode,
     team1Score,
@@ -169,6 +172,176 @@ export function buildRoundPayload({
       team1Details: entryMode === 'guided' ? team1Data : { manualScore: team1Score },
       team2Details: entryMode === 'guided' ? team2Data : { manualScore: team2Score },
     }),
-    timestamp: new Date().toISOString(),
+    createdAt: roundToEdit?.createdAt || roundToEdit?.timestamp || nowIso,
+    updatedAt: nowIso,
+    timestamp: nowIso,
   };
+}
+
+function getEffectiveCardPoints(entity) {
+  if (!entity) return { tablePoints: 0, handPoints: 0 };
+  const tablePoints = entity.showTableCardPad
+    ? calculateCardsPoints(entity.cardsOnTableCount)
+    : Number(entity.cardsOnTableDirect) || 0;
+  const handPoints = entity.showHandCardPad
+    ? calculateCardsPoints(entity.cardsInHandCount)
+    : Number(entity.cardsInHandDirect) || 0;
+  return { tablePoints, handPoints };
+}
+
+function hasAnyEnteredData(entity) {
+  if (!entity) return false;
+  const { tablePoints, handPoints } = getEffectiveCardPoints(entity);
+  const burrachi = (Number(entity.burracoPulito) || 0)
+    + (Number(entity.burracoSemipulito) || 0)
+    + (Number(entity.burracoSporco) || 0);
+  return Boolean(
+    entity.chiusura
+    || burrachi > 0
+    || tablePoints > 0
+    || handPoints > 0
+    || (entity.pozzetto && entity.pozzetto !== 'preso_giocato')
+  );
+}
+
+/**
+ * Analizza la coerenza regolamentare FIBUR della smazzata guidata.
+ * Restituisce avvisi NON bloccanti, ciascuno con eventuale azione rapida 1-tap.
+ */
+export function analyzeRoundConsistency({
+  entryMode = 'guided',
+  isTrio = false,
+  team1Data,
+  team2Data,
+  loneData,
+  pairData,
+  team1Name = 'Squadra 1',
+  team2Name = 'Squadra 2',
+  loneName = 'Solitario',
+  pairName = 'Coppia',
+} = {}) {
+  if (entryMode !== 'guided') return [];
+
+  const sides = isTrio
+    ? [
+        { target: 'lone', name: loneName, data: loneData || DEFAULT_ENTITY },
+        { target: 'pair', name: pairName, data: pairData || DEFAULT_ENTITY },
+      ]
+    : [
+        { target: 'team1', name: team1Name, data: team1Data || DEFAULT_ENTITY },
+        { target: 'team2', name: team2Name, data: team2Data || DEFAULT_ENTITY },
+      ];
+
+  const warnings = [];
+
+  for (const side of sides) {
+    const d = side.data;
+    const { tablePoints, handPoints } = getEffectiveCardPoints(d);
+    const totalBurrachi = (Number(d.burracoPulito) || 0)
+      + (Number(d.burracoSemipulito) || 0)
+      + (Number(d.burracoSporco) || 0);
+
+    if (d.chiusura && handPoints > 0) {
+      warnings.push({
+        id: `chiusura_with_hand_cards_${side.target}`,
+        code: 'chiusura_with_hand_cards',
+        target: side.target,
+        severity: 'warning',
+        message: `${side.name} ha chiuso la mano ma ha ancora -${handPoints} pt di carte in mano.`,
+        fixLabel: 'Azzera carte in mano',
+        fixAction: { type: 'clear_hand_cards', target: side.target },
+      });
+    }
+
+    if (d.chiusura && d.pozzetto && d.pozzetto !== 'preso_giocato') {
+      warnings.push({
+        id: `chiusura_with_pozzetto_penalty_${side.target}`,
+        code: 'chiusura_with_pozzetto_penalty',
+        target: side.target,
+        severity: 'warning',
+        message: `${side.name} ha chiuso ma il pozzetto risulta non preso/non giocato (-100 pt).`,
+        fixLabel: 'Imposta pozzetto giocato',
+        fixAction: { type: 'set_pozzetto_played', target: side.target },
+      });
+    }
+
+    if (d.chiusura && totalBurrachi === 0) {
+      warnings.push({
+        id: `chiusura_without_burraco_${side.target}`,
+        code: 'chiusura_without_burraco',
+        target: side.target,
+        severity: 'warning',
+        message: `${side.name} ha chiuso senza alcun Burraco registrato (regola FIBUR: serve almeno 1 Burraco).`,
+        fixLabel: '+1 Burraco Sporco',
+        fixAction: { type: 'add_burraco_sporco', target: side.target },
+      });
+    }
+
+    if (tablePoints % 5 !== 0 || handPoints % 5 !== 0) {
+      warnings.push({
+        id: `non_multiple_of_five_${side.target}`,
+        code: 'non_multiple_of_five',
+        target: side.target,
+        severity: 'info',
+        message: `${side.name}: i punti carte nel Burraco sono sempre multipli di 5.`,
+        fixLabel: 'Arrotonda a mult. 5',
+        fixAction: { type: 'round_cards_to_5', target: side.target },
+      });
+    }
+  }
+
+  const anyClosed = sides.some((s) => Boolean(s.data?.chiusura));
+  const anyInput = sides.some((s) => hasAnyEnteredData(s.data));
+  if (!anyClosed && anyInput) {
+    warnings.push({
+      id: 'missing_chiusura',
+      code: 'missing_chiusura',
+      target: null,
+      severity: 'info',
+      message: 'Nessuna squadra ha segnato la chiusura (+100 pt). Verifica se è una mano a mazzo esaurito.',
+      fixLabel: null,
+      fixAction: null,
+    });
+  }
+
+  return warnings;
+}
+
+/**
+ * Applica una correzione rapida 1-tap prodotta da analyzeRoundConsistency a un'entità squadra.
+ */
+export function applyRoundGuardrailFix(entity, fixType) {
+  const prev = entity || DEFAULT_ENTITY;
+  switch (fixType) {
+    case 'clear_hand_cards':
+      return {
+        ...prev,
+        cardsInHandDirect: '',
+        cardsInHandCount: { jolly: 0, pinella: 0, asso: 0, alte: 0, basse: 0 },
+      };
+    case 'set_pozzetto_played':
+      return {
+        ...prev,
+        pozzetto: 'preso_giocato',
+      };
+    case 'add_burraco_sporco':
+      return {
+        ...prev,
+        burracoSporco: (Number(prev.burracoSporco) || 0) + 1,
+      };
+    case 'round_cards_to_5': {
+      const roundTo5 = (val) => {
+        const n = Number(val) || 0;
+        if (n === 0) return '';
+        return String(Math.round(n / 5) * 5);
+      };
+      return {
+        ...prev,
+        ...(prev.showTableCardPad ? {} : { cardsOnTableDirect: roundTo5(prev.cardsOnTableDirect) }),
+        ...(prev.showHandCardPad ? {} : { cardsInHandDirect: roundTo5(prev.cardsInHandDirect) }),
+      };
+    }
+    default:
+      return prev;
+  }
 }

@@ -181,29 +181,55 @@ export function subscribeWithOrderFallback(orderedQ, fallbackQ, onData, path, on
   let activeUnsub = () => {};
   let unsubscribed = false;
 
+  const safeUnsub = () => {
+    try {
+      activeUnsub();
+    } catch {
+      // ignore double unsubscribe
+    }
+    activeUnsub = () => {};
+  };
+
   const attach = (qToUse, allowFallback) => {
-    activeUnsub = onSnapshot(qToUse, onData, (err) => {
-      if (unsubscribed) return;
-      if (allowFallback && isIndexMissingError(err)) {
-        activeUnsub();
-        attach(fallbackQ, false);
-        return;
+    if (unsubscribed) return;
+    const unsub = onSnapshot(
+      qToUse,
+      (snapshot) => {
+        if (unsubscribed) return;
+        onData(snapshot);
+      },
+      (err) => {
+        if (unsubscribed) return;
+        if (allowFallback && isIndexMissingError(err)) {
+          safeUnsub();
+          attach(fallbackQ, false);
+          return;
+        }
+        if (typeof onError === 'function') {
+          onError(err);
+        }
+        if (isPermissionOrQuotaError(err)) {
+          handleFirestoreError(err, OperationType.LIST, path);
+        }
+        console.warn('Errore listener Firestore:', err.message);
       }
-      if (typeof onError === 'function') {
-        onError(err);
+    );
+    if (unsubscribed) {
+      try {
+        unsub();
+      } catch {
+        // ignore
       }
-      if (isPermissionOrQuotaError(err)) {
-        handleFirestoreError(err, OperationType.LIST, path);
-      }
-      console.warn('Errore listener Firestore:', err.message);
-    });
+    } else {
+      activeUnsub = unsub;
+    }
   };
 
   attach(orderedQ, true);
 
   return () => {
     unsubscribed = true;
-    activeUnsub();
+    safeUnsub();
   };
 }
 

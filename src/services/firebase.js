@@ -15,6 +15,9 @@ export {
   loginWithGoogle,
   logoutUser,
   subscribeToAuth,
+  resolvePendingRedirectLogin,
+  isStandaloneIOS,
+  isInsideIframe,
 } from './authService';
 
 export {

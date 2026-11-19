@@ -5,11 +5,6 @@ import {
   safeSetItem
 } from '../utils/storage';
 import { updateUserCareerStats } from '../services/firebase';
-import {
-  appendBlock,
-  migrateLegacyGameToLedger
-} from '../utils/ledger';
-
 import { DEFAULT_TARGET_SCORE } from '../constants/burraco';
 
 export function computeTeamTotalsAndWinner(rounds, mode, targetScore = DEFAULT_TARGET_SCORE, forceWinner = false) {
@@ -62,22 +57,6 @@ export function computeTeamTotalsAndWinner(rounds, mode, targetScore = DEFAULT_T
   const isFinished = Boolean(isTargetReached && !isTieAtTarget && winner);
 
   return { t1Total, t2Total, t3Total, isTargetReached, isTieAtTarget, isFinished, winner };
-}
-
-export function appendLedgerEvent(game, eventType, payload, author) {
-  let chain = null;
-  try {
-    chain = migrateLegacyGameToLedger(game, author);
-    if (chain) {
-      chain = appendBlock(chain, eventType, payload, author);
-    }
-  } catch (chainErr) {
-    console.warn(`Avviso registrazione blocco ledger (${eventType}):`, chainErr);
-  }
-  return {
-    ledgerChain: chain || game?.ledgerChain || null,
-    ledgerLastHash: chain && chain.length > 0 ? chain[chain.length - 1].hash : (game?.ledgerLastHash || null),
-  };
 }
 
 export function upsertHistoryGame(userKey, game, setGamesHistory) {

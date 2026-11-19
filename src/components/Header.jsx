@@ -15,8 +15,14 @@ import {
 import { sound } from '../utils/soundEffects';
 import { bgMusic } from '../utils/backgroundMusic';
 import { wakeLock } from '../utils/wakeLock';
-import { checkForUpdates, forceAppUpdate, getFormattedBuildDate } from '../utils/versionCheck';
+import {
+  checkForUpdates,
+  applyAppUpdate,
+  subscribeToAppUpdates,
+  getFormattedBuildDate
+} from '../utils/versionCheck';
 import { useModalEscape } from '../hooks/useModalEscape';
+import PWAInstallButton from './PWAInstallButton';
 
 const AudioSettingsModal = lazy(() => import('./AudioSettingsModal'));
 
@@ -83,12 +89,14 @@ function Header({
   }, [isMenuOpen, updateMenuCoords]);
 
   useEffect(() => {
-    let mounted = true;
-    const runCheck = async () => {
-      const res = await checkForUpdates();
-      if (mounted && res?.hasUpdate) {
-        setUpdateInfo(res);
+    const unsubUpdates = subscribeToAppUpdates((state) => {
+      if (state?.hasUpdate) {
+        setUpdateInfo(state);
       }
+    });
+
+    const runCheck = () => {
+      checkForUpdates();
     };
     runCheck();
 
@@ -105,7 +113,7 @@ function Header({
       setWakeLockState({ ...state });
     });
     return () => {
-      mounted = false;
+      unsubUpdates();
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisChange);
       unsubMusic();
@@ -132,9 +140,9 @@ function Header({
             '--menu-top': `${menuCoords.top}px`,
             '--menu-right': `${menuCoords.right}px`,
           }}
-          className="fixed inset-x-0 bottom-0 sm:bottom-auto sm:left-auto sm:top-[var(--menu-top)] sm:right-[var(--menu-right)] sm:w-80 max-h-[85dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl club-card-solid p-4 sm:p-3 z-[95] text-white space-y-2 club-sheet-enter pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pb-3"
+          className="fixed inset-x-0 bottom-0 sm:bottom-auto sm:left-auto sm:top-[var(--menu-top)] sm:right-[var(--menu-right)] sm:w-80 max-h-[85dvh] overflow-y-auto club-modal-scroll rounded-t-3xl sm:rounded-2xl club-card-solid p-4 sm:p-3 z-[95] club-text-primary space-y-2 club-sheet-enter pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pb-3"
         >
-          <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-2 sm:hidden" />
+          <div className="w-10 h-1 rounded-full club-handle mx-auto mb-2 sm:hidden" />
 
           <div className="px-2 pb-2 border-b club-divider flex items-center justify-between">
             <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider club-text-gold">
@@ -148,7 +156,7 @@ function Header({
               <button
                 type="button"
                 onClick={closeMenu}
-                className="sm:hidden min-w-[36px] min-h-[36px] rounded-lg club-inset text-slate-300 flex items-center justify-center cursor-pointer"
+                className="sm:hidden min-w-[36px] min-h-[36px] rounded-lg club-inset club-text-muted flex items-center justify-center cursor-pointer"
                 aria-label="Chiudi menu"
               >
                 <X className="w-4 h-4" />
@@ -163,10 +171,10 @@ function Header({
               wakeLock.toggle();
               setWakeLockState({ enabled: wakeLock.enabled, active: wakeLock.active });
             }}
-            className="w-full min-h-[46px] flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/5 text-left text-sm font-semibold transition-colors cursor-pointer"
+            className="w-full min-h-[46px] flex items-center justify-between px-3 py-2.5 rounded-xl club-hover-soft text-left text-sm font-semibold transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-3">
-              <Sun className={`w-4 h-4 shrink-0 ${wakeLockState.enabled ? 'text-amber-300' : 'club-text-muted'}`} />
+              <Sun className={`w-4 h-4 shrink-0 ${wakeLockState.enabled ? 'club-text-gold' : 'club-text-muted'}`} />
               <span>Schermo Sempre Acceso</span>
             </span>
             <span className={`text-[11px] px-2.5 py-0.5 rounded-md font-bold ${
@@ -186,11 +194,11 @@ function Header({
                 closeMenu();
                 onOpenRules();
               }}
-              className="w-full min-h-[46px] flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-left transition-colors cursor-pointer"
+              className="w-full min-h-[46px] flex items-center gap-3 px-3 py-2.5 rounded-xl club-hover-soft text-left transition-colors cursor-pointer"
             >
               <BookOpen className="w-4 h-4 club-text-gold shrink-0" />
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-white">Regole Ufficiali</div>
+                <div className="text-sm font-semibold club-text-primary">Regole Ufficiali</div>
                 <div className="text-xs club-text-subtle">Punteggi carte, burrachi e chiusure</div>
               </div>
             </button>
@@ -204,15 +212,18 @@ function Header({
                 closeMenu();
                 onShareGame();
               }}
-              className="w-full min-h-[46px] flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-left transition-colors cursor-pointer"
+              className="w-full min-h-[46px] flex items-center gap-3 px-3 py-2.5 rounded-xl club-hover-soft text-left transition-colors cursor-pointer"
             >
               <Share2 className="w-4 h-4 club-text-muted shrink-0" />
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-white">Condividi Punteggio</div>
+                <div className="text-sm font-semibold club-text-primary">Condividi Punteggio</div>
                 <div className="text-xs club-text-subtle">Invia riepilogo partita su WhatsApp</div>
               </div>
             </button>
           )}
+
+          {/* Installa App PWA (si nasconde in modalità standalone) */}
+          <PWAInstallButton variant="menu" onAfterClick={closeMenu} />
 
           {/* Aggiornamenti */}
           <div className="pt-1.5 border-t club-divider">
@@ -221,7 +232,7 @@ function Header({
               disabled={isCheckingUpdate}
               onClick={async () => {
                 if (updateInfo.hasUpdate) {
-                  forceAppUpdate();
+                  applyAppUpdate();
                 } else {
                   setIsCheckingUpdate(true);
                   setUpToDateNotice(false);
@@ -240,13 +251,13 @@ function Header({
                 updateInfo.hasUpdate
                   ? 'gold-gradient font-bold'
                   : upToDateNotice
-                    ? 'bg-emerald-500/15 text-emerald-300'
-                    : 'hover:bg-white/5 club-text-muted'
+                    ? 'bg-emerald-500/15 club-success-text'
+                    : 'club-hover-soft club-text-muted'
               }`}
             >
               <span className="flex items-center gap-2.5">
                 {upToDateNotice && !updateInfo.hasUpdate ? (
-                  <Check className="w-4 h-4 text-emerald-300 shrink-0" />
+                  <Check className="w-4 h-4 club-success-text shrink-0" />
                 ) : (
                   <RotateCw className={`w-4 h-4 shrink-0 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
                 )}
@@ -284,7 +295,7 @@ function Header({
             ♠
           </div>
           <div className="min-w-0 leading-tight">
-            <h1 className="text-[15px] sm:text-lg font-bold tracking-tight text-white m-0 flex items-baseline gap-1.5 truncate">
+            <h1 className="text-[15px] sm:text-lg font-bold tracking-tight club-text-primary m-0 flex items-baseline gap-1.5 truncate">
               <span>Burraco</span>
               <span className="font-display italic font-bold text-[16px] sm:text-[19px] club-text-gold">
                 Master Club

@@ -21,7 +21,7 @@ export default function RulesModal({ isOpen, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
-          <span className="w-10 h-1 rounded-full bg-white/25" />
+          <span className="w-10 h-1 rounded-full club-handle" />
         </div>
 
         {/* Header */}
@@ -31,7 +31,7 @@ export default function RulesModal({ isOpen, onClose }) {
               <BookOpen className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="font-display text-lg sm:text-xl font-bold text-white m-0 truncate">
+              <h2 className="font-display text-lg sm:text-xl font-bold club-text-primary m-0 truncate">
                 Regolamento del Burraco
               </h2>
               <p className="text-xs club-text-subtle m-0 truncate">
@@ -104,47 +104,47 @@ export default function RulesModal({ isOpen, onClose }) {
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="p-3 rounded-xl bg-black/20 border club-divider flex justify-between items-center gap-2">
+                  <div className="p-3 rounded-xl club-row-bg border club-divider flex justify-between items-center gap-2">
                     <div>
-                      <span className="font-bold text-white block">Burraco Pulito</span>
+                      <span className="font-bold club-text-primary block">Burraco Pulito</span>
                       <span className="text-[11px] club-text-subtle">7+ carte senza matte</span>
                     </div>
                     <span className="font-mono-num text-sm font-bold club-text-gold shrink-0">+200 pt</span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-black/20 border club-divider flex justify-between items-center gap-2">
+                  <div className="p-3 rounded-xl club-row-bg border club-divider flex justify-between items-center gap-2">
                     <div>
-                      <span className="font-bold text-white block">Burraco Semipulito</span>
+                      <span className="font-bold club-text-primary block">Burraco Semipulito</span>
                       <span className="text-[11px] club-text-subtle">8+ carte (7 pure + matta agli estremi)</span>
                     </div>
-                    <span className="font-mono-num text-sm font-bold text-sky-300 shrink-0">+150 pt</span>
+                    <span className="font-mono-num text-sm font-bold club-team2 shrink-0">+150 pt</span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-black/20 border club-divider flex justify-between items-center gap-2">
+                  <div className="p-3 rounded-xl club-row-bg border club-divider flex justify-between items-center gap-2">
                     <div>
-                      <span className="font-bold text-white block">Burraco Sporco</span>
+                      <span className="font-bold club-text-primary block">Burraco Sporco</span>
                       <span className="text-[11px] club-text-subtle">7+ carte con Jolly o Pinella</span>
                     </div>
-                    <span className="font-mono-num text-sm font-bold text-orange-300 shrink-0">+100 pt</span>
+                    <span className="font-mono-num text-sm font-bold club-team1 shrink-0">+100 pt</span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-black/20 border club-divider flex justify-between items-center gap-2">
+                  <div className="p-3 rounded-xl club-row-bg border club-divider flex justify-between items-center gap-2">
                     <div>
-                      <span className="font-bold text-white block">Chiusura Smazzata</span>
+                      <span className="font-bold club-text-primary block">Chiusura Smazzata</span>
                       <span className="text-[11px] club-text-subtle">Scarto finale dopo pozzetto</span>
                     </div>
                     <span className="font-mono-num text-sm font-bold club-text-gold shrink-0">+100 pt</span>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-rose-950/45 border border-rose-500/35 text-xs text-rose-200 space-y-1">
+                <div className="p-3 rounded-xl club-danger-inset text-xs space-y-1">
                   <div className="flex justify-between items-center font-bold">
                     <span>Pozzetto non preso:</span>
-                    <span className="font-mono-num text-rose-300">-100 pt</span>
+                    <span className="font-mono-num club-danger-text">-100 pt</span>
                   </div>
                   <div className="flex justify-between items-center font-bold">
                     <span>Pozzetto preso ma non giocato:</span>
-                    <span className="font-mono-num text-rose-300">-100 pt</span>
+                    <span className="font-mono-num club-danger-text">-100 pt</span>
                   </div>
                 </div>
               </div>
@@ -161,23 +161,23 @@ export default function RulesModal({ isOpen, onClose }) {
 
                 <div className="divide-y divide-[var(--border-subtle)] text-xs">
                   <div className="py-2.5 flex justify-between items-center">
-                    <span className="font-semibold text-white">🃏 Jolly</span>
-                    <span className="font-mono-num font-bold text-purple-300">30 pt</span>
+                    <span className="font-semibold club-text-primary">🃏 Jolly</span>
+                    <span className="font-mono-num font-bold club-team3">30 pt</span>
                   </div>
                   <div className="py-2.5 flex justify-between items-center">
-                    <span className="font-semibold text-white">2️⃣ Pinelle (2 di qualsiasi seme)</span>
+                    <span className="font-semibold club-text-primary">2️⃣ Pinelle (2 di qualsiasi seme)</span>
                     <span className="font-mono-num font-bold club-text-gold">20 pt</span>
                   </div>
                   <div className="py-2.5 flex justify-between items-center">
-                    <span className="font-semibold text-white">🅰️ Assi (A)</span>
-                    <span className="font-mono-num font-bold text-sky-300">15 pt</span>
+                    <span className="font-semibold club-text-primary">🅰️ Assi (A)</span>
+                    <span className="font-mono-num font-bold club-team2">15 pt</span>
                   </div>
                   <div className="py-2.5 flex justify-between items-center">
-                    <span className="font-semibold text-white">👑 Figure & Alte (8, 9, 10, J, Q, K)</span>
-                    <span className="font-mono-num font-bold text-emerald-300">10 pt</span>
+                    <span className="font-semibold club-text-primary">👑 Figure & Alte (8, 9, 10, J, Q, K)</span>
+                    <span className="font-mono-num font-bold club-success-text">10 pt</span>
                   </div>
                   <div className="py-2.5 flex justify-between items-center">
-                    <span className="font-semibold text-white">🎴 Carte Basse (3, 4, 5, 6, 7)</span>
+                    <span className="font-semibold club-text-primary">🎴 Carte Basse (3, 4, 5, 6, 7)</span>
                     <span className="font-mono-num font-bold club-text-muted">5 pt</span>
                   </div>
                 </div>
@@ -193,7 +193,7 @@ export default function RulesModal({ isOpen, onClose }) {
                   <span>Regolamento Ufficiale FIBUR (1 contro 2)</span>
                 </h4>
                 <p className="text-xs club-text-muted leading-relaxed m-0">
-                  Nel Burraco a 3 ciascuno compete individualmente, ma ogni mano si gioca <strong className="text-white">1 contro 2</strong> in base a chi conquista il primo pozzetto.
+                  Nel Burraco a 3 ciascuno compete individualmente, ma ogni mano si gioca <strong className="club-text-primary">1 contro 2</strong> in base a chi conquista il primo pozzetto.
                 </p>
               </div>
 
@@ -203,8 +203,8 @@ export default function RulesModal({ isOpen, onClose }) {
                   <span>1. I Due Pozzetti (18 e 11 Carte)</span>
                 </h4>
                 <ul className="list-disc pl-4 space-y-1.5 text-xs club-text-muted m-0">
-                  <li>Si preparano <strong className="text-white">due pozzetti disuguali</strong>: uno da <strong className="text-white">18 carte</strong> (sopra) e uno da <strong className="text-white">11 carte</strong> (sotto).</li>
-                  <li>Ciascun giocatore riceve <strong className="text-white">11 carte</strong> iniziali.</li>
+                  <li>Si preparano <strong className="club-text-primary">due pozzetti disuguali</strong>: uno da <strong className="club-text-primary">18 carte</strong> (sopra) e uno da <strong className="club-text-primary">11 carte</strong> (sotto).</li>
+                  <li>Ciascun giocatore riceve <strong className="club-text-primary">11 carte</strong> iniziali.</li>
                 </ul>
               </div>
 
@@ -214,8 +214,8 @@ export default function RulesModal({ isOpen, onClose }) {
                   <span>2. Ruoli: Solitario vs Coppia</span>
                 </h4>
                 <ul className="list-disc pl-4 space-y-1.5 text-xs club-text-muted m-0">
-                  <li><strong className="text-white">Il primo</strong> che finisce le carte prende il <strong className="text-white">pozzetto da 18 carte</strong> e gioca da <strong className="text-white">Solitario</strong>.</li>
-                  <li><strong className="text-white">Gli altri due</strong> diventano <strong className="text-white">Coppia</strong> per la mano, condividono i giochi e prendono il pozzetto da <strong className="text-white">11 carte</strong>.</li>
+                  <li><strong className="club-text-primary">Il primo</strong> che finisce le carte prende il <strong className="club-text-primary">pozzetto da 18 carte</strong> e gioca da <strong className="club-text-primary">Solitario</strong>.</li>
+                  <li><strong className="club-text-primary">Gli altri due</strong> diventano <strong className="club-text-primary">Coppia</strong> per la mano, condividono i giochi e prendono il pozzetto da <strong className="club-text-primary">11 carte</strong>.</li>
                 </ul>
               </div>
 
@@ -225,8 +225,8 @@ export default function RulesModal({ isOpen, onClose }) {
                   <span>3. Divisione Punti & Traguardo</span>
                 </h4>
                 <ul className="list-disc pl-4 space-y-1.5 text-xs club-text-muted m-0">
-                  <li>Il Solitario incassa il <strong className="text-white">100%</strong> dei propri punti; i punti della Coppia sono <strong className="text-white">divisi a metà (50%)</strong>.</li>
-                  <li>Traguardo federale consigliato: <strong className="text-white">2505 pt</strong>.</li>
+                  <li>Il Solitario incassa il <strong className="club-text-primary">100%</strong> dei propri punti; i punti della Coppia sono <strong className="club-text-primary">divisi a metà (50%)</strong>.</li>
+                  <li>Traguardo federale consigliato: <strong className="club-text-primary">2505 pt</strong>.</li>
                 </ul>
               </div>
             </div>
@@ -252,8 +252,8 @@ export default function RulesModal({ isOpen, onClose }) {
                   <span>I 4 Requisiti per Chiudere</span>
                 </h4>
                 <ol className="list-decimal pl-4 space-y-1.5 text-xs club-text-muted m-0">
-                  <li>Aver preso il <strong className="text-white">pozzetto</strong>.</li>
-                  <li>Aver realizzato almeno <strong className="text-white">un Burraco</strong> (7+ carte).</li>
+                  <li>Aver preso il <strong className="club-text-primary">pozzetto</strong>.</li>
+                  <li>Aver realizzato almeno <strong className="club-text-primary">un Burraco</strong> (7+ carte).</li>
                   <li>Aver calato o legato tutte le carte in mano.</li>
                   <li>Scartare l&apos;ultima carta (non può essere Jolly o Pinella).</li>
                 </ol>

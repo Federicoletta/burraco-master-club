@@ -38,7 +38,8 @@ export function computeGameTelemetry(game, sessionStats = {}) {
 
   try {
     const rounds = Array.isArray(game.rounds) ? game.rounds : [];
-    const chain = Array.isArray(game.ledgerChain) ? game.ledgerChain : [];
+    const deletedIds = Array.isArray(game.deletedRoundIds) ? game.deletedRoundIds : null;
+    const legacyChain = Array.isArray(game.ledgerChain) ? game.ledgerChain : [];
 
     // Conteggio stili di inserimento
     let guidedHandsCount = 0;
@@ -51,8 +52,10 @@ export function computeGameTelemetry(game, sessionStats = {}) {
       }
     });
 
-    // Conteggio correzioni/annullamenti dal ledger
-    const revertsCount = chain.filter(b => b.type === 'ROUND_REVERTED').length;
+    // Conteggio correzioni/annullamenti da deletedRoundIds (o ledgerChain legacy)
+    const revertsCount = deletedIds
+      ? deletedIds.length
+      : legacyChain.filter(b => b.type === 'ROUND_REVERTED').length;
 
     // Durata approssimativa in minuti
     let durationMinutes = 0;
@@ -74,7 +77,6 @@ export function computeGameTelemetry(game, sessionStats = {}) {
       mode: game.mode || 'pairs',
       isFinished: Boolean(game.isFinished),
       tableClosed: Boolean(game.tableClosed),
-      ledgerLength: chain.length,
       offlineEventsCount: Number(sessionStats.offlineEventsCount) || 0,
       os: platform.os,
       browser: platform.browser,

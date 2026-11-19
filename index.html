@@ -2,37 +2,99 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♠️</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <title>Burraco Master Club - Segnapunti & Statistiche</title>
+    <meta
+      name="description"
+      content="Segnapunti digitale per Burraco a coppie, singolo e a tre con calcolatore guidato, tornei FIBUR e statistiche live."
+    />
+    <link rel="canonical" href="https://burraco-score-fedec.web.app/" />
+
+    <!-- Favicon & PWA Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Burraco Club" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#08291c" />
-    <meta name="description" content="Segnapunti digitale per Burraco a coppie, singolo e a tre con calcolatore guidato, tornei FIBUR e statistiche live" />
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Burraco Master Club" />
+    <meta property="og:locale" content="it_IT" />
+    <meta property="og:url" content="https://burraco-score-fedec.web.app/" />
     <meta property="og:title" content="Burraco Master Club - Segnapunti & Statistiche" />
-    <meta property="og:description" content="Segnapunti digitale per Burraco a coppie, singolo e a tre con calcolatore guidato, tornei FIBUR e statistiche live" />
-    <link rel="manifest" href="/manifest.json" />
+    <meta
+      property="og:description"
+      content="Segnapunti digitale per Burraco a coppie, singolo e a tre con calcolatore guidato, tornei FIBUR e statistiche live."
+    />
+    <meta property="og:image" content="https://burraco-score-fedec.web.app/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Burraco Master Club — Segnapunti Digitale & Tornei FIBUR" />
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Burraco Master Club - Segnapunti & Statistiche" />
+    <meta
+      name="twitter:description"
+      content="Segnapunti digitale per Burraco a coppie, singolo e a tre con calcolatore guidato, tornei FIBUR e statistiche live."
+    />
+    <meta name="twitter:image" content="https://burraco-score-fedec.web.app/og-card.png" />
+
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Burraco Master Club",
+        "alternateName": "Burraco Club",
+        "url": "https://burraco-score-fedec.web.app/",
+        "description": "Segnapunti digitale per Burraco a coppie, singolo e a tre con calcolatore guidato, tornei FIBUR e statistiche live.",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "inLanguage": "it",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        }
+      }
+    </script>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <title>Burraco Master Club - Segnapunti & Statistiche</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Anti-FOUC Theme Bootstrapping (tutti e 5 i temi inclusa la modalita diurna) -->
     <script>
       (function() {
         try {
           var t = localStorage.getItem('burraco_theme_v1');
-          if (t && ['emerald','navy','burgundy','velvet'].indexOf(t) !== -1) {
+          var themes = {
+            emerald: '#08291c',
+            navy: '#091833',
+            burgundy: '#280812',
+            velvet: '#121316',
+            daylight: '#f5f1e6'
+          };
+          if (t && themes[t]) {
             document.documentElement.setAttribute('data-theme', t);
-            var m = { emerald: '#08291c', navy: '#091833', burgundy: '#280812', velvet: '#121316' }[t];
-            if (m) {
-              var meta = document.querySelector('meta[name="theme-color"]');
-              if (meta) meta.setAttribute('content', m);
-            }
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', themes[t]);
           }
         } catch(e) {}
       })();
     </script>
   </head>
-  <body class="text-slate-50 antialiased">
+  <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

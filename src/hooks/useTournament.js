@@ -39,7 +39,6 @@ export function useTournament(currentUser = null) {
   const [activeTournament, setActiveTournament] = useState(() => getActiveTournament());
   const [pausedTournaments, setPausedTournaments] = useState(() => getPausedTournaments());
   const [tournamentsHistory, setTournamentsHistory] = useState(() => getTournamentsHistory());
-  const [isTournamentOpen, setIsTournamentOpen] = useState(false);
 
   const currentUserRef = useRef(currentUser);
   const activeTournamentRef = useRef(activeTournament);
@@ -407,8 +406,6 @@ export function useTournament(currentUser = null) {
     allActiveAndPausedTournaments,
     tournamentsHistory,
     setTournamentsHistory,
-    isTournamentOpen,
-    setIsTournamentOpen,
     handleStartTournament,
     handlePauseTournament,
     handleUpdatePausedMetadata,
@@ -423,7 +420,6 @@ export function useTournament(currentUser = null) {
     pausedTournaments,
     allActiveAndPausedTournaments,
     tournamentsHistory,
-    isTournamentOpen,
     handleStartTournament,
     handlePauseTournament,
     handleUpdatePausedMetadata,

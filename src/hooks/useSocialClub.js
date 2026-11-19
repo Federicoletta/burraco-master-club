@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAlert } from '../context/confirmContextStore';
-import {
-  loginWithGoogle,
-  logoutUser,
-  subscribeToAuth,
-  joinCloudGame
-} from '../services/firebase';
+import { joinCloudGame } from '../services/firebase';
 import {
   sendFriendRequest,
   respondToFriendRequest,
@@ -22,16 +17,24 @@ import {
 } from '../services/social';
 import { sound } from '../utils/soundEffects';
 
-export function useSocialClub() {
+const NOOP = () => {};
+const ASYNC_NOOP = async () => {};
+const EMPTY_ARRAY = [];
+
+export function useSocialClub(authState = null) {
   const customAlert = useAlert();
-  const [currentUser, setCurrentUser] = useState(null);
+  const currentUser = authState?.currentUser ?? null;
+  const welcomeUser = authState?.welcomeUser ?? null;
+  const setWelcomeUser = authState?.setWelcomeUser ?? NOOP;
+  const authHandleLogin = authState?.handleLogin ?? ASYNC_NOOP;
+  const authHandleLogout = authState?.handleLogout ?? ASYNC_NOOP;
+
   const [rawFriendsList, setRawFriendsList] = useState([]);
   const [liveFriendProfiles, setLiveFriendProfiles] = useState({});
   const [closeFriends, setCloseFriends] = useState([]);
   const [clubUsers, setClubUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [toastNotification, setToastNotification] = useState(null);
-  const [welcomeUser, setWelcomeUser] = useState(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState('profile');
@@ -50,27 +53,11 @@ export function useSocialClub() {
     setIsProfileOpen(true);
   }, []);
 
-  // 1. Ascolto stato autenticazione Google
-  useEffect(() => {
-    const unsubAuth = subscribeToAuth((user) => {
-      setCurrentUser(user);
-      if (!user) {
-        setNotifications([]);
-        setRawFriendsList([]);
-        setLiveFriendProfiles({});
-        setCloseFriends([]);
-        setClubUsers([]);
-        setToastNotification(null);
-        prevNotifIdsRef.current = [];
-      }
-    });
-    return () => unsubAuth();
-  }, []);
-
-  // 2. Ascolto real-time Notifiche, Amici e Profilo (dipende da UID/email stabili)
+  // 1. Ascolto real-time Notifiche, Amici e Profilo (dipende da UID/email stabili)
   useEffect(() => {
     if (!currentUid) {
-      return;
+      prevNotifIdsRef.current = [];
+      return undefined;
     }
 
     const userIdentity = { uid: currentUid, email: currentEmail };
@@ -112,27 +99,34 @@ export function useSocialClub() {
     };
   }, [currentUid, currentEmail]);
 
+  const activeRawFriends = currentUid ? rawFriendsList : EMPTY_ARRAY;
+  const activeCloseFriends = currentUid ? closeFriends : EMPTY_ARRAY;
+  const activeClubUsers = currentUid ? clubUsers : EMPTY_ARRAY;
+  const activeNotifications = currentUid ? notifications : EMPTY_ARRAY;
+  const activeToastNotification = currentUid ? toastNotification : null;
+
   const friendUidsKey = useMemo(
-    () => (rawFriendsList || []).map(f => f?.uid).filter(Boolean).sort().join(','),
-    [rawFriendsList]
+    () => (activeRawFriends || []).map(f => f?.uid).filter(Boolean).sort().join(','),
+    [activeRawFriends]
   );
 
   // Arricchisce gli amici con il flag isCloseFriend, presenza live (se profilo aperto) e ordina gli Amici Stretti in cima
   const friendsList = useMemo(() => {
-    return (rawFriendsList || []).map(f => {
+    if (!currentUid) return EMPTY_ARRAY;
+    return (activeRawFriends || []).map(f => {
       const liveProfile = isProfileOpen && f?.uid ? liveFriendProfiles[f.uid] : null;
       const merged = liveProfile ? { ...f, ...liveProfile } : f;
       return {
         ...merged,
         isOnline: getFriendOnlineStatus(merged?.lastSeen).isOnline,
-        isCloseFriend: closeFriends.includes(merged.uid)
+        isCloseFriend: activeCloseFriends.includes(merged.uid)
       };
     }).sort((a, b) => {
       if (a.isCloseFriend && !b.isCloseFriend) return -1;
       if (!a.isCloseFriend && b.isCloseFriend) return 1;
       return (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '');
     });
-  }, [rawFriendsList, liveFriendProfiles, isProfileOpen, closeFriends]);
+  }, [currentUid, activeRawFriends, liveFriendProfiles, isProfileOpen, activeCloseFriends]);
 
   // 3. Ascolto soci, membri club e presenza live amici su richiesta (solo ad apertura profilo per risparmio letture DB)
   useEffect(() => {
@@ -152,35 +146,21 @@ export function useSocialClub() {
     };
   }, [currentUid, isProfileOpen, friendUidsKey]);
 
-  // Login
-  const handleLogin = useCallback(async () => {
-    try {
-      const user = await loginWithGoogle();
-      if (user?.isFirstLogin) {
-        setWelcomeUser(user);
-        localStorage.setItem('burraco_welcomed_' + user.uid, 'true');
-      }
-    } catch (err) {
-      console.error("Login fallito:", err);
-      if (err.code !== 'auth/popup-closed-by-user') {
-        customAlert({
-          title: 'Accesso Google',
-          message: 'Accesso con Google non completato: ' + (err.message || err),
-          variant: 'warning'
-        });
-      }
-    }
-  }, [customAlert]);
+  // Login delegato ad AuthProvider
+  const handleLogin = authHandleLogin;
 
-  // Logout
+  // Logout con chiusura pulita pannello profilo e reset stato locale
   const handleLogout = useCallback(async () => {
-    try {
-      await logoutUser();
-      setIsProfileOpen(false);
-    } catch (err) {
-      console.error("Logout fallito:", err);
-    }
-  }, []);
+    setIsProfileOpen(false);
+    setNotifications([]);
+    setRawFriendsList([]);
+    setLiveFriendProfiles({});
+    setCloseFriends([]);
+    setClubUsers([]);
+    setToastNotification(null);
+    prevNotifIdsRef.current = [];
+    await authHandleLogout();
+  }, [authHandleLogout]);
 
   // Richiesta di amicizia
   const handleSendFriendRequest = useCallback(async (target) => {
@@ -340,10 +320,10 @@ export function useSocialClub() {
   return useMemo(() => ({
     currentUser,
     friendsList,
-    closeFriends,
-    clubUsers,
-    notifications,
-    toastNotification,
+    closeFriends: activeCloseFriends,
+    clubUsers: activeClubUsers,
+    notifications: activeNotifications,
+    toastNotification: activeToastNotification,
     setToastNotification,
     welcomeUser,
     setWelcomeUser,
@@ -367,11 +347,12 @@ export function useSocialClub() {
   }), [
     currentUser,
     friendsList,
-    closeFriends,
-    clubUsers,
-    notifications,
-    toastNotification,
+    activeCloseFriends,
+    activeClubUsers,
+    activeNotifications,
+    activeToastNotification,
     welcomeUser,
+    setWelcomeUser,
     isNotificationsOpen,
     isProfileOpen,
     profileInitialTab,

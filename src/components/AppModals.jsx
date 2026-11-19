@@ -40,108 +40,126 @@ export default function AppModals({
 }) {
   return (
     <Suspense fallback={null}>
-      <NewGameModal
-        isOpen={isNewGameOpen}
-        onClose={() => {
-          setIsNewGameOpen(false);
-          game.setNewGameInitialSetup(null);
-        }}
-        onStartGame={game.handleStartGame}
-        friendsList={social.friendsList}
-        storedPlayers={storedPlayers}
-        currentUser={social.currentUser}
-        lastGame={game.gamesHistory?.[0] || null}
-        hasActiveGame={Boolean(game.activeGame && game.activeGame.rounds && game.activeGame.rounds.length > 0)}
-        initialSetup={game.newGameInitialSetup}
-      />
+      {isNewGameOpen && (
+        <NewGameModal
+          isOpen={true}
+          onClose={() => {
+            setIsNewGameOpen(false);
+            game.setNewGameInitialSetup(null);
+          }}
+          onStartGame={game.handleStartGame}
+          friendsList={social.friendsList}
+          storedPlayers={storedPlayers}
+          currentUser={social.currentUser}
+          lastGame={game.gamesHistory?.[0] || null}
+          hasActiveGame={Boolean(game.activeGame && game.activeGame.rounds && game.activeGame.rounds.length > 0)}
+          initialSetup={game.newGameInitialSetup}
+        />
+      )}
 
-      <RoundCalculatorModal
-        isOpen={isRoundCalcOpen}
-        onClose={() => {
-          setIsRoundCalcOpen(false);
-          setRoundToEdit(null);
-        }}
-        onSaveRound={game.handleSaveRound}
-        activeGame={game.activeGame}
-        roundToEdit={roundToEdit}
-        roundNumber={(game.activeGame?.rounds?.length || 0) + 1}
-      />
+      {isRoundCalcOpen && (
+        <RoundCalculatorModal
+          isOpen={true}
+          onClose={() => {
+            setIsRoundCalcOpen(false);
+            setRoundToEdit(null);
+          }}
+          onSaveRound={game.handleSaveRound}
+          activeGame={game.activeGame}
+          roundToEdit={roundToEdit}
+          roundNumber={(game.activeGame?.rounds?.length || 0) + 1}
+        />
+      )}
 
-      <VictoryModal
-        isOpen={isVictoryOpen}
-        onClose={() => setIsVictoryOpen(false)}
-        activeGame={game.activeGame}
-        activeTournament={
-          (game.activeGame?.tournamentId &&
-            (tournament.allActiveAndPausedTournaments?.find(t => t.id === game.activeGame.tournamentId) ||
-             tournament.tournamentsHistory?.find(t => t.id === game.activeGame.tournamentId))) ||
-          tournament.activeTournament
-        }
-        onRematch={game.handleRematch}
-        onArchiveAndNew={() => game.handleArchiveAndNew(onOpenNewGame)}
-        onOpenTournament={(targetTab, roundNumber) => {
-          setIsVictoryOpen(false);
-          onOpenTournament(targetTab, roundNumber, game.activeGame?.tournamentId || null);
-        }}
-      />
+      {isVictoryOpen && (
+        <VictoryModal
+          isOpen={true}
+          onClose={() => setIsVictoryOpen(false)}
+          activeGame={game.activeGame}
+          activeTournament={
+            (game.activeGame?.tournamentId &&
+              (tournament.allActiveAndPausedTournaments?.find(t => t.id === game.activeGame.tournamentId) ||
+               tournament.tournamentsHistory?.find(t => t.id === game.activeGame.tournamentId))) ||
+            tournament.activeTournament
+          }
+          onRematch={game.handleRematch}
+          onArchiveAndNew={() => game.handleArchiveAndNew(onOpenNewGame)}
+          onOpenTournament={(targetTab, roundNumber) => {
+            setIsVictoryOpen(false);
+            onOpenTournament(targetTab, roundNumber, game.activeGame?.tournamentId || null);
+          }}
+        />
+      )}
 
-      <CloudSyncModal
-        isOpen={isCloudModalOpen}
-        onClose={() => setIsCloudModalOpen(false)}
-        activeGame={game.activeGame}
-        currentUser={social.currentUser}
-        tablePlayers={game.tablePlayers}
-        friendsList={social.friendsList}
-        onSendFriendRequest={social.handleSendFriendRequest}
-        onInviteFriendToGame={(friend) => social.handleInviteFriendToActiveGame(friend, game.activeGame)}
-        onJoinGame={(target) => {
-          setIsCloudModalOpen(false);
-          game.handleResumeGame(target);
-          onNavigateToTable();
-        }}
-      />
+      {isCloudModalOpen && (
+        <CloudSyncModal
+          isOpen={true}
+          onClose={() => setIsCloudModalOpen(false)}
+          activeGame={game.activeGame}
+          currentUser={social.currentUser}
+          tablePlayers={game.tablePlayers}
+          friendsList={social.friendsList}
+          onSendFriendRequest={social.handleSendFriendRequest}
+          onInviteFriendToGame={(friend) => social.handleInviteFriendToActiveGame(friend, game.activeGame)}
+          onJoinGame={(target) => {
+            setIsCloudModalOpen(false);
+            game.handleResumeGame(target);
+            onNavigateToTable();
+          }}
+        />
+      )}
 
-      <RulesModal
-        isOpen={isRulesOpen}
-        onClose={() => setIsRulesOpen(false)}
-      />
+      {isRulesOpen && (
+        <RulesModal
+          isOpen={true}
+          onClose={() => setIsRulesOpen(false)}
+        />
+      )}
 
-      <EditTeamsModal
-        isOpen={isEditTeamsOpen}
-        onClose={() => setIsEditTeamsOpen(false)}
-        activeGame={game.activeGame}
-        tablePlayers={game.tablePlayers}
-        currentUser={social.currentUser}
-        friendsList={social.friendsList}
-        onSave={game.handleUpdateTeams}
-      />
+      {isEditTeamsOpen && (
+        <EditTeamsModal
+          isOpen={true}
+          onClose={() => setIsEditTeamsOpen(false)}
+          activeGame={game.activeGame}
+          tablePlayers={game.tablePlayers}
+          currentUser={social.currentUser}
+          friendsList={social.friendsList}
+          onSave={game.handleUpdateTeams}
+        />
+      )}
 
-      <NotificationsModal
-        isOpen={social.isNotificationsOpen}
-        onClose={() => social.setIsNotificationsOpen(false)}
-        notifications={social.notifications}
-        onAcceptFriendRequest={social.handleAcceptFriendRequest}
-        onDeclineFriendRequest={social.handleDeclineFriendRequest}
-        onAcceptGameInvite={(notif) => social.handleAcceptGameInvite(notif, (gameId) => {
-          game.handleResumeGame(gameId);
-          onNavigateToTable();
-        })}
-        onDeclineGameInvite={social.handleDeclineGameInvite}
-      />
+      {social.isNotificationsOpen && (
+        <NotificationsModal
+          isOpen={true}
+          onClose={() => social.setIsNotificationsOpen(false)}
+          notifications={social.notifications}
+          onAcceptFriendRequest={social.handleAcceptFriendRequest}
+          onDeclineFriendRequest={social.handleDeclineFriendRequest}
+          onAcceptGameInvite={(notif) => social.handleAcceptGameInvite(notif, (gameId) => {
+            game.handleResumeGame(gameId);
+            onNavigateToTable();
+          })}
+          onDeclineGameInvite={social.handleDeclineGameInvite}
+        />
+      )}
 
-      <WelcomeModal
-        isOpen={Boolean(social.welcomeUser)}
-        onClose={() => social.setWelcomeUser(null)}
-        user={social.welcomeUser}
-        onOpenProfile={() => onOpenProfile('profile')}
-      />
+      {Boolean(social.welcomeUser) && (
+        <WelcomeModal
+          isOpen={true}
+          onClose={() => social.setWelcomeUser(null)}
+          user={social.welcomeUser}
+          onOpenProfile={() => onOpenProfile('profile')}
+        />
+      )}
 
-      <ThemeSelectorModal
-        isOpen={isThemeModalOpen}
-        onClose={() => setIsThemeModalOpen(false)}
-        currentTheme={currentTheme}
-        onThemeChange={onThemeChange}
-      />
+      {isThemeModalOpen && (
+        <ThemeSelectorModal
+          isOpen={true}
+          onClose={() => setIsThemeModalOpen(false)}
+          currentTheme={currentTheme}
+          onThemeChange={onThemeChange}
+        />
+      )}
     </Suspense>
   );
 }

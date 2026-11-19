@@ -188,7 +188,7 @@ export default function HistoryModal({
     >
       {!isPage && (
         <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
-          <span className="w-10 h-1 rounded-full bg-white/25" />
+          <span className="w-10 h-1 rounded-full club-handle" />
         </div>
       )}
 
@@ -200,12 +200,12 @@ export default function HistoryModal({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="font-display text-lg sm:text-xl font-bold text-white m-0 truncate">
+              <h2 className="font-display text-lg sm:text-xl font-bold club-text-primary m-0 truncate">
                 {selectedGame ? 'Dettaglio Partita' : 'Storico Partite'}
               </h2>
             </div>
             <p className="text-xs club-text-subtle m-0 truncate flex items-center gap-1.5">
-              <Cloud className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <Cloud className="w-3.5 h-3.5 club-success-text shrink-0" />
               <span>
                 {selectedGame
                   ? `Match del ${formatDate(selectedGame.createdAt)}`
@@ -259,7 +259,7 @@ export default function HistoryModal({
           />
         ) : allDisplayGames.length === 0 ? (
           <div className="text-center py-12 px-4 club-inset rounded-2xl border club-divider space-y-1.5">
-            <p className="text-sm font-bold text-white m-0">Nessuna partita in archivio</p>
+            <p className="text-sm font-bold club-text-primary m-0">Nessuna partita in archivio</p>
             <p className="text-xs club-text-subtle m-0 max-w-sm mx-auto leading-relaxed">
               Le partite con almeno una mano registrata appariranno automaticamente qui e saranno sincronizzate nel Cloud.
             </p>
@@ -322,7 +322,7 @@ export default function HistoryModal({
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="min-h-[36px] px-3 text-xs club-text-subtle hover:text-white underline cursor-pointer"
+            className="min-h-[36px] px-3 text-xs club-text-subtle hover:underline cursor-pointer"
           >
             {showAdvanced ? 'Nascondi backup offline' : 'Backup manuale file JSON'}
           </button>

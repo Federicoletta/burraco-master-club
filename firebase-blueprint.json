@@ -2,7 +2,7 @@
   "entities": {
     "Game": {
       "title": "Burraco Game",
-      "description": "A Burraco match document with teams, rounds history, CRDT ledger chain, and cloud sync metadata.",
+      "description": "A Burraco match document with teams, per-round sync (roundId + deletedRoundIds), suspension metadata, and cloud sync state.",
       "type": "object",
       "properties": {
         "id": { "type": "string", "description": "Unique match identifier matching the document ID." },
@@ -13,9 +13,13 @@
         "team1": { "type": "object", "description": "First team or player map with name and players list." },
         "team2": { "type": "object", "description": "Second team or player map with name and players list." },
         "team3": { "type": "object", "description": "Third player map used in trio mode." },
-        "rounds": { "type": "array", "description": "Played hands and score breakdown." },
+        "rounds": { "type": "array", "description": "Played hands with stable roundId and score breakdown." },
+        "deletedRoundIds": { "type": "array", "description": "Tombstone list of deleted roundIds for deterministic multi-device sync." },
         "winner": { "type": "string", "enum": ["team1", "team2", "team3"], "description": "Winning team key when finished." },
         "isFinished": { "type": "boolean", "description": "Whether the match has ended." },
+        "tableClosed": { "type": "boolean", "description": "Whether the table was closed/suspended." },
+        "suspendedAt": { "type": "string", "format": "date-time", "description": "Timestamp when an incomplete match was suspended to history." },
+        "stateUpdatedAt": { "type": "string", "format": "date-time", "description": "Client ISO timestamp for LWW metadata reconciliation." },
         "ownerUid": { "type": "string", "description": "Creator Firebase Auth UID." },
         "ownerEmail": { "type": "string", "description": "Creator email address." }
       },

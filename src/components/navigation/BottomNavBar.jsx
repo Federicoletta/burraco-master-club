@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   Users,
   Trophy,
@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 
 /**
- * BottomNavBar - Dock di navigazione inferiore ergonomico, adattivo su tutti i 4 panni
+ * BottomNavBar - Dock di navigazione inferiore ergonomico, adattivo su tutti i panni
  */
-export default function BottomNavBar({
+function BottomNavBar({
   activeTab = 'table',
   onSelectTab,
   hasActiveGame = false,
@@ -74,7 +74,7 @@ export default function BottomNavBar({
               className={`relative flex-1 min-h-[46px] py-1.5 px-2 rounded-xl transition-all duration-150 flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
                 isActive
                   ? 'gold-gradient font-bold shadow-sm'
-                  : 'club-text-muted hover:text-white hover:bg-white/5 active:scale-95'
+                  : 'club-text-muted club-hover-soft active:scale-95'
               }`}
             >
               <div className="relative flex items-center justify-center">
@@ -111,3 +111,5 @@ export default function BottomNavBar({
     </nav>
   );
 }
+
+export default memo(BottomNavBar);

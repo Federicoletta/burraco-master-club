@@ -35,10 +35,10 @@ export default function MatchScoreEditModal({
         className="w-full max-w-sm club-card-solid rounded-t-3xl sm:rounded-2xl p-5 text-center space-y-4 club-sheet-enter pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pb-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-10 h-1 rounded-full bg-white/20 mx-auto sm:hidden" />
+        <div className="w-10 h-1 rounded-full club-handle mx-auto sm:hidden" />
 
         <div>
-          <h3 className="font-display text-base sm:text-lg font-bold text-white">
+          <h3 className="font-display text-base sm:text-lg font-bold club-text-primary">
             {editingMatch.team1Name} vs {editingMatch.team2Name}
           </h3>
           <p className="text-xs club-text-muted mt-0.5">
@@ -49,7 +49,7 @@ export default function MatchScoreEditModal({
         <form onSubmit={onSave} className="space-y-3.5">
           <div className="grid grid-cols-2 gap-3 text-left">
             <div>
-              <label className="text-xs font-bold text-amber-300 truncate block mb-1">
+              <label className="text-xs font-bold club-team1 truncate block mb-1">
                 {editingMatch.team1Name}
               </label>
               <input
@@ -63,7 +63,7 @@ export default function MatchScoreEditModal({
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-sky-300 truncate block mb-1">
+              <label className="text-xs font-bold club-team2 truncate block mb-1">
                 {editingMatch.team2Name}
               </label>
               <input
@@ -81,11 +81,11 @@ export default function MatchScoreEditModal({
           {vpPreview && (
             <div className="p-2.5 rounded-xl club-inset text-xs font-mono-num">
               <div className="flex items-center justify-between font-bold">
-                <span className="text-amber-300">{vpPreview.team1Vp} VP</span>
+                <span className="club-team1">{vpPreview.team1Vp} VP</span>
                 <span className="text-[11px] club-text-subtle font-sans">
                   Scarto {Math.abs(vpPreview.diff).toLocaleString('it-IT')} pt
                 </span>
-                <span className="text-sky-300">{vpPreview.team2Vp} VP</span>
+                <span className="club-team2">{vpPreview.team2Vp} VP</span>
               </div>
             </div>
           )}

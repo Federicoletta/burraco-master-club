@@ -1,8 +1,8 @@
-import { rmSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import fs from 'node:fs';
+import path from 'node:path';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 const buildTime = Date.now();
 const buildVersionJson = JSON.stringify({
@@ -10,10 +10,10 @@ const buildVersionJson = JSON.stringify({
   builtAt: new Date(buildTime).toISOString()
 }, null, 2);
 
-// Plugin per generare dist/version.json, servirlo in dev ed escludere screenshot interni dal bundle
-function versionPlugin() {
+// Plugin per generare dist/version.json e iniettare gli asset buildati (JS/CSS) nel Service Worker
+function pwaAndVersionPlugin() {
   return {
-    name: 'generate-version-file',
+    name: 'burraco-pwa-and-version',
     configureServer(server) {
       server.middlewares.use('/version.json', (_req, res) => {
         res.setHeader('Content-Type', 'application/json');
@@ -21,26 +21,36 @@ function versionPlugin() {
         res.end(buildVersionJson);
       });
     },
-    generateBundle() {
+    generateBundle(_options, bundle) {
       this.emitFile({
         type: 'asset',
         fileName: 'version.json',
         source: buildVersionJson
       });
-    },
-    closeBundle() {
-      try {
-        rmSync(resolve(process.cwd(), 'dist/assets/aistudio'), { recursive: true, force: true });
-      } catch {
-        // ignore if absent
-      }
+
+      const swTemplatePath = path.resolve(process.cwd(), 'public/sw.js');
+      if (!fs.existsSync(swTemplatePath)) return;
+
+      const buildAssets = Object.keys(bundle)
+        .filter((fileName) => /\.(js|css)$/.test(fileName) && !fileName.startsWith('audio/'))
+        .map((fileName) => `/${fileName}`);
+
+      const swSource = fs.readFileSync(swTemplatePath, 'utf8')
+        .replace('__BURRACO_CACHE_VERSION__', String(buildTime))
+        .replace('/*__PRECACHE_ASSETS__*/[]', JSON.stringify(buildAssets));
+
+      this.emitFile({
+        type: 'asset',
+        fileName: 'sw.js',
+        source: swSource
+      });
     }
   };
 }
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), versionPlugin()],
+  plugins: [react(), tailwindcss(), pwaAndVersionPlugin()],
   server: {
     host: '0.0.0.0',
     port: 3000,
@@ -54,6 +64,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+            return 'vendor-react';
+          }
           if (id.includes('@firebase/firestore') || id.includes('firebase/firestore')) {
             return 'vendor-firebase-firestore';
           }
@@ -73,4 +86,4 @@ export default defineConfig({
       }
     }
   }
-})
+});

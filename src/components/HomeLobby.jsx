@@ -165,7 +165,7 @@ export default function HomeLobby({
               <span className="club-text-subtle">·</span>
               <span className="club-text-muted tracking-widest">♠ ♥ ♦ ♣</span>
             </div>
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold club-text-primary tracking-tight">
               Benvenuto, {playerName}
             </h2>
             <p className="text-xs sm:text-sm club-text-muted max-w-md leading-relaxed">
@@ -209,7 +209,7 @@ export default function HomeLobby({
               </div>
               <div>
                 <div className="flex items-baseline gap-2">
-                  <h4 className="font-bold text-white text-base">A Coppie</h4>
+                  <h4 className="font-bold club-text-primary text-base">A Coppie</h4>
                   <span className="text-[11px] font-semibold club-text-gold">Classico</span>
                 </div>
                 <p className="text-xs club-text-muted mt-0.5">2 contro 2 con pozzetti</p>
@@ -225,18 +225,18 @@ export default function HomeLobby({
           <button
             type="button"
             onClick={() => handleSelectModeLaunch('singles')}
-            className="club-card p-4 sm:p-5 rounded-2xl hover:border-amber-400/50 text-left transition-all cursor-pointer active:scale-[0.98] group flex sm:flex-col items-center sm:items-stretch justify-between gap-3 sm:min-h-[144px]"
+            className="club-card p-4 sm:p-5 rounded-2xl hover:border-[var(--accent-gold)]/55 text-left transition-all cursor-pointer active:scale-[0.98] group flex sm:flex-col items-center sm:items-stretch justify-between gap-3 sm:min-h-[144px]"
           >
             <div className="flex sm:block items-center gap-3.5">
               <div className="w-11 h-11 rounded-xl club-inset club-text-gold flex items-center justify-center sm:mb-3 shrink-0 group-hover:scale-105 transition-transform">
                 <User className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-white text-base">Singolo</h4>
+                <h4 className="font-bold club-text-primary text-base">Singolo</h4>
                 <p className="text-xs club-text-muted mt-0.5">1 contro 1 testa a testa</p>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-xs font-semibold club-text-muted group-hover:text-amber-300 shrink-0 group-hover:translate-x-0.5 transition-all">
+            <div className="flex items-center gap-1 text-xs font-semibold club-text-muted group-hover:text-[var(--accent-gold)] shrink-0 group-hover:translate-x-0.5 transition-all">
               <span className="hidden sm:inline">Prepara Tavolo</span>
               <ArrowRight className="w-4 h-4" />
             </div>
@@ -246,18 +246,18 @@ export default function HomeLobby({
           <button
             type="button"
             onClick={() => handleSelectModeLaunch('trio')}
-            className="club-card p-4 sm:p-5 rounded-2xl hover:border-amber-400/50 text-left transition-all cursor-pointer active:scale-[0.98] group flex sm:flex-col items-center sm:items-stretch justify-between gap-3 sm:min-h-[144px]"
+            className="club-card p-4 sm:p-5 rounded-2xl hover:border-[var(--accent-gold)]/55 text-left transition-all cursor-pointer active:scale-[0.98] group flex sm:flex-col items-center sm:items-stretch justify-between gap-3 sm:min-h-[144px]"
           >
             <div className="flex sm:block items-center gap-3.5">
               <div className="w-11 h-11 rounded-xl club-inset club-text-gold flex items-center justify-center sm:mb-3 shrink-0 group-hover:scale-105 transition-transform">
                 <span className="text-sm font-bold font-mono-num">3P</span>
               </div>
               <div>
-                <h4 className="font-bold text-white text-base">A Tre</h4>
+                <h4 className="font-bold club-text-primary text-base">A Tre</h4>
                 <p className="text-xs club-text-muted mt-0.5">Rotazione con pozzetto 18</p>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-xs font-semibold club-text-muted group-hover:text-amber-300 shrink-0 group-hover:translate-x-0.5 transition-all">
+            <div className="flex items-center gap-1 text-xs font-semibold club-text-muted group-hover:text-[var(--accent-gold)] shrink-0 group-hover:translate-x-0.5 transition-all">
               <span className="hidden sm:inline">Prepara Tavolo</span>
               <ArrowRight className="w-4 h-4" />
             </div>
@@ -272,7 +272,7 @@ export default function HomeLobby({
             <KeyRound className="w-5 h-5" />
           </span>
           <div>
-            <h3 className="text-sm font-bold text-white">Entra in un Tavolo con PIN</h3>
+            <h3 className="text-sm font-bold club-text-primary">Entra in un Tavolo con PIN</h3>
             <p className="text-xs club-text-subtle">
               Inserisci il codice a 6 cifre mostrato sul dispositivo del tavolo
             </p>
@@ -282,11 +282,12 @@ export default function HomeLobby({
         <form onSubmit={handleJoinByPin} className="flex gap-2 w-full sm:w-auto shrink-0">
           <input
             type="text"
+            inputMode="numeric"
             value={pinInput}
             onChange={(e) => setPinInput(e.target.value.toUpperCase())}
             placeholder="PIN (es. 684210)"
             maxLength={10}
-            className="flex-1 sm:w-40 min-h-[44px] px-3.5 py-2 rounded-xl club-input text-sm font-mono-num font-bold tracking-wider text-center"
+            className="flex-1 min-w-0 sm:w-40 min-h-[44px] px-3.5 py-2 rounded-xl club-input text-sm font-mono-num font-bold tracking-wider text-center"
           />
           <button
             type="submit"
@@ -309,7 +310,7 @@ export default function HomeLobby({
               <span className="text-[11px] font-bold uppercase tracking-wider club-text-gold block">
                 Ripeti ultima formazione
               </span>
-              <p className="text-sm font-semibold text-white truncate">
+              <p className="text-sm font-semibold club-text-primary truncate">
                 {lastGame.team1?.name} vs {lastGame.team2?.name}
                 {lastGame.mode === 'trio' && lastGame.team3?.name ? ` vs ${lastGame.team3.name}` : ''}
               </p>

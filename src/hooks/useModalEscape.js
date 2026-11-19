@@ -1,22 +1,9 @@
-import { useEffect } from 'react';
+import { useModalDialog } from './useModalDialog';
 
 /**
- * Chiude automaticamente i modali alla pressione del tasto Escape.
+ * Chiude automaticamente i modali alla pressione del tasto Escape (stack LIFO),
+ * gestisce scroll-lock e ripristino del focus. Se viene passato dialogRef, attiva anche il focus-trap.
  */
-export function useModalEscape(isOpen, onClose) {
-  useEffect(() => {
-    if (!isOpen || typeof onClose !== 'function' || typeof window === 'undefined') {
-      return undefined;
-    }
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+export function useModalEscape(isOpen, onClose, dialogRef = null) {
+  useModalDialog({ isOpen, onClose, dialogRef });
 }

@@ -26,10 +26,10 @@ export default function TeamScoreCards({
       total: totalTeam1,
       percent: t1Percent,
       suit: '♦',
-      accentText: 'text-amber-300',
-      barClass: 'bg-gradient-to-r from-amber-500 to-amber-300',
-      activeRing: 'border-amber-400/75 ring-1 ring-amber-400/25',
-      defaultBorder: 'hover:border-amber-400/45',
+      accentText: 'club-team1',
+      barClass: 'bg-gradient-to-r from-amber-600 to-amber-400',
+      activeRing: 'border-[var(--accent-gold)]/75 ring-1 ring-[var(--accent-ring)]',
+      defaultBorder: 'hover:border-[var(--accent-gold)]/45',
     },
     {
       key: 'team2',
@@ -38,10 +38,10 @@ export default function TeamScoreCards({
       total: totalTeam2,
       percent: t2Percent,
       suit: '♠',
-      accentText: 'text-sky-300',
-      barClass: 'bg-gradient-to-r from-sky-500 to-sky-300',
-      activeRing: 'border-sky-400/75 ring-1 ring-sky-400/25',
-      defaultBorder: 'hover:border-sky-400/45',
+      accentText: 'club-team2',
+      barClass: 'bg-gradient-to-r from-sky-600 to-sky-400',
+      activeRing: 'border-sky-500/75 ring-1 ring-sky-500/25',
+      defaultBorder: 'hover:border-sky-500/45',
     },
     ...(isTrio
       ? [
@@ -52,10 +52,10 @@ export default function TeamScoreCards({
             total: totalTeam3,
             percent: t3Percent,
             suit: '♥',
-            accentText: 'text-rose-300',
-            barClass: 'bg-gradient-to-r from-rose-500 to-rose-300',
-            activeRing: 'border-rose-400/75 ring-1 ring-rose-400/25',
-            defaultBorder: 'hover:border-rose-400/45',
+            accentText: 'club-team3',
+            barClass: 'bg-gradient-to-r from-rose-600 to-rose-400',
+            activeRing: 'border-rose-500/75 ring-1 ring-rose-500/25',
+            defaultBorder: 'hover:border-rose-500/45',
           },
         ]
       : []),
@@ -122,7 +122,7 @@ export default function TeamScoreCards({
 
             {/* Punteggio Tabulare Grande */}
             <div className="my-3 flex items-baseline justify-between gap-2">
-              <div className="font-mono-num text-4xl sm:text-5xl font-bold tracking-tight text-white">
+              <div className="font-mono-num text-4xl sm:text-5xl font-bold tracking-tight club-text-primary">
                 {item.total.toLocaleString('it-IT')}
                 <span className={`text-xs sm:text-sm font-sans font-semibold ml-1.5 ${item.accentText}`}>
                   pt

@@ -24,6 +24,7 @@ import {
   getDocsWithOrderFallback,
   subscribeWithOrderFallback,
 } from './firebaseClient';
+import { normalizeLegacyGame, reconcileGames } from '../utils/roundSync';
 
 // Cache in memoria per evitare riscritture ripetitive di burraco_pins (preserva createdAt e risparmia scritture)
 const registeredPinsCache = new Set();
@@ -84,21 +85,17 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
   try {
     const gameRef = doc(db, 'burraco_games', game.id);
 
+    const normalizedLocal = normalizeLegacyGame(game);
+    let gameToWrite = normalizedLocal;
+
     if (!force) {
       try {
         const snap = await getDoc(gameRef);
         if (snap.exists()) {
-          const remoteData = snap.data();
-          const remoteRounds = Array.isArray(remoteData.rounds) ? remoteData.rounds : [];
-          const localRounds = Array.isArray(game.rounds) ? game.rounds : [];
-
-          if (remoteRounds.length > localRounds.length) {
-            console.warn(`[syncGameToCloud] Documento remoto ha ${remoteRounds.length} mani, locale ne ha ${localRounds.length}. Sovrascrittura bloccata per salvaguardia.`);
-            return false;
-          }
+          gameToWrite = reconcileGames(normalizedLocal, snap.data());
         }
       } catch (err) {
-        console.warn('Controllo versione remota non riuscito:', err);
+        console.warn('Controllo/riconciliazione versione remota non riuscita:', err);
       }
     }
 
@@ -114,62 +111,66 @@ export async function syncGameToCloud(game, currentUser = null, force = false) {
       return cleaned;
     };
 
-    const playerUids = Array.isArray(game.playerUids) ? [...game.playerUids] : [];
+    const playerUids = Array.isArray(gameToWrite.playerUids) ? [...gameToWrite.playerUids] : [];
     if (currentUser?.uid && !playerUids.includes(currentUser.uid)) {
       playerUids.push(currentUser.uid);
     }
-    const playerEmails = Array.isArray(game.playerEmails) ? [...game.playerEmails] : [];
+    const playerEmails = Array.isArray(gameToWrite.playerEmails) ? [...gameToWrite.playerEmails] : [];
     if (currentUser?.email && !playerEmails.includes(currentUser.email)) {
       playerEmails.push(currentUser.email);
     }
 
-    const cleanRounds = (Array.isArray(game.rounds) ? game.rounds : []).map(r => ({ ...r }));
+    const cleanRounds = (Array.isArray(gameToWrite.rounds) ? gameToWrite.rounds : []).map(r => ({ ...r }));
+    const cleanDeletedRoundIds = (Array.isArray(gameToWrite.deletedRoundIds) ? gameToWrite.deletedRoundIds : [])
+      .filter(id => typeof id === 'string' && id.trim().length > 0)
+      .map(id => id.trim().slice(0, 64))
+      .slice(-100);
 
     const allowedGameData = {
-      id: String(game.id),
-      mode: ['pairs', 'singles', 'trio'].includes(game.mode) ? game.mode : 'pairs',
-      allowSemipulito: Boolean(game.allowSemipulito ?? true),
-      targetScore: Number(game.targetScore) || 2005,
-      team1: cleanTeam(game.team1, 'Coppia 1'),
-      team2: cleanTeam(game.team2, 'Coppia 2'),
+      id: String(gameToWrite.id),
+      mode: ['pairs', 'singles', 'trio'].includes(gameToWrite.mode) ? gameToWrite.mode : 'pairs',
+      allowSemipulito: Boolean(gameToWrite.allowSemipulito ?? true),
+      targetScore: Number(gameToWrite.targetScore) || 2005,
+      team1: cleanTeam(gameToWrite.team1, 'Coppia 1'),
+      team2: cleanTeam(gameToWrite.team2, 'Coppia 2'),
       rounds: cleanRounds,
-      isFinished: Boolean(game.isFinished),
-      tableClosed: Boolean(game.tableClosed),
-      ownerUid: game.ownerUid !== undefined ? (game.ownerUid || null) : (currentUser?.uid || null),
-      ownerEmail: game.ownerEmail !== undefined ? (game.ownerEmail || null) : (currentUser?.email || null),
-      ownerName: game.ownerName !== undefined ? (game.ownerName || null) : (currentUser?.displayName || null),
+      deletedRoundIds: cleanDeletedRoundIds,
+      isFinished: Boolean(gameToWrite.isFinished),
+      tableClosed: Boolean(gameToWrite.tableClosed),
+      suspendedAt: gameToWrite.suspendedAt || null,
+      stateUpdatedAt: gameToWrite.stateUpdatedAt || new Date().toISOString(),
+      ownerUid: gameToWrite.ownerUid !== undefined ? (gameToWrite.ownerUid || null) : (currentUser?.uid || null),
+      ownerEmail: gameToWrite.ownerEmail !== undefined ? (gameToWrite.ownerEmail || null) : (currentUser?.email || null),
+      ownerName: gameToWrite.ownerName !== undefined ? (gameToWrite.ownerName || null) : (currentUser?.displayName || null),
       playerUids: playerUids.slice(0, 10),
       playerEmails: playerEmails.slice(0, 10),
       updatedAt: serverTimestamp(),
     };
 
-    if (game.mode === 'trio' || game.team3) {
-      allowedGameData.team3 = cleanTeam(game.team3, 'Giocatore 3');
+    if (gameToWrite.mode === 'trio' || gameToWrite.team3) {
+      allowedGameData.team3 = cleanTeam(gameToWrite.team3, 'Giocatore 3');
     }
 
-    if (game.winner) allowedGameData.winner = game.winner;
-    if (game.createdAt) allowedGameData.createdAt = game.createdAt;
-    if (game.completedAt) allowedGameData.completedAt = game.completedAt;
-
-    if (game.tournamentId) allowedGameData.tournamentId = String(game.tournamentId).slice(0, 100);
-    if (game.tournamentName) allowedGameData.tournamentName = String(game.tournamentName).slice(0, 100);
-    if (game.tournamentMatchId) allowedGameData.tournamentMatchId = String(game.tournamentMatchId).slice(0, 100);
-    if (typeof game.tournamentRoundNumber === 'number') allowedGameData.tournamentRoundNumber = game.tournamentRoundNumber;
-    if (typeof game.tournamentTableNumber === 'number') allowedGameData.tournamentTableNumber = game.tournamentTableNumber;
-
-    if (Array.isArray(game.ledgerChain)) {
-      allowedGameData.ledgerChain = game.ledgerChain.slice(-200);
-      allowedGameData.ledgerChainLength = game.ledgerChain.length;
-    } else if (typeof game.ledgerChainLength === 'number') {
-      allowedGameData.ledgerChainLength = game.ledgerChainLength;
+    if (gameToWrite.winner) {
+      allowedGameData.winner = gameToWrite.winner;
+    } else {
+      allowedGameData.winner = null;
+    }
+    if (gameToWrite.createdAt) allowedGameData.createdAt = gameToWrite.createdAt;
+    if (gameToWrite.completedAt) {
+      allowedGameData.completedAt = gameToWrite.completedAt;
+    } else {
+      allowedGameData.completedAt = null;
     }
 
-    if (game.ledgerLastHash) {
-      allowedGameData.ledgerLastHash = String(game.ledgerLastHash).slice(0, 64);
-    }
+    if (gameToWrite.tournamentId) allowedGameData.tournamentId = String(gameToWrite.tournamentId).slice(0, 100);
+    if (gameToWrite.tournamentName) allowedGameData.tournamentName = String(gameToWrite.tournamentName).slice(0, 100);
+    if (gameToWrite.tournamentMatchId) allowedGameData.tournamentMatchId = String(gameToWrite.tournamentMatchId).slice(0, 100);
+    if (typeof gameToWrite.tournamentRoundNumber === 'number') allowedGameData.tournamentRoundNumber = gameToWrite.tournamentRoundNumber;
+    if (typeof gameToWrite.tournamentTableNumber === 'number') allowedGameData.tournamentTableNumber = gameToWrite.tournamentTableNumber;
 
-    if (game.telemetry && typeof game.telemetry === 'object') {
-      allowedGameData.telemetry = game.telemetry;
+    if (gameToWrite.telemetry && typeof gameToWrite.telemetry === 'object') {
+      allowedGameData.telemetry = gameToWrite.telemetry;
     }
 
     const payload = sanitizeForFirestore(allowedGameData);

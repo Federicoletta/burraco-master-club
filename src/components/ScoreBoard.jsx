@@ -139,14 +139,14 @@ function ScoreBoard({
       {isTargetReached && isTieAtTarget && !activeGame.isFinished && (
         <div
           role="status"
-          className="p-4 rounded-2xl club-card border-amber-400/75 bg-amber-950/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          className="p-4 rounded-2xl club-card border-[var(--accent-gold)]/75 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
         >
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
               <Scale className="w-5 h-5" />
             </span>
             <div>
-              <h3 className="text-sm sm:text-base font-bold text-white">
+              <h3 className="text-sm sm:text-base font-bold club-text-primary">
                 Parità al traguardo ({winningScore.toLocaleString('it-IT')} pt) — Spareggio!
               </h3>
               <p className="text-xs club-text-gold font-medium">
@@ -168,13 +168,13 @@ function ScoreBoard({
 
       {/* AVVISO TRAGUARDO RAGGIUNTO */}
       {isTargetReached && !isTieAtTarget && !activeGame.isFinished && (
-        <div className="p-4 rounded-2xl club-card border-amber-400/75 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl club-card border-[var(--accent-gold)]/75 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
               <Trophy className="w-5 h-5" />
             </span>
             <div>
-              <h3 className="text-sm sm:text-base font-bold text-white">
+              <h3 className="text-sm sm:text-base font-bold club-text-primary">
                 Traguardo di {targetScore} pt raggiunto
               </h3>
               <p className="text-xs club-text-gold font-medium">
@@ -194,13 +194,13 @@ function ScoreBoard({
 
       {/* BANNER RIPRESA PARTITA IN SOSPESO */}
       {pendingGame && onResumeGame && (
-        <div className="p-3.5 sm:p-4 rounded-2xl club-card border-amber-400/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-3.5 sm:p-4 rounded-2xl club-card border-[var(--accent-gold)]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <span className="w-10 h-10 rounded-xl club-inset club-text-gold flex items-center justify-center shrink-0">
               <RotateCcw className="w-4 h-4" />
             </span>
             <div className="min-w-0">
-              <div className="text-xs sm:text-sm font-bold text-white truncate">
+              <div className="text-xs sm:text-sm font-bold club-text-primary truncate">
                 Partita in sospeso: {pendingGame.team1?.name} vs {pendingGame.team2?.name}
               </div>
               <div className="text-xs club-text-muted mt-0.5 tabular-nums-club">
@@ -224,13 +224,13 @@ function ScoreBoard({
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
               syncStatus === 'syncing'
-                ? 'bg-amber-400 animate-pulse'
+                ? 'bg-amber-500 animate-pulse'
                 : syncStatus === 'offline'
-                  ? 'bg-rose-400'
-                  : 'bg-emerald-400'
+                  ? 'bg-rose-500'
+                  : 'bg-emerald-500'
             }`}
           />
-          <span className="font-semibold text-white">Tavolo Live</span>
+          <span className="font-semibold club-text-primary">Tavolo Live</span>
           {tablePin && (
             <>
               <span className="club-text-subtle">·</span>
@@ -243,15 +243,15 @@ function ScoreBoard({
 
         <div className="flex items-center gap-2.5 text-xs">
           <span className="club-text-muted">
-            Obiettivo <strong className="font-mono-num text-white">{targetScore} pt</strong>
+            Obiettivo <strong className="font-mono-num club-text-primary">{targetScore} pt</strong>
           </span>
           <span className="club-text-subtle">·</span>
           <span className={`font-semibold ${
             syncStatus === 'syncing'
-              ? 'text-amber-300'
+              ? 'club-text-gold'
               : syncStatus === 'offline'
-                ? 'text-rose-300'
-                : 'text-emerald-300'
+                ? 'club-danger-text'
+                : 'club-success-text'
           }`}>
             {syncStatus === 'syncing' ? 'Sync Cloud...' : syncStatus === 'offline' ? 'Offline' : 'Sincronizzato'}
           </span>

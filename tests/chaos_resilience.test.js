@@ -12,13 +12,10 @@ import {
   generateStatelessGameShareUrl,
 } from '../src/utils/statelessGame';
 import {
-  createGenesisBlock,
-  appendBlock,
-  verifyChainIntegrity,
-  mergeChainsCRDT,
-  reconstructGameStateFromChain,
-  EVENT_TYPES,
-} from '../src/utils/ledger';
+  ensureRoundIdentity,
+  normalizeLegacyGame,
+  reconcileGames,
+} from '../src/utils/roundSync';
 import {
   computeGameTelemetry,
   getClientPlatformInfo,
@@ -52,10 +49,10 @@ describe('Chaos Engineering & Resilience Tests (Simulazione Sollecitazioni Estre
   });
 
   describe('Scenario 1: Blocco Dispositivo / Standby Improvviso e Ripresa Partita', () => {
-    it('preserva integre tutte le mani e il ledger dopo simulazione standby e spegnimento temporaneo', () => {
+    it('preserva integre tutte le mani e gli ID stabili dopo simulazione standby e spegnimento temporaneo', () => {
       // 1. Inizio partita regolare
       const gameId = 'game_resilience_standby_' + Date.now();
-      let game = {
+      const game = normalizeLegacyGame({
         id: gameId,
         createdAt: new Date().toISOString(),
         mode: 'pairs',
@@ -64,23 +61,17 @@ describe('Chaos Engineering & Resilience Tests (Simulazione Sollecitazioni Estre
         team1: { name: 'Squadra Nord', players: ['Alice', 'Bob'] },
         team2: { name: 'Squadra Sud', players: ['Carlo', 'Diana'] },
         rounds: [
-          { roundNumber: 1, team1Score: 450, team2Score: 120, entryMode: 'guided' }
+          ensureRoundIdentity({ roundId: 'rnd_standby_1', roundNumber: 1, team1Score: 450, team2Score: 120, entryMode: 'guided' })
         ],
+        deletedRoundIds: [],
         isFinished: false,
         winner: null,
-      };
-
-      // Inizializza ledger blockchain
-      let chain = [createGenesisBlock(game, { uid: 'u1', name: 'Alice' })];
-      chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, game.rounds[0], { uid: 'u1', name: 'Alice' });
-      game.ledgerChain = chain;
-      game.ledgerLastHash = chain[chain.length - 1].hash;
+      });
 
       // Salva nel persistent storage
       saveActiveGame(game);
 
-      // 2. SIMULAZIONE DISPOSITIVO IN STANDBY / SCREEN LOCK:
-      // Si simula passaggio in background (sessionStorage/RAM state persa o interrotta)
+      // 2. SIMULAZIONE DISPOSITIVO IN STANDBY / SCREEN LOCK
       const simulatedColdStartGame = getActiveGame();
       expect(simulatedColdStartGame).not.toBeNull();
       expect(simulatedColdStartGame.id).toBe(gameId);
@@ -88,13 +79,10 @@ describe('Chaos Engineering & Resilience Tests (Simulazione Sollecitazioni Estre
       expect(simulatedColdStartGame.rounds[0].team1Score).toBe(450);
 
       // 3. Ripresa della partita e aggiunta seconda mano
-      const round2 = { roundNumber: 2, team1Score: 680, team2Score: 890, entryMode: 'guided' };
-      chain = appendBlock(chain, EVENT_TYPES.ROUND_ADDED, round2, { uid: 'u1', name: 'Alice' });
+      const round2 = ensureRoundIdentity({ roundId: 'rnd_standby_2', roundNumber: 2, team1Score: 680, team2Score: 890, entryMode: 'guided' });
       const updatedGame = {
         ...simulatedColdStartGame,
         rounds: [...simulatedColdStartGame.rounds, round2],
-        ledgerChain: chain,
-        ledgerLastHash: chain[chain.length - 1].hash,
       };
       saveActiveGame(updatedGame);
 
@@ -105,7 +93,8 @@ describe('Chaos Engineering & Resilience Tests (Simulazione Sollecitazioni Estre
       const totalT2 = restored.rounds.reduce((acc, r) => acc + r.team2Score, 0);
       expect(totalT1).toBe(1130);
       expect(totalT2).toBe(1010);
-      expect(verifyChainIntegrity(restored.ledgerChain).valid).toBe(true);
+      expect(restored.rounds[0].roundId).toBe('rnd_standby_1');
+      expect(restored.rounds[1].roundId).toBe('rnd_standby_2');
     });
   });
 
@@ -239,10 +228,10 @@ describe('Chaos Engineering & Resilience Tests (Simulazione Sollecitazioni Estre
     });
   });
 
-  describe('Scenario 4: Conflitto Concorrente Multi-Dispositivo & CRDT Merge Determinismo', () => {
+  describe('Scenario 4: Conflitto Concorrente Multi-Dispositivo & Riconciliazione Deterministica Per-Mano', () => {
     it('risolve deterministicamente due rami divergenti registrati offline su dispositivi diversi', () => {
       const baseGame = {
-        id: 'game_crdt_branch_' + Date.now(),
+        id: 'game_sync_branch_' + Date.now(),
         createdAt: '2026-10-21T10:00:00.000Z',
         mode: 'pairs',
         allowSemipulito: true,
@@ -250,38 +239,54 @@ describe('Chaos Engineering & Resilience Tests (Simulazione Sollecitazioni Estre
         team1: { name: 'Tavolo A', players: ['A1'] },
         team2: { name: 'Tavolo B', players: ['B1'] },
         rounds: [
-          { roundNumber: 1, team1Score: 300, team2Score: 250 }
+          {
+            roundId: 'rnd_base_1',
+            roundNumber: 1,
+            team1Score: 300,
+            team2Score: 250,
+            createdAt: '2026-10-21T10:05:00.000Z',
+            updatedAt: '2026-10-21T10:05:00.000Z',
+          }
+        ],
+        deletedRoundIds: [],
+      };
+
+      const dev1 = {
+        ...baseGame,
+        rounds: [
+          ...baseGame.rounds,
+          {
+            roundId: 'rnd_dev1_2',
+            roundNumber: 2,
+            team1Score: 400,
+            team2Score: 100,
+            createdAt: '2026-10-21T10:15:00.000Z',
+            updatedAt: '2026-10-21T10:15:00.000Z',
+          }
         ],
       };
 
-      // Catena base condivisa
-      let baseChain = [createGenesisBlock(baseGame, { uid: 'host', name: 'Host' })];
-      baseChain = appendBlock(baseChain, EVENT_TYPES.ROUND_ADDED, baseGame.rounds[0], { uid: 'host', name: 'Host' });
+      const dev2 = {
+        ...baseGame,
+        rounds: [
+          ...baseGame.rounds,
+          {
+            roundId: 'rnd_dev2_2',
+            roundNumber: 2,
+            team1Score: 150,
+            team2Score: 600,
+            createdAt: '2026-10-21T10:20:00.000Z',
+            updatedAt: '2026-10-21T10:20:00.000Z',
+          }
+        ],
+      };
 
-      // Dispositivo 1 aggiunge mano 2
-      const round2Dev1 = { roundNumber: 2, team1Score: 400, team2Score: 100, device: 'dev1' };
-      const chainDev1 = appendBlock(baseChain, EVENT_TYPES.ROUND_ADDED, round2Dev1, { uid: 'dev1', name: 'User 1' });
-
-      // Dispositivo 2 aggiunge mano 3 (in concorrenza, senza conoscere dev1)
-      const round3Dev2 = { roundNumber: 3, team1Score: 150, team2Score: 600, device: 'dev2' };
-      const chainDev2 = appendBlock(baseChain, EVENT_TYPES.ROUND_ADDED, round3Dev2, { uid: 'dev2', name: 'User 2' });
-
-      // Entrambi i rami sono validi localmente
-      expect(verifyChainIntegrity(chainDev1).valid).toBe(true);
-      expect(verifyChainIntegrity(chainDev2).valid).toBe(true);
-
-      // FUSIONE CRDT DEI DUE RAMI DIVERGENTI
-      const mergedChain = mergeChainsCRDT(chainDev1, chainDev2);
-
-      // Verifica integrità della blockchain fusa
-      expect(verifyChainIntegrity(mergedChain).valid).toBe(true);
-
-      // Ricostruzione stato unificato
-      const unifiedGame = reconstructGameStateFromChain(mergedChain);
-      expect(unifiedGame.rounds.length).toBe(3); // Mano 1 + Mano 2 + Mano 3
-      expect(unifiedGame.rounds.some(r => r.roundNumber === 1)).toBe(true);
-      expect(unifiedGame.rounds.some(r => r.roundNumber === 2)).toBe(true);
-      expect(unifiedGame.rounds.some(r => r.roundNumber === 3)).toBe(true);
+      const unifiedGame = reconcileGames(dev1, dev2);
+      expect(unifiedGame.rounds.length).toBe(3);
+      expect(unifiedGame.rounds.map(r => r.roundNumber)).toEqual([1, 2, 3]);
+      expect(unifiedGame.rounds.some(r => r.roundId === 'rnd_base_1')).toBe(true);
+      expect(unifiedGame.rounds.some(r => r.roundId === 'rnd_dev1_2')).toBe(true);
+      expect(unifiedGame.rounds.some(r => r.roundId === 'rnd_dev2_2')).toBe(true);
     });
   });
 

@@ -48,6 +48,20 @@ export const THEMES = [
     metaThemeColor: '#121316',
     iconColor: 'text-slate-200',
     primarySuit: '♣',
+    isLight: false,
+  },
+  {
+    id: 'daylight',
+    name: 'Circolo Diurno',
+    subtitle: 'Avorio e Verde Bosco ad alto contrasto',
+    description: 'Carta avorio nitida e inchiostro verde bosco per giocare comodamente all’aperto',
+    previewBg: 'from-[#f5f1e6] via-[#ece6d6] to-[#e2d9c4]',
+    accentBorder: 'border-emerald-700',
+    chipBg: 'bg-emerald-700/15 text-emerald-900',
+    metaThemeColor: '#f5f1e6',
+    iconColor: 'text-emerald-900',
+    primarySuit: '♠',
+    isLight: true,
   },
 ];
 

@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useAuth } from './authContextStore';
 import { useSocial } from './socialContextStore';
 import { useTournamentContext } from './tournamentContextStore';
 import { useBurracoGame } from '../hooks/useBurracoGame';
 import { GameContext } from './gameContextStore';
 
 export function GameProvider({ children }) {
-  const { currentUser, friendsList } = useSocial();
+  const { currentUser } = useAuth();
+  const { friendsList } = useSocial();
   const {
     activeTournament,
     allActiveAndPausedTournaments,
@@ -14,6 +16,10 @@ export function GameProvider({ children }) {
   } = useTournamentContext();
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
 
+  const handleCelebrate = useCallback(() => {
+    setIsVictoryOpen(true);
+  }, []);
+
   const game = useBurracoGame({
     currentUser,
     friendsList,
@@ -21,7 +27,7 @@ export function GameProvider({ children }) {
     allActiveAndPausedTournaments,
     handleUpdateTournament,
     updateTournamentById,
-    onCelebrate: () => setIsVictoryOpen(true),
+    onCelebrate: handleCelebrate,
   });
 
   const value = useMemo(() => ({

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import confetti from 'canvas-confetti';
 import { Trophy, RotateCcw, Home, Share2, X, Calendar } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 import { calculateFiburVictoryPoints } from '../utils/tournament';
@@ -17,29 +16,46 @@ export default function VictoryModal({
   const [copiedToast, setCopiedToast] = useState(false);
   useModalEscape(isOpen, onClose);
   useEffect(() => {
-    if (isOpen) {
-      sound.playVictoryFanfare();
-      try {
-        const count = 200;
-        const defaults = { origin: { y: 0.7 } };
+    if (!isOpen) return undefined;
+    let cancelled = false;
+    sound.playVictoryFanfare();
 
-        function fire(particleRatio, opts) {
-          confetti({
-            ...defaults,
-            ...opts,
-            particleCount: Math.floor(count * particleRatio)
-          });
-        }
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        fire(0.25, { spread: 26, startVelocity: 55 });
-        fire(0.2, { spread: 60 });
-        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-        fire(0.1, { spread: 120, startVelocity: 45 });
-      } catch (err) {
-        console.error('Confetti error', err);
-      }
+    if (!prefersReducedMotion) {
+      import('canvas-confetti')
+        .then((mod) => {
+          if (cancelled) return;
+          const confetti = mod?.default || mod;
+          if (typeof confetti !== 'function') return;
+          const count = 200;
+          const defaults = { origin: { y: 0.7 } };
+
+          const fire = (particleRatio, opts) => {
+            confetti({
+              ...defaults,
+              ...opts,
+              particleCount: Math.floor(count * particleRatio)
+            });
+          };
+
+          fire(0.25, { spread: 26, startVelocity: 55 });
+          fire(0.2, { spread: 60 });
+          fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+          fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+          fire(0.1, { spread: 120, startVelocity: 45 });
+        })
+        .catch((err) => {
+          console.error('Confetti error', err);
+        });
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen]);
 
   if (!isOpen || !activeGame) return null;
@@ -55,9 +71,9 @@ export default function VictoryModal({
 
   if (isTrio) {
     rankedTeams = [
-      { team: activeGame.team1, score: t1Total, icon: '♦', color: 'club-text-gold' },
-      { team: activeGame.team2, score: t2Total, icon: '♠', color: 'text-sky-300' },
-      { team: activeGame.team3, score: t3Total, icon: '♥', color: 'text-rose-300' },
+      { team: activeGame.team1, score: t1Total, icon: '♦', color: 'club-team1' },
+      { team: activeGame.team2, score: t2Total, icon: '♠', color: 'club-team2' },
+      { team: activeGame.team3, score: t3Total, icon: '♥', color: 'club-team3' },
     ].sort((a, b) => b.score - a.score);
     winnerTeam = rankedTeams[0].team;
     winnerScore = rankedTeams[0].score;
@@ -68,7 +84,7 @@ export default function VictoryModal({
     const loserTeam = isT1Winner ? activeGame.team2 : activeGame.team1;
     const loserScore = isT1Winner ? t2Total : t1Total;
     rankedTeams = [
-      { team: winnerTeam, score: winnerScore, icon: isT1Winner ? '♦' : '♠', color: isT1Winner ? 'club-text-gold' : 'text-sky-300' },
+      { team: winnerTeam, score: winnerScore, icon: isT1Winner ? '♦' : '♠', color: isT1Winner ? 'club-team1' : 'club-team2' },
       { team: loserTeam, score: loserScore, icon: isT1Winner ? '♠' : '♦', color: 'club-text-muted' },
     ];
   }
@@ -146,7 +162,7 @@ export default function VictoryModal({
         <span className="text-[11px] font-bold uppercase tracking-widest club-text-gold block mt-1">
           Partita Conclusa
         </span>
-        <h2 className="font-display text-2xl sm:text-3xl font-bold text-white mt-1 mb-0">
+        <h2 className="font-display text-2xl sm:text-3xl font-bold club-text-primary mt-1 mb-0">
           Vittoria per {winnerTeam.name}
         </h2>
 
@@ -162,13 +178,13 @@ export default function VictoryModal({
                 <div
                   key={idx}
                   className={`p-2.5 rounded-xl border ${
-                    idx === 0 ? 'club-card border-[var(--accent-gold)]' : 'bg-black/20 border-[var(--border-subtle)]'
+                    idx === 0 ? 'club-card border-[var(--accent-gold)]' : 'club-row-bg border-[var(--border-subtle)]'
                   }`}
                 >
                   <span className={`text-xs font-bold ${item.color} block truncate`}>
                     {item.icon} {item.team.name}
                   </span>
-                  <span className="font-mono-num text-xl sm:text-2xl font-bold text-white block my-0.5">
+                  <span className="font-mono-num text-xl sm:text-2xl font-bold club-text-primary block my-0.5">
                     {item.score.toLocaleString('it-IT')}
                   </span>
                   <span className={`text-[10px] font-bold block uppercase ${idx === 0 ? 'club-text-gold' : 'club-text-subtle'}`}>
@@ -181,7 +197,7 @@ export default function VictoryModal({
             <div className="flex items-center justify-center gap-5 text-center">
               <div>
                 <span className="text-xs font-bold club-text-gold block">{winnerTeam.name}</span>
-                <span className="font-mono-num text-3xl font-bold text-white block">
+                <span className="font-mono-num text-3xl font-bold club-text-primary block">
                   {winnerScore.toLocaleString('it-IT')}
                 </span>
                 {fiburVp && (

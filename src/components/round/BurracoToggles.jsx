@@ -18,7 +18,7 @@ export default function BurracoToggles({
         className={`w-full min-h-[54px] p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 text-left active:scale-[0.99] ${
           currentData.chiusura
             ? 'gold-gradient border-amber-300'
-            : 'club-inset hover:border-amber-400/50 text-white'
+            : 'club-inset hover:border-amber-400/50 club-text-primary'
         }`}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -59,9 +59,9 @@ export default function BurracoToggles({
           </span>
           <span className="font-semibold">
             {currentData.pozzetto === 'preso_giocato' ? (
-              <span className="text-emerald-300">Preso (0 pt)</span>
+              <span className="club-success-text">Preso (0 pt)</span>
             ) : (
-              <span className="text-rose-300 font-mono-num">-100 pt penalità</span>
+              <span className="club-danger-text font-mono-num">-100 pt penalità</span>
             )}
           </span>
         </div>
@@ -75,8 +75,8 @@ export default function BurracoToggles({
             }}
             className={`min-h-[52px] py-2 px-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
               currentData.pozzetto === 'preso_giocato'
-                ? 'bg-emerald-500/20 border-emerald-400/75 text-emerald-200 font-bold'
-                : 'border-white/10 club-text-muted hover:text-white'
+                ? 'bg-emerald-500/20 border-emerald-500/75 club-success-text font-bold'
+                : 'border-[var(--border-subtle)] club-text-muted hover:opacity-100'
             }`}
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -91,8 +91,8 @@ export default function BurracoToggles({
             }}
             className={`min-h-[52px] py-2 px-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
               currentData.pozzetto === 'non_preso'
-                ? 'bg-rose-500/25 border-rose-400/75 text-rose-200 font-bold'
-                : 'border-white/10 club-text-muted hover:text-rose-200'
+                ? 'club-danger-inset club-danger-text font-bold'
+                : 'border-[var(--border-subtle)] club-text-muted'
             }`}
           >
             <XCircle className="w-4 h-4 shrink-0" />
@@ -107,8 +107,8 @@ export default function BurracoToggles({
             }}
             className={`min-h-[52px] py-2 px-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
               currentData.pozzetto === 'preso_non_giocato'
-                ? 'bg-rose-500/25 border-rose-400/75 text-rose-200 font-bold'
-                : 'border-white/10 club-text-muted hover:text-rose-200'
+                ? 'club-danger-inset club-danger-text font-bold'
+                : 'border-[var(--border-subtle)] club-text-muted'
             }`}
           >
             <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -132,7 +132,7 @@ export default function BurracoToggles({
           {/* Pulito (+200) */}
           <div className="p-2.5 rounded-xl club-card flex flex-col items-center justify-between text-center gap-2">
             <div>
-              <span className="text-xs font-bold text-amber-300 block">Pulito</span>
+              <span className="text-xs font-bold club-team1 block">Pulito</span>
               <span className="text-[11px] font-mono-num club-text-subtle">+200 pt</span>
             </div>
             <div className="flex items-center justify-between gap-1 w-full">
@@ -147,7 +147,7 @@ export default function BurracoToggles({
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className="font-mono-num font-bold text-base text-white">
+              <span className="font-mono-num font-bold text-base club-text-primary">
                 {currentData.burracoPulito}
               </span>
               <button
@@ -168,7 +168,7 @@ export default function BurracoToggles({
           {allowSemipulito && (
             <div className="p-2.5 rounded-xl club-card flex flex-col items-center justify-between text-center gap-2">
               <div>
-                <span className="text-xs font-bold text-emerald-300 block">Semipulito</span>
+                <span className="text-xs font-bold club-success-text block">Semipulito</span>
                 <span className="text-[11px] font-mono-num club-text-subtle">+150 pt</span>
               </div>
               <div className="flex items-center justify-between gap-1 w-full">
@@ -183,7 +183,7 @@ export default function BurracoToggles({
                 >
                   <Minus className="w-4 h-4" />
                 </button>
-                <span className="font-mono-num font-bold text-base text-white">
+                <span className="font-mono-num font-bold text-base club-text-primary">
                   {currentData.burracoSemipulito}
                 </span>
                 <button
@@ -204,7 +204,7 @@ export default function BurracoToggles({
           {/* Sporco (+100) */}
           <div className="p-2.5 rounded-xl club-card flex flex-col items-center justify-between text-center gap-2">
             <div>
-              <span className="text-xs font-bold text-slate-200 block">Sporco</span>
+              <span className="text-xs font-bold club-text-primary block">Sporco</span>
               <span className="text-[11px] font-mono-num club-text-subtle">+100 pt</span>
             </div>
             <div className="flex items-center justify-between gap-1 w-full">
@@ -219,7 +219,7 @@ export default function BurracoToggles({
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className="font-mono-num font-bold text-base text-white">
+              <span className="font-mono-num font-bold text-base club-text-primary">
                 {currentData.burracoSporco}
               </span>
               <button

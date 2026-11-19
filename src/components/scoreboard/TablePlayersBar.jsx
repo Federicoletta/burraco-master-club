@@ -115,17 +115,9 @@ export default function TablePlayersBar({
             title={isTablePlayersCollapsed ? 'Mostra giocatori collegati' : 'Nascondi giocatori collegati'}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-            <span className="text-xs sm:text-sm font-bold text-white truncate">
+            <span className="text-xs sm:text-sm font-bold club-text-primary truncate">
               Partecipanti ({displayTablePlayers.length})
             </span>
-            {activeGame?.ledgerChain && activeGame.ledgerChain.length > 0 && (
-              <span
-                className="text-[11px] font-mono-num club-text-muted shrink-0"
-                title={`Registro distribuito CRDT: ${activeGame.ledgerChain.length} blocchi`}
-              >
-                · #{activeGame.ledgerChain.length}
-              </span>
-            )}
             {isTablePlayersCollapsed ? (
               <ChevronDown className="w-4 h-4 club-text-muted shrink-0" />
             ) : (
@@ -163,7 +155,7 @@ export default function TablePlayersBar({
             <button
               type="button"
               onClick={onLeaveCloudTable}
-              className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/35 font-semibold text-xs active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+              className="min-h-[38px] px-2.5 py-1.5 rounded-xl club-danger-inset hover:bg-rose-500/20 club-danger-text border font-semibold text-xs active:scale-95 transition-all cursor-pointer flex items-center gap-1"
               title="Esci dal tavolo sincronizzato online"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -208,7 +200,7 @@ export default function TablePlayersBar({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                    <div className="text-xs font-bold club-text-primary truncate flex items-center gap-1.5">
                       <span className="truncate">{player.displayName || 'Giocatore'}</span>
                       {isDeveloperAccount(player, currentUser) && <DeveloperBadge size="xs" />}
                       {isMe && <span className="text-[11px] club-text-muted font-medium">(Tu)</span>}
@@ -217,7 +209,7 @@ export default function TablePlayersBar({
                       <div className="text-[11px] club-text-subtle truncate">{player.email}</div>
                     )}
                     {err && (
-                      <div className="text-[11px] text-rose-300 font-semibold truncate">{err}</div>
+                      <div className="text-[11px] club-danger-text font-semibold truncate">{err}</div>
                     )}
                   </div>
                 </div>
@@ -226,7 +218,7 @@ export default function TablePlayersBar({
                   {isMe ? null : isFriend ? (
                     <span className="text-xs font-semibold club-text-gold">Amico ★</span>
                   ) : isSent ? (
-                    <span className="text-xs font-semibold text-emerald-300 flex items-center gap-1">
+                    <span className="text-xs font-semibold club-success-text flex items-center gap-1">
                       <Check className="w-3.5 h-3.5" />
                       Inviata
                     </span>

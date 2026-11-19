@@ -106,7 +106,7 @@ export default function AudioSettingsModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
-          <span className="w-10 h-1 rounded-full bg-white/25" />
+          <span className="w-10 h-1 rounded-full club-handle" />
         </div>
 
         {/* Header */}
@@ -116,7 +116,7 @@ export default function AudioSettingsModal({
               <Music className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-display text-lg font-bold text-white m-0 truncate">Audio & Musica</h3>
+              <h3 className="font-display text-lg font-bold club-text-primary m-0 truncate">Audio & Musica</h3>
               <p className="text-xs club-text-subtle m-0 truncate">Atmosfera Lounge ed effetti al tavolo</p>
             </div>
           </div>
@@ -187,13 +187,13 @@ export default function AudioSettingsModal({
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer active:scale-95 ${
                         isSelected
                           ? 'club-card border-[var(--accent-gold)] ring-1 ring-[var(--accent-ring)]'
-                          : 'bg-black/20 border-[var(--border-subtle)] hover:bg-white/5'
+                          : 'club-row-bg border-[var(--border-subtle)] club-hover-soft'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-base shrink-0">{track.icon}</span>
                         <div className="min-w-0 flex-1">
-                          <span className={`block text-xs font-bold leading-tight truncate ${isSelected ? 'club-text-gold' : 'text-white'}`}>
+                          <span className={`block text-xs font-bold leading-tight truncate ${isSelected ? 'club-text-gold' : 'club-text-primary'}`}>
                             {track.name}
                           </span>
                           {track.artist && (
@@ -259,7 +259,7 @@ export default function AudioSettingsModal({
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 club-text-gold" />
-                <span className="text-xs font-extrabold text-white uppercase tracking-wider">
+                <span className="text-xs font-extrabold club-text-primary uppercase tracking-wider">
                   Effetti Carte & Rintocchi
                 </span>
               </div>
@@ -328,7 +328,7 @@ export default function AudioSettingsModal({
                 onClick={() => sound.playCardDeal()}
                 className="min-h-[42px] px-3 rounded-xl club-btn-secondary text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
-                <Play className="w-4 h-4 text-emerald-300" />
+                <Play className="w-4 h-4 club-success-text" />
                 <span>Prova Carte</span>
               </button>
             </div>

@@ -3,6 +3,7 @@ import Header from './components/Header';
 import ScoreBoard from './components/ScoreBoard';
 import HomeLobby from './components/HomeLobby';
 import NotificationToast from './components/NotificationToast';
+import AppUpdateBanner from './components/AppUpdateBanner';
 import BottomNavBar from './components/navigation/BottomNavBar';
 import AppModals from './components/AppModals';
 import { Trophy } from 'lucide-react';
@@ -10,6 +11,7 @@ import { Trophy } from 'lucide-react';
 // Context Providers & Hooks architetturali
 import { ConfirmProvider } from './context/ConfirmContext';
 import { useConfirm } from './context/confirmContextStore';
+import { AuthProvider } from './context/AuthContext';
 import { SocialProvider } from './context/SocialContext';
 import { TournamentProvider } from './context/TournamentContext';
 import { GameProvider } from './context/GameContext';
@@ -42,18 +44,36 @@ function BurracoAppContent() {
   const { game, tournament, social, isVictoryOpen, setIsVictoryOpen } = useBurraco();
   const confirm = useConfirm();
 
+  const {
+    setNewGameInitialSetup,
+    handleDeleteLastRound: gameDeleteLastRound,
+    handleDeleteRound: gameDeleteRound,
+    handleLeaveCloudTable: gameLeaveCloudTable,
+    handleCloseTable: gameCloseTable,
+  } = game;
+  const {
+    setIsNotificationsOpen,
+    setIsProfileOpen,
+    setProfileInitialTab,
+  } = social;
+  const {
+    activeTournament,
+    pausedTournaments,
+    handleResumeTournament,
+  } = tournament;
+
   const handleOpenNewGame = useCallback((modeOrEvent) => {
     if (typeof modeOrEvent === 'string') {
-      game.setNewGameInitialSetup({ mode: modeOrEvent });
+      setNewGameInitialSetup({ mode: modeOrEvent });
     } else {
-      game.setNewGameInitialSetup(null);
+      setNewGameInitialSetup(null);
     }
     setIsNewGameOpen(true);
-  }, [game]);
+  }, [setNewGameInitialSetup]);
 
   const handleOpenCloud = useCallback(() => setIsCloudModalOpen(true), []);
   const handleOpenRules = useCallback(() => setIsRulesOpen(true), []);
-  const handleOpenNotifications = useCallback(() => social.setIsNotificationsOpen(true), [social]);
+  const handleOpenNotifications = useCallback(() => setIsNotificationsOpen(true), [setIsNotificationsOpen]);
   const handleOpenEditTeams = useCallback(() => setIsEditTeamsOpen(true), []);
   const handleOpenThemeSelector = useCallback(() => setIsThemeModalOpen(true), []);
   const handleThemeChange = useCallback((newTheme) => setCurrentTheme(newTheme), []);
@@ -70,22 +90,21 @@ function BurracoAppContent() {
   }, []);
 
   const handleDeleteLastRound = useCallback(() => {
-    game.handleDeleteLastRound(confirm);
-  }, [game, confirm]);
+    gameDeleteLastRound(confirm);
+  }, [gameDeleteLastRound, confirm]);
 
   const handleDeleteRound = useCallback((roundNumber) => {
-    game.handleDeleteRound(roundNumber, confirm);
-  }, [game, confirm]);
+    gameDeleteRound(roundNumber, confirm);
+  }, [gameDeleteRound, confirm]);
 
   const handleLeaveCloudTable = useCallback(() => {
-    game.handleLeaveCloudTable(confirm);
-  }, [game, confirm]);
+    gameLeaveCloudTable(confirm);
+  }, [gameLeaveCloudTable, confirm]);
 
   const handleCloseTable = useCallback(() => {
-    game.handleCloseTable(confirm);
-  }, [game, confirm]);
+    gameCloseTable(confirm);
+  }, [gameCloseTable, confirm]);
 
-  const setIsProfileOpen = social.setIsProfileOpen;
   React.useEffect(() => {
     if (setIsProfileOpen) {
       setIsProfileOpen(activeNavTab === 'profile');
@@ -95,26 +114,26 @@ function BurracoAppContent() {
   const handleOpenTournament = useCallback((targetTab = 'standings', roundNumber = 'all', tournamentId = null) => {
     if (
       tournamentId &&
-      tournament.activeTournament?.id !== tournamentId &&
-      tournament.pausedTournaments?.some(t => t.id === tournamentId)
+      activeTournament?.id !== tournamentId &&
+      pausedTournaments?.some(t => t.id === tournamentId)
     ) {
-      tournament.handleResumeTournament(tournamentId);
+      handleResumeTournament(tournamentId);
     }
     setTournamentInitialTab(targetTab || 'standings');
     setTournamentInitialRound(roundNumber || 'all');
     setActiveNavTab('tournament');
-  }, [tournament]);
+  }, [activeTournament?.id, pausedTournaments, handleResumeTournament]);
 
   const handleOpenHistory = useCallback(() => {
     setActiveNavTab('history');
   }, []);
 
   const handleOpenProfile = useCallback((tab = 'profile') => {
-    if (social.setProfileInitialTab) {
-      social.setProfileInitialTab(tab || 'profile');
+    if (setProfileInitialTab) {
+      setProfileInitialTab(tab || 'profile');
     }
     setActiveNavTab('profile');
-  }, [social]);
+  }, [setProfileInitialTab]);
 
   const storedPlayers = useMemo(
     () => (isNewGameOpen ? getStoredPlayers(social.currentUser?.uid) : []),
@@ -189,7 +208,7 @@ function BurracoAppContent() {
                   {game.activeGame.tournamentName || 'Torneo Burraco'}
                 </span>
                 <span className="club-text-subtle"> · </span>
-                <span className="text-white font-medium">
+                <span className="club-text-primary font-medium">
                   Giornata {game.activeGame.tournamentRoundNumber} · Tavolo {game.activeGame.tournamentTableNumber}
                 </span>
               </div>
@@ -329,6 +348,8 @@ function BurracoAppContent() {
         )}
       </main>
 
+      <AppUpdateBanner />
+
       <BottomNavBar
         activeTab={activeNavTab}
         onSelectTab={handleSelectNavTab}
@@ -374,13 +395,15 @@ function BurracoAppContent() {
 export default function App() {
   return (
     <ConfirmProvider>
-      <SocialProvider>
-        <TournamentProvider>
-          <GameProvider>
-            <BurracoAppContent />
-          </GameProvider>
-        </TournamentProvider>
-      </SocialProvider>
+      <AuthProvider>
+        <SocialProvider>
+          <TournamentProvider>
+            <GameProvider>
+              <BurracoAppContent />
+            </GameProvider>
+          </TournamentProvider>
+        </SocialProvider>
+      </AuthProvider>
     </ConfirmProvider>
   );
 }

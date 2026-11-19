@@ -56,7 +56,7 @@ export default function RoundTeamSection({
   return (
     <div className="space-y-3 min-w-0">
       <div className="hidden lg:flex items-center justify-between gap-2 pb-2 border-b club-divider">
-        <h3 className="font-bold text-white text-sm sm:text-base truncate">{teamName}</h3>
+        <h3 className="font-bold club-text-primary text-sm sm:text-base truncate">{teamName}</h3>
         <span className="font-mono-num font-bold club-text-gold text-sm shrink-0">
           {teamScore >= 0 ? `+${teamScore}` : teamScore} pt
         </span>

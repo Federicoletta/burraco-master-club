@@ -27,29 +27,57 @@ class SoundManager {
   }
 
   loadPreference() {
-    const saved = localStorage.getItem(SOUND_PREF_KEY);
-    return saved !== null ? saved === 'true' : true;
+    try {
+      if (typeof localStorage === 'undefined') return true;
+      const saved = localStorage.getItem(SOUND_PREF_KEY);
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
   }
 
   loadVolume() {
-    const saved = localStorage.getItem(SOUND_VOLUME_KEY);
-    // Default 85% per un volume corposo e nitido
-    return saved !== null ? Math.max(0, Math.min(1, parseFloat(saved))) : 0.85;
+    try {
+      if (typeof localStorage === 'undefined') return 0.85;
+      const saved = localStorage.getItem(SOUND_VOLUME_KEY);
+      // Default 85% per un volume corposo e nitido
+      return saved !== null ? Math.max(0, Math.min(1, parseFloat(saved))) : 0.85;
+    } catch {
+      return 0.85;
+    }
   }
 
   setSoundEnabled(val) {
     this.enabled = Boolean(val);
-    localStorage.setItem(SOUND_PREF_KEY, String(this.enabled));
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SOUND_PREF_KEY, String(this.enabled));
+      }
+    } catch {
+      // ignore storage errors
+    }
     this.updateMasterGain();
   }
 
   setVolume(val) {
     const num = Math.max(0, Math.min(1, parseFloat(val)));
     this.volume = num;
-    localStorage.setItem(SOUND_VOLUME_KEY, String(num));
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SOUND_VOLUME_KEY, String(num));
+      }
+    } catch {
+      // ignore storage errors
+    }
     if (num > 0 && !this.enabled) {
       this.enabled = true;
-      localStorage.setItem(SOUND_PREF_KEY, 'true');
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(SOUND_PREF_KEY, 'true');
+        }
+      } catch {
+        // ignore storage errors
+      }
     }
     this.updateMasterGain();
   }

@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { LayoutList, Table, Edit2, Trash2 } from 'lucide-react';
 import RoundEventChips from './RoundEventChips';
 
-export default function RoundsHistoryList({
+const WIDE_MEDIA_QUERY = '(min-width: 768px)';
+
+function getInitialWideState() {
+  if (typeof window === 'undefined') return true;
+  if (typeof window.matchMedia === 'function') {
+    return window.matchMedia(WIDE_MEDIA_QUERY).matches;
+  }
+  return window.innerWidth >= 768;
+}
+
+function RoundsHistoryList({
   activeGame,
   isTrio = false,
   roundsWithProgressive = [],
@@ -11,19 +21,35 @@ export default function RoundsHistoryList({
   onEditRound,
   onDeleteRound,
 }) {
-  const [viewMode, setViewMode] = useState(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      return 'cards';
+  const [isWideViewport, setIsWideViewport] = useState(getInitialWideState);
+  const [userOverride, setUserOverride] = useState(null); // null | 'cards' | 'table'
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mql = window.matchMedia(WIDE_MEDIA_QUERY);
+    const handleChange = (event) => {
+      setIsWideViewport(Boolean(event.matches));
+    };
+
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', handleChange);
+      return () => mql.removeEventListener('change', handleChange);
     }
-    return 'table';
-  });
+    if (typeof mql.addListener === 'function') {
+      mql.addListener(handleChange);
+      return () => mql.removeListener(handleChange);
+    }
+    return undefined;
+  }, []);
+
+  const viewMode = userOverride ?? (isWideViewport ? 'table' : 'cards');
 
   return (
     <div className="club-card rounded-2xl overflow-hidden">
       <div className="py-3 px-4 border-b club-divider flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="club-text-gold text-sm">♦ ♠</span>
-          <h3 className="text-sm font-bold text-white m-0">Foglio Segnapunti</h3>
+          <h3 className="text-sm font-bold club-text-primary m-0">Foglio Segnapunti</h3>
         </div>
 
         <div className="flex items-center gap-2">
@@ -31,11 +57,12 @@ export default function RoundsHistoryList({
             <div className="flex items-center gap-0.5 club-tab-bar p-0.5 rounded-xl">
               <button
                 type="button"
-                onClick={() => setViewMode('cards')}
-                className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                onClick={() => setUserOverride('cards')}
+                aria-pressed={viewMode === 'cards'}
+                className={`min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                   viewMode === 'cards'
                     ? 'gold-gradient'
-                    : 'club-text-muted hover:text-white'
+                    : 'club-text-muted'
                 }`}
               >
                 <LayoutList className="w-3.5 h-3.5" />
@@ -43,11 +70,12 @@ export default function RoundsHistoryList({
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode('table')}
-                className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                onClick={() => setUserOverride('table')}
+                aria-pressed={viewMode === 'table'}
+                className={`min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                   viewMode === 'table'
                     ? 'gold-gradient'
-                    : 'club-text-muted hover:text-white'
+                    : 'club-text-muted'
                 }`}
               >
                 <Table className="w-3.5 h-3.5" />
@@ -67,7 +95,7 @@ export default function RoundsHistoryList({
           <div className="w-12 h-12 rounded-2xl club-inset flex items-center justify-center mx-auto club-text-gold text-lg">
             ♣
           </div>
-          <h4 className="text-sm font-bold text-white">Nessuna mano registrata</h4>
+          <h4 className="text-sm font-bold club-text-primary">Nessuna mano registrata</h4>
           <p className="text-xs club-text-muted max-w-xs mx-auto leading-relaxed">
             Mescolate le carte e distribuite i due pozzetti. Al termine della mano toccate &ldquo;Registra Smazzata&rdquo;.
           </p>
@@ -96,9 +124,9 @@ export default function RoundsHistoryList({
 
             return (
               <div
-                key={roundNum}
+                key={r.roundId || roundNum}
                 className={`p-3 rounded-xl club-inset transition-all ${
-                  isLast ? 'border-amber-400/55' : ''
+                  isLast ? 'border-[var(--accent-gold)]/60' : ''
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 pb-2 mb-2.5 border-b club-divider">
@@ -106,7 +134,7 @@ export default function RoundsHistoryList({
                     <span className="font-mono-num text-xs font-bold club-text-gold">
                       #{roundNum}
                     </span>
-                    <span className="text-xs font-bold text-white">
+                    <span className="text-xs font-bold club-text-primary">
                       Mano {roundNum}
                     </span>
                     {r.recordedBy && (
@@ -121,7 +149,7 @@ export default function RoundsHistoryList({
                       <button
                         type="button"
                         onClick={() => onEditRound(r)}
-                        className="min-h-[38px] min-w-[38px] px-2.5 rounded-lg hover:bg-white/5 text-white text-xs font-semibold flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+                        className="min-h-[44px] min-w-[44px] px-2.5 rounded-lg club-hover-soft club-text-primary text-xs font-semibold flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
                         title="Modifica punteggio mano"
                       >
                         <Edit2 className="w-3.5 h-3.5 club-text-gold" />
@@ -132,11 +160,11 @@ export default function RoundsHistoryList({
                       <button
                         type="button"
                         onClick={() => onDeleteRound(roundNum)}
-                        className="min-h-[38px] min-w-[38px] rounded-lg hover:bg-rose-500/15 text-rose-300 flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+                        className="min-h-[44px] min-w-[44px] rounded-lg hover:bg-rose-500/15 club-danger-text flex items-center justify-center active:scale-95 transition-all cursor-pointer"
                         aria-label={`Elimina Mano #${roundNum}`}
                         title={`Elimina Mano #${roundNum}`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     )}
                   </div>
@@ -144,71 +172,71 @@ export default function RoundsHistoryList({
 
                 <div className={`grid ${isTrio ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} gap-2`}>
                   {/* Squadra 1 */}
-                  <div className={`p-2.5 rounded-xl border ${t1WonHand ? 'border-amber-400/45 bg-amber-400/5' : 'club-divider bg-black/15'}`}>
+                  <div className={`p-2.5 rounded-xl border ${t1WonHand ? 'border-[var(--accent-gold)]/45 bg-amber-400/10' : 'club-divider club-row-bg'}`}>
                     <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-[11px] font-bold text-amber-300 truncate">
+                      <span className="text-[11px] font-bold club-team1 truncate">
                         ♦ {activeGame.team1?.name || 'Squadra 1'}
                       </span>
                       {isTrio && r.lonePlayer === 'team1' && (
-                        <span className="text-[10px] font-bold text-amber-300 shrink-0">Solitario</span>
+                        <span className="text-[10px] font-bold club-team1 shrink-0">Solitario</span>
                       )}
                     </div>
 
                     <div className={`font-mono-num text-lg font-bold tracking-tight ${
-                      r.team1Score >= 0 ? 'text-white' : 'text-rose-300'
+                      r.team1Score >= 0 ? 'club-text-primary' : 'club-danger-text'
                     }`}>
                       {r.team1Score >= 0 ? `+${r.team1Score}` : r.team1Score}
                     </div>
 
                     <div className="text-[11px] club-text-subtle mt-1 pt-1 border-t club-divider font-mono-num">
-                      Tot <strong className="text-white">{Number(r.runningT1 || 0).toLocaleString('it-IT')}</strong>
+                      Tot <strong className="club-text-primary">{Number(r.runningT1 || 0).toLocaleString('it-IT')}</strong>
                     </div>
                     {r.entryMode !== 'quick' && <RoundEventChips details={r.team1Details} />}
                   </div>
 
                   {/* Squadra 2 */}
-                  <div className={`p-2.5 rounded-xl border ${t2WonHand ? 'border-sky-400/45 bg-sky-400/5' : 'club-divider bg-black/15'}`}>
+                  <div className={`p-2.5 rounded-xl border ${t2WonHand ? 'border-sky-500/45 bg-sky-500/10' : 'club-divider club-row-bg'}`}>
                     <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-[11px] font-bold text-sky-300 truncate">
+                      <span className="text-[11px] font-bold club-team2 truncate">
                         ♠ {activeGame.team2?.name || 'Squadra 2'}
                       </span>
                       {isTrio && r.lonePlayer === 'team2' && (
-                        <span className="text-[10px] font-bold text-sky-300 shrink-0">Solitario</span>
+                        <span className="text-[10px] font-bold club-team2 shrink-0">Solitario</span>
                       )}
                     </div>
 
                     <div className={`font-mono-num text-lg font-bold tracking-tight ${
-                      r.team2Score >= 0 ? 'text-white' : 'text-rose-300'
+                      r.team2Score >= 0 ? 'club-text-primary' : 'club-danger-text'
                     }`}>
                       {r.team2Score >= 0 ? `+${r.team2Score}` : r.team2Score}
                     </div>
 
                     <div className="text-[11px] club-text-subtle mt-1 pt-1 border-t club-divider font-mono-num">
-                      Tot <strong className="text-white">{Number(r.runningT2 || 0).toLocaleString('it-IT')}</strong>
+                      Tot <strong className="club-text-primary">{Number(r.runningT2 || 0).toLocaleString('it-IT')}</strong>
                     </div>
                     {r.entryMode !== 'quick' && <RoundEventChips details={r.team2Details} />}
                   </div>
 
                   {/* Squadra 3 */}
                   {isTrio && (
-                    <div className={`p-2.5 rounded-xl border ${t3WonHand ? 'border-rose-400/45 bg-rose-400/5' : 'club-divider bg-black/15'}`}>
+                    <div className={`p-2.5 rounded-xl border ${t3WonHand ? 'border-rose-500/45 bg-rose-500/10' : 'club-divider club-row-bg'}`}>
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-[11px] font-bold text-rose-300 truncate">
+                        <span className="text-[11px] font-bold club-team3 truncate">
                           ♥ {activeGame.team3?.name || 'Giocatore 3'}
                         </span>
                         {r.lonePlayer === 'team3' && (
-                          <span className="text-[10px] font-bold text-rose-300 shrink-0">Solitario</span>
+                          <span className="text-[10px] font-bold club-team3 shrink-0">Solitario</span>
                         )}
                       </div>
 
                       <div className={`font-mono-num text-lg font-bold tracking-tight ${
-                        (r.team3Score || 0) >= 0 ? 'text-white' : 'text-rose-300'
+                        (r.team3Score || 0) >= 0 ? 'club-text-primary' : 'club-danger-text'
                       }`}>
                         {(r.team3Score || 0) >= 0 ? `+${r.team3Score || 0}` : r.team3Score}
                       </div>
 
                       <div className="text-[11px] club-text-subtle mt-1 pt-1 border-t club-divider font-mono-num">
-                        Tot <strong className="text-white">{Number(r.runningT3 || 0).toLocaleString('it-IT')}</strong>
+                        Tot <strong className="club-text-primary">{Number(r.runningT3 || 0).toLocaleString('it-IT')}</strong>
                       </div>
                       {r.entryMode !== 'quick' && <RoundEventChips details={r.team3Details} />}
                     </div>
@@ -222,20 +250,20 @@ export default function RoundsHistoryList({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b club-divider bg-black/20 text-[11px] font-bold uppercase tracking-wider club-text-gold">
+              <tr className="border-b club-divider club-table-head text-[11px] font-bold uppercase tracking-wider club-text-gold">
                 <th className="py-2.5 px-3 text-center w-14">Mano</th>
-                <th className="py-2.5 px-3 text-amber-300">
+                <th className="py-2.5 px-3 club-team1">
                   ♦ {activeGame.team1?.name || 'Squadra 1'}
                 </th>
-                <th className="py-2.5 px-3 text-sky-300">
+                <th className="py-2.5 px-3 club-team2">
                   ♠ {activeGame.team2?.name || 'Squadra 2'}
                 </th>
                 {isTrio && (
-                  <th className="py-2.5 px-3 text-rose-300">
+                  <th className="py-2.5 px-3 club-team3">
                     ♥ {activeGame.team3?.name || 'Giocatore 3'}
                   </th>
                 )}
-                <th className="py-2.5 px-3 text-right w-20">Azioni</th>
+                <th className="py-2.5 px-3 text-right w-24">Azioni</th>
               </tr>
             </thead>
             <tbody className="divide-y club-divider text-xs sm:text-sm">
@@ -244,8 +272,8 @@ export default function RoundsHistoryList({
                 const roundNum = r.roundNumber || index + 1;
                 return (
                   <tr
-                    key={roundNum}
-                    className={`${isLast ? 'bg-amber-400/10' : ''} hover:bg-white/5 transition-colors`}
+                    key={r.roundId || roundNum}
+                    className={`${isLast ? 'bg-amber-400/10' : ''} club-hover-soft transition-colors`}
                   >
                     <td className="py-2.5 px-3 text-center">
                       <span className="font-mono-num font-bold club-text-gold text-xs">
@@ -255,11 +283,11 @@ export default function RoundsHistoryList({
 
                     <td className="py-2.5 px-3">
                       <div className="flex items-baseline gap-2 flex-wrap font-mono-num">
-                        <span className="font-bold text-white text-sm">
+                        <span className="font-bold club-text-primary text-sm">
                           {Number(r.runningT1 || 0).toLocaleString('it-IT')}
                         </span>
                         <span className={`text-xs font-bold ${
-                          r.team1Score >= 0 ? 'text-amber-300' : 'text-rose-300'
+                          r.team1Score >= 0 ? 'club-team1' : 'club-danger-text'
                         }`}>
                           ({r.team1Score >= 0 ? `+${r.team1Score}` : r.team1Score})
                         </span>
@@ -269,11 +297,11 @@ export default function RoundsHistoryList({
 
                     <td className="py-2.5 px-3">
                       <div className="flex items-baseline gap-2 flex-wrap font-mono-num">
-                        <span className="font-bold text-white text-sm">
+                        <span className="font-bold club-text-primary text-sm">
                           {Number(r.runningT2 || 0).toLocaleString('it-IT')}
                         </span>
                         <span className={`text-xs font-bold ${
-                          r.team2Score >= 0 ? 'text-sky-300' : 'text-rose-300'
+                          r.team2Score >= 0 ? 'club-team2' : 'club-danger-text'
                         }`}>
                           ({r.team2Score >= 0 ? `+${r.team2Score}` : r.team2Score})
                         </span>
@@ -284,11 +312,11 @@ export default function RoundsHistoryList({
                     {isTrio && (
                       <td className="py-2.5 px-3">
                         <div className="flex items-baseline gap-2 flex-wrap font-mono-num">
-                          <span className="font-bold text-white text-sm">
+                          <span className="font-bold club-text-primary text-sm">
                             {Number(r.runningT3 || 0).toLocaleString('it-IT')}
                           </span>
                           <span className={`text-xs font-bold ${
-                            (r.team3Score || 0) >= 0 ? 'text-rose-300' : 'text-rose-400'
+                            (r.team3Score || 0) >= 0 ? 'club-team3' : 'club-danger-text'
                           }`}>
                             ({(r.team3Score || 0) >= 0 ? `+${r.team3Score || 0}` : r.team3Score})
                           </span>
@@ -303,20 +331,22 @@ export default function RoundsHistoryList({
                           <button
                             type="button"
                             onClick={() => onEditRound(r)}
-                            className="p-2 rounded-lg hover:bg-white/10 club-text-gold cursor-pointer"
+                            className="min-w-[44px] min-h-[44px] rounded-lg club-hover-soft club-text-gold flex items-center justify-center cursor-pointer"
+                            aria-label={`Modifica Mano #${roundNum}`}
                             title="Modifica mano"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-4 h-4" />
                           </button>
                         )}
                         {onDeleteRound && (
                           <button
                             type="button"
                             onClick={() => onDeleteRound(roundNum)}
-                            className="p-2 rounded-lg hover:bg-rose-500/15 text-rose-400 cursor-pointer"
+                            className="min-w-[44px] min-h-[44px] rounded-lg hover:bg-rose-500/15 club-danger-text flex items-center justify-center cursor-pointer"
+                            aria-label={`Elimina Mano #${roundNum}`}
                             title={`Elimina Mano #${roundNum}`}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -331,3 +361,5 @@ export default function RoundsHistoryList({
     </div>
   );
 }
+
+export default memo(RoundsHistoryList);

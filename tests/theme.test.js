@@ -57,10 +57,13 @@ describe('Theme Management Utility (Panno del Tavolo)', () => {
     metaElement.attrs = {};
   });
 
-  it('contains the 4 official Burraco felt themes', () => {
-    expect(THEMES).toHaveLength(4);
+  it('contains the 5 official Burraco felt themes including daylight', () => {
+    expect(THEMES).toHaveLength(5);
     const ids = THEMES.map(t => t.id);
-    expect(ids).toEqual(['emerald', 'navy', 'burgundy', 'velvet']);
+    expect(ids).toEqual(['emerald', 'navy', 'burgundy', 'velvet', 'daylight']);
+    const daylight = THEMES.find(t => t.id === 'daylight');
+    expect(daylight?.isLight).toBe(true);
+    expect(daylight?.metaThemeColor).toBe('#f5f1e6');
   });
 
   it('returns default theme emerald when nothing is stored', () => {
@@ -76,6 +79,9 @@ describe('Theme Management Utility (Panno del Tavolo)', () => {
 
     localStorage.setItem('burraco_theme_v1', 'velvet');
     expect(getStoredTheme()).toBe('velvet');
+
+    localStorage.setItem('burraco_theme_v1', 'daylight');
+    expect(getStoredTheme()).toBe('daylight');
   });
 
   it('falls back to emerald if stored theme is unrecognized', () => {
@@ -88,6 +94,10 @@ describe('Theme Management Utility (Panno del Tavolo)', () => {
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('navy');
     expect(localStorage.getItem('burraco_theme_v1')).toBe('navy');
+
+    applyTheme('daylight');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('daylight');
+    expect(localStorage.getItem('burraco_theme_v1')).toBe('daylight');
   });
 
   it('updates meta[name="theme-color"] if present in document', () => {
@@ -96,6 +106,9 @@ describe('Theme Management Utility (Panno del Tavolo)', () => {
 
     applyTheme('velvet');
     expect(metaElement.getAttribute('content')).toBe('#121316');
+
+    applyTheme('daylight');
+    expect(metaElement.getAttribute('content')).toBe('#f5f1e6');
   });
 
   it('falls back to first theme if applyTheme is called with invalid ID', () => {

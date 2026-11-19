@@ -1,34 +1,18 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useAlert } from '../context/confirmContextStore';
 import {
   getActiveGame,
   saveActiveGame,
   getGamesHistory,
-  getHistoryKey,
-  archiveCurrentGame,
-  deleteGameFromHistory,
-  safeSetItem,
-  removeFromOutboxQueue
 } from '../utils/storage';
-import {
-  syncGameToCloud,
-  findGameByPinOrId,
-  deleteGameFromCloud
-} from '../services/firebase';
-import { sendGameInvite } from '../services/social';
-import { computeGameTelemetry } from '../utils/telemetry';
-import {
-  migrateLegacyGameToLedger,
-  EVENT_TYPES
-} from '../utils/ledger';
-import {
-  computeTeamTotalsAndWinner,
-  appendLedgerEvent,
-  upsertHistoryGame,
-  updateCareerStatsInBackground
-} from '../utils/gameHelpers';
+import { normalizeLegacyGame } from '../utils/roundSync';
+import { useLatestRef } from './useLatestRef';
 import { useGameOutbox } from './useGameOutbox';
 import { useGameCloudListeners } from './useGameCloudListeners';
+import { useTournamentSyncBridge } from './game/useTournamentSyncBridge';
+import { useRoundMutations } from './game/useRoundMutations';
+import { useGameLifecycle } from './game/useGameLifecycle';
+import { useGameHistoryAndShare } from './game/useGameHistoryAndShare';
 
 export function useBurracoGame({
   currentUser,
@@ -46,9 +30,15 @@ export function useBurracoGame({
       if (params.get('game')) return null;
     }
     const current = getActiveGame();
-    const hasRealRounds = current && Array.isArray(current.rounds) && current.rounds.length > 0;
-    const isClosed = current && (Boolean(current.tableClosed) || Boolean(current.isFinished));
-    if (hasRealRounds && !isClosed) return current;
+    const isValidActive = Boolean(
+      current &&
+      typeof current.id === 'string' &&
+      current.id.trim() &&
+      current.team1 &&
+      current.team2
+    );
+    const isClosed = Boolean(current?.tableClosed || current?.isFinished);
+    if (isValidActive && !isClosed) return normalizeLegacyGame(current);
     saveActiveGame(null);
     return null;
   });
@@ -59,39 +49,14 @@ export function useBurracoGame({
   const [tablePlayers, setTablePlayers] = useState([]);
   const [newGameInitialSetup, setNewGameInitialSetup] = useState(null);
 
-  const currentUserRef = useRef(currentUser);
-  const friendsListRef = useRef(friendsList);
-  const activeTournamentRef = useRef(activeTournament);
-  const allTournamentsRef = useRef(allActiveAndPausedTournaments);
-  const handleUpdateTournamentRef = useRef(handleUpdateTournament);
-  const updateTournamentByIdRef = useRef(updateTournamentById);
-  const onCelebrateRef = useRef(onCelebrate);
-  const activeGameRef = useRef(activeGame);
-
-  useEffect(() => {
-    currentUserRef.current = currentUser;
-  }, [currentUser]);
-  useEffect(() => {
-    friendsListRef.current = friendsList;
-  }, [friendsList]);
-  useEffect(() => {
-    activeTournamentRef.current = activeTournament;
-  }, [activeTournament]);
-  useEffect(() => {
-    allTournamentsRef.current = allActiveAndPausedTournaments;
-  }, [allActiveAndPausedTournaments]);
-  useEffect(() => {
-    handleUpdateTournamentRef.current = handleUpdateTournament;
-  }, [handleUpdateTournament]);
-  useEffect(() => {
-    updateTournamentByIdRef.current = updateTournamentById;
-  }, [updateTournamentById]);
-  useEffect(() => {
-    onCelebrateRef.current = onCelebrate;
-  }, [onCelebrate]);
-  useEffect(() => {
-    activeGameRef.current = activeGame;
-  }, [activeGame]);
+  const currentUserRef = useLatestRef(currentUser);
+  const friendsListRef = useLatestRef(friendsList);
+  const activeTournamentRef = useLatestRef(activeTournament);
+  const allTournamentsRef = useLatestRef(allActiveAndPausedTournaments);
+  const handleUpdateTournamentRef = useLatestRef(handleUpdateTournament);
+  const updateTournamentByIdRef = useLatestRef(updateTournamentById);
+  const onCelebrateRef = useLatestRef(onCelebrate);
+  const activeGameRef = useLatestRef(activeGame);
 
   const currentUid = currentUser?.uid || null;
   const currentEmail = (currentUser?.email || '').trim().toLowerCase();
@@ -120,798 +85,76 @@ export function useBurracoGame({
     customAlert,
   });
 
-  // Giocatori ricavati dinamicamente dallo storico partite e dalla partita in corso
-  const recentPlayers = useMemo(() => {
-    const namesSet = new Set();
-    const extractFromGame = (game) => {
-      if (!game) return;
-      if (Array.isArray(game.team1?.players)) game.team1.players.forEach(p => p && typeof p === 'string' && namesSet.add(p.trim()));
-      if (Array.isArray(game.team2?.players)) game.team2.players.forEach(p => p && typeof p === 'string' && namesSet.add(p.trim()));
-      if (Array.isArray(game.team3?.players)) game.team3.players.forEach(p => p && typeof p === 'string' && namesSet.add(p.trim()));
-    };
-    extractFromGame(activeGame);
-    (gamesHistory || []).forEach(extractFromGame);
-    return Array.from(namesSet).filter(Boolean);
-  }, [gamesHistory, activeGame]);
-
-  // Avvio nuova partita
-  const handleStartGame = useCallback((newGame) => {
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.removeItem('burraco_table_closed_explicitly');
-    }
-    const user = currentUserRef.current;
-    const friends = friendsListRef.current || [];
-    const currentActive = activeGameRef.current;
-    const userKey = user?.uid || 'guest';
-
-    if (currentActive && currentActive.rounds && currentActive.rounds.length > 0) {
-      const updatedHistory = archiveCurrentGame(currentActive, userKey);
-      setGamesHistory(updatedHistory);
-      if (updatedHistory && updatedHistory[0]) {
-        syncWithStatus(updatedHistory[0], false);
-      }
-    }
-
-    const allPlayers = [
-      ...(newGame.team1?.players || []),
-      ...(newGame.team2?.players || []),
-      ...(newGame.team3?.players || [])
-    ].map(p => typeof p === 'string' ? p.trim() : '').filter(Boolean);
-
-    const registeredPlayerUids = user?.uid ? [user.uid] : [];
-    const registeredPlayerEmails = user?.email ? [user.email] : [];
-    const pendingInviteFriends = [];
-
-    if (user && friends.length > 0) {
-      friends.forEach(friend => {
-        const friendName = friend.displayName || friend.email || '';
-        const isInGame = allPlayers.some(
-          p => p.toLowerCase() === friendName.toLowerCase() || p.toLowerCase() === (friend.email || '').toLowerCase()
-        );
-        if (isInGame) {
-          if (friend.isCloseFriend) {
-            if (friend.uid && !registeredPlayerUids.includes(friend.uid)) registeredPlayerUids.push(friend.uid);
-            if (friend.email && !registeredPlayerEmails.includes(friend.email)) registeredPlayerEmails.push(friend.email);
-          } else {
-            pendingInviteFriends.push(friend);
-          }
-        }
-      });
-    }
-
-    const author = user ? { uid: user.uid, name: user.displayName } : null;
-    let initialChain = null;
-    try {
-      initialChain = migrateLegacyGameToLedger(newGame, author);
-    } catch (chainErr) {
-      console.warn('Avviso inizializzazione ledger:', chainErr);
-    }
-
-    const gameWithOwnership = {
-      ...newGame,
-      ownerUid: user ? user.uid : null,
-      ownerEmail: user?.email || null,
-      ownerName: user?.displayName || null,
-      playerUids: registeredPlayerUids,
-      playerEmails: registeredPlayerEmails,
-      ledgerChain: initialChain,
-      ledgerLastHash: initialChain && initialChain.length > 0 ? initialChain[initialChain.length - 1].hash : null,
-    };
-
-    setActiveGame(gameWithOwnership);
-    saveActiveGame(gameWithOwnership);
-
-    const currentHistory = getGamesHistory(userKey);
-    const updatedHistory = [gameWithOwnership, ...currentHistory.filter(g => g.id !== gameWithOwnership.id)];
-    setGamesHistory(updatedHistory);
-    safeSetItem(getHistoryKey(userKey), JSON.stringify(updatedHistory));
-
-    syncWithStatus(gameWithOwnership, true);
-
-    if (user && pendingInviteFriends.length > 0) {
-      pendingInviteFriends.forEach(friend => {
-        const friendName = friend.displayName || friend.email || '';
-        const teamName = (newGame.team1?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
-          ? newGame.team1?.name
-          : (newGame.team2?.players || []).some(p => p.toLowerCase() === friendName.toLowerCase())
-          ? newGame.team2?.name
-          : newGame.team3?.name || 'In Partita';
-
-        sendGameInvite(user, friend, gameWithOwnership, teamName).catch(err => {
-          console.warn('Avviso invio notifica partita:', err);
-        });
-      });
-    }
-  }, [syncWithStatus]);
-
-  // Salva o aggiorna una mano
-  const handleSaveRound = useCallback((roundData) => {
-    const current = activeGameRef.current;
-    if (!current) return;
-    const user = currentUserRef.current;
-    const userKey = user?.uid || 'guest';
-
-    let updatedRounds;
-    const existingIndex = (current.rounds || []).findIndex(
-      r => r.roundNumber === roundData.roundNumber
-    );
-
-    if (existingIndex >= 0) {
-      updatedRounds = [...current.rounds];
-      updatedRounds[existingIndex] = roundData;
-    } else {
-      updatedRounds = [...(current.rounds || []), roundData];
-    }
-
-    const { t1Total, t2Total, isFinished: matchConcluded, winner } = computeTeamTotalsAndWinner(
-      updatedRounds,
-      current.mode,
-      current.targetScore
-    );
-
-    const author = user ? { uid: user.uid, name: user.displayName } : null;
-    const ledger = appendLedgerEvent(current, EVENT_TYPES.ROUND_ADDED, roundData, author);
-
-    const updatedGame = {
-      ...current,
-      rounds: updatedRounds,
-      winner: winner || null,
-      isFinished: matchConcluded,
-      completedAt: matchConcluded ? (current.completedAt || new Date().toISOString()) : null,
-      ...ledger,
-    };
-
-    if (matchConcluded) {
-      updatedGame.telemetry = computeGameTelemetry(updatedGame, {
-        offlineEventsCount: offlineEventsCountRef.current
-      });
-    }
-
-    setActiveGame(updatedGame);
-    saveActiveGame(updatedGame);
-    syncWithStatus(updatedGame, true);
-    upsertHistoryGame(userKey, updatedGame, setGamesHistory);
-
-    if (current.tournamentMatchId) {
-      try {
-        const list = allTournamentsRef.current || [];
-        const tourn = (current.tournamentId && list.find(t => t?.id === current.tournamentId))
-          || list.find(t => (t?.rounds || []).some(r => (r.matches || []).some(m => m.id === current.tournamentMatchId)))
-          || activeTournamentRef.current;
-
-        if (tourn?.rounds) {
-          const applyMatchUpdate = (targetTourn) => ({
-            ...targetTourn,
-            rounds: (targetTourn.rounds || []).map(r => ({
-              ...r,
-              matches: (r.matches || []).map(m => {
-                if (m.id === current.tournamentMatchId) {
-                  return {
-                    ...m,
-                    team1Score: t1Total,
-                    team2Score: t2Total,
-                    status: winner ? 'completed' : 'in_progress',
-                    winnerId: winner ? (winner === 'team1' ? m.team1Id : m.team2Id) : null,
-                    completedAt: winner ? new Date().toISOString() : m.completedAt,
-                  };
-                }
-                return m;
-              })
-            }))
-          });
-
-          if (typeof updateTournamentByIdRef.current === 'function') {
-            updateTournamentByIdRef.current(tourn.id, applyMatchUpdate);
-          } else {
-            handleUpdateTournamentRef.current(applyMatchUpdate(tourn));
-          }
-        }
-      } catch (tournErr) {
-        console.warn('Errore sync match torneo:', tournErr);
-      }
-    }
-
-    if (matchConcluded) {
-      try {
-        onCelebrateRef.current();
-      } catch (celErr) {
-        console.warn('Errore celebrazione vittoria:', celErr);
-      }
-    }
-  }, [syncWithStatus, offlineEventsCountRef]);
-
-  // Annulla l'ultima mano
-  const handleDeleteLastRound = useCallback(async (customConfirm) => {
-    const current = activeGameRef.current;
-    if (!current || !current.rounds || current.rounds.length === 0) return;
-
-    const ok = typeof customConfirm === 'function'
-      ? await customConfirm({
-          title: 'Annulla Ultima Mano',
-          message: "Vuoi davvero cancellare l'ultima mano inserita dal tabellone?",
-          confirmText: 'Sì, annulla',
-          variant: 'danger'
-        })
-      : window.confirm("Vuoi davvero cancellare l'ultima mano inserita?");
-    if (!ok) return;
-
-    const latest = activeGameRef.current;
-    if (!latest || !latest.rounds || latest.rounds.length === 0) return;
-
-    const user = currentUserRef.current;
-    const userKey = user?.uid || 'guest';
-    const updatedRounds = latest.rounds.slice(0, -1);
-    const { isFinished: matchConcluded, winner } = computeTeamTotalsAndWinner(
-      updatedRounds,
-      latest.mode,
-      latest.targetScore
-    );
-
-    const author = user ? { uid: user.uid, name: user.displayName } : null;
-    const ledger = appendLedgerEvent(latest, EVENT_TYPES.ROUND_REVERTED, { roundNumber: latest.rounds.length }, author);
-
-    const updatedGame = {
-      ...latest,
-      rounds: updatedRounds,
-      winner,
-      isFinished: matchConcluded,
-      completedAt: matchConcluded ? (latest.completedAt || new Date().toISOString()) : null,
-      ...ledger,
-    };
-
-    setActiveGame(updatedGame);
-    saveActiveGame(updatedGame);
-    syncWithStatus(updatedGame, true);
-    upsertHistoryGame(userKey, updatedGame, setGamesHistory);
-  }, [syncWithStatus]);
-
-  // Cancella una specifica mano dal tabellone (foglio segnapunti)
-  const handleDeleteRound = useCallback(async (roundNumber, customConfirm) => {
-    const current = activeGameRef.current;
-    if (!current || !current.rounds || current.rounds.length === 0) return;
-
-    const roundIndex = (current.rounds || []).findIndex(
-      r => r.roundNumber === roundNumber
-    );
-    if (roundIndex === -1) return;
-
-    const targetRound = current.rounds[roundIndex];
-    const isTrio = current.mode === 'trio';
-    const scoreSummary = isTrio
-      ? `${targetRound.team1Score || 0} vs ${targetRound.team2Score || 0} vs ${targetRound.team3Score || 0} pt`
-      : `${targetRound.team1Score || 0} vs ${targetRound.team2Score || 0} pt`;
-
-    const ok = typeof customConfirm === 'function'
-      ? await customConfirm({
-          title: `Elimina Mano #${roundNumber}`,
-          message: `Vuoi davvero cancellare la Mano #${roundNumber} (${scoreSummary})? I punti progressivi e i totali verranno ricalcolati automaticamente.`,
-          confirmText: "Elimina Mano",
-          variant: "danger"
-        })
-      : window.confirm(`Vuoi davvero cancellare la Mano #${roundNumber}?`);
-    if (!ok) return;
-
-    const latest = activeGameRef.current;
-    if (!latest || !latest.rounds) return;
-    const latestIdx = latest.rounds.findIndex(r => r.roundNumber === roundNumber);
-    if (latestIdx === -1) return;
-
-    const remainingRounds = latest.rounds
-      .filter((_, idx) => idx !== latestIdx)
-      .map((r, newIdx) => ({
-        ...r,
-        roundNumber: newIdx + 1
-      }));
-
-    const { isFinished: matchConcluded, winner } = computeTeamTotalsAndWinner(
-      remainingRounds,
-      latest.mode,
-      latest.targetScore
-    );
-
-    const user = currentUserRef.current;
-    const userKey = user?.uid || 'guest';
-    const author = user ? { uid: user.uid, name: user.displayName } : null;
-    const ledger = appendLedgerEvent(latest, EVENT_TYPES.ROUND_REVERTED, { roundNumber }, author);
-
-    const updatedGame = {
-      ...latest,
-      rounds: remainingRounds,
-      winner,
-      isFinished: matchConcluded,
-      completedAt: matchConcluded ? (latest.completedAt || new Date().toISOString()) : null,
-      ...ledger,
-    };
-
-    setActiveGame(updatedGame);
-    saveActiveGame(updatedGame);
-    syncWithStatus(updatedGame, true);
-    upsertHistoryGame(userKey, updatedGame, setGamesHistory);
-  }, [syncWithStatus]);
-
-  // Aggiorna squadre
-  const handleUpdateTeams = useCallback((updatedTeam1, updatedTeam2, updatedTeam3) => {
-    const current = activeGameRef.current;
-    if (!current) return;
-
-    const user = currentUserRef.current;
-    const userKey = user?.uid || 'guest';
-    const author = user ? { uid: user.uid, name: user.displayName } : null;
-    const ledger = appendLedgerEvent(
-      current,
-      EVENT_TYPES.TEAMS_UPDATED,
-      {
-        team1: updatedTeam1,
-        team2: updatedTeam2,
-        team3: current.mode === 'trio' && updatedTeam3 ? updatedTeam3 : null,
-      },
-      author
-    );
-
-    const updatedGame = {
-      ...current,
-      team1: updatedTeam1,
-      team2: updatedTeam2,
-      ...(current.mode === 'trio' && updatedTeam3 ? { team3: updatedTeam3 } : {}),
-      ...ledger,
-    };
-
-    setActiveGame(updatedGame);
-    saveActiveGame(updatedGame);
-    syncWithStatus(updatedGame, true);
-    upsertHistoryGame(userKey, updatedGame, setGamesHistory);
-  }, [syncWithStatus]);
-
-  // Conclude la partita (accetta un eventuale gameOverride per chiusura diretta da Archivio)
-  const handleEndGame = useCallback((gameOverride = null) => {
-    const current = (gameOverride && gameOverride.id) ? gameOverride : activeGameRef.current;
-    if (!current) return;
-
-    const user = currentUserRef.current;
-    const userKey = user?.uid || 'guest';
-    const { t1Total, t2Total, winner } = computeTeamTotalsAndWinner(
-      current.rounds,
-      current.mode,
-      current.targetScore,
-      true
-    );
-
-    const author = user ? { uid: user.uid, name: user.displayName } : null;
-    const ledger = appendLedgerEvent(current, EVENT_TYPES.GAME_FINISHED, { winner }, author);
-
-    const updatedGame = {
-      ...current,
-      tableClosed: false,
-      winner,
-      isFinished: true,
-      completedAt: new Date().toISOString(),
-      ...ledger,
-    };
-    updatedGame.telemetry = computeGameTelemetry(updatedGame, {
-      offlineEventsCount: offlineEventsCountRef.current
-    });
-
-    setActiveGame(updatedGame);
-    saveActiveGame(updatedGame);
-    syncWithStatus(updatedGame, true);
-
-    if (current.tournamentMatchId) {
-      const list = allTournamentsRef.current || [];
-      const tourn = (current.tournamentId && list.find(t => t?.id === current.tournamentId))
-        || list.find(t => (t?.rounds || []).some(r => (r.matches || []).some(m => m.id === current.tournamentMatchId)))
-        || activeTournamentRef.current;
-
-      if (tourn?.rounds) {
-        const winnerTeamId = winner === 'team1' ? current.team1?.id : current.team2?.id;
-        const applyFinishUpdate = (targetTourn) => ({
-          ...targetTourn,
-          rounds: (targetTourn.rounds || []).map(r => ({
-            ...r,
-            matches: (r.matches || []).map(m => {
-              if (m.id === current.tournamentMatchId) {
-                return {
-                  ...m,
-                  team1Score: t1Total,
-                  team2Score: t2Total,
-                  status: 'completed',
-                  winnerId: t1Total === t2Total ? 'tie' : winnerTeamId,
-                  completedAt: new Date().toISOString(),
-                };
-              }
-              return m;
-            })
-          }))
-        });
-
-        if (typeof updateTournamentByIdRef.current === 'function') {
-          updateTournamentByIdRef.current(tourn.id, applyFinishUpdate);
-        } else {
-          handleUpdateTournamentRef.current(applyFinishUpdate(tourn));
-        }
-      }
-    }
-
-    const updatedHistory = archiveCurrentGame(updatedGame, userKey);
-    setGamesHistory(updatedHistory);
-    updateCareerStatsInBackground(user, updatedHistory, updatedGame);
-    onCelebrateRef.current();
-  }, [syncWithStatus, offlineEventsCountRef]);
-
-  // Rivincita
-  const handleRematch = useCallback(() => {
-    const current = activeGameRef.current;
-    if (!current) return;
-    const user = currentUserRef.current;
-    const userKey = user?.uid || 'guest';
-    const updatedHistory = archiveCurrentGame(current, userKey);
-    setGamesHistory(updatedHistory);
-    if (updatedHistory && updatedHistory[0]) {
-      syncWithStatus(updatedHistory[0], true);
-    }
-    updateCareerStatsInBackground(user, updatedHistory, current);
-
-    const rematchGame = {
-      id: 'game_' + Date.now(),
-      createdAt: new Date().toISOString(),
-      mode: current.mode,
-      allowSemipulito: current.allowSemipulito,
-      targetScore: current.targetScore,
-      team1: current.team1,
-      team2: current.team2,
-      ...(current.mode === 'trio' ? { team3: current.team3 } : {}),
-      rounds: [],
-      winner: null,
-      isFinished: false,
-      ownerUid: current.ownerUid || (user ? user.uid : null),
-      ownerEmail: current.ownerEmail || user?.email || null,
-      ownerName: current.ownerName || user?.displayName || null,
-      playerUids: current.playerUids || (user ? [user.uid] : []),
-      playerEmails: current.playerEmails || (user?.email ? [user.email] : []),
-    };
-
-    setActiveGame(rematchGame);
-    saveActiveGame(rematchGame);
-    syncWithStatus(rematchGame, true);
-  }, [syncWithStatus]);
-
-  // Archivia e prepara nuova partita pulita
-  const handleArchiveAndNew = useCallback((onOpenNewGame) => {
-    const current = activeGameRef.current;
-    if (current) {
-      const user = currentUserRef.current;
-      const userKey = user?.uid || 'guest';
-      const { winner: computedWinner } = computeTeamTotalsAndWinner(
-        current.rounds,
-        current.mode,
-        current.targetScore,
-        true
-      );
-
-      const finishedGame = {
-        ...current,
-        winner: current.winner || computedWinner,
-        isFinished: true,
-        completedAt: current.completedAt || new Date().toISOString(),
-      };
-
-      const updatedHistory = archiveCurrentGame(finishedGame, userKey);
-      setGamesHistory(updatedHistory);
-      syncWithStatus(finishedGame, true);
-      updateCareerStatsInBackground(user, updatedHistory, finishedGame);
-    }
-
-    if (typeof window !== 'undefined' && window.location.search.includes('game=')) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('game');
-      window.history.replaceState({}, '', url.pathname);
-    }
-    setIsCloudJoined(false);
-
-    saveActiveGame(null);
-    setActiveGame(null);
-
-    if (typeof onOpenNewGame === 'function') {
-      onOpenNewGame();
-    }
-  }, [syncWithStatus]);
-
-  // Chiudi tavolo di gioco (sospendi e torna alla schermata principale)
-  const handleCloseTable = useCallback(async (customConfirm) => {
-    const current = activeGameRef.current;
-    if (!current) return;
-
-    const hasRounds = current.rounds && current.rounds.length > 0;
-    const ok = typeof customConfirm === 'function'
-      ? await customConfirm({
-          title: 'Chiudi Tavolo',
-          message: hasRounds
-            ? `Vuoi chiudere questo tavolo? La partita corrente (${current.rounds.length} mani) rimarrà salvata al sicuro nell'archivio cloud e potrai riprenderla quando vuoi.`
-            : 'Vuoi chiudere questo tavolo e tornare alla schermata iniziale?',
-          confirmText: 'Chiudi Tavolo',
-          cancelText: 'Continua a giocare',
-          variant: 'warning'
-        })
-      : window.confirm('Vuoi chiudere questo tavolo?');
-    if (!ok) return;
-
-    const latest = activeGameRef.current || current;
-    const closedGame = {
-      ...latest,
-      tableClosed: true,
-      telemetry: computeGameTelemetry({ ...latest, tableClosed: true }, {
-        offlineEventsCount: offlineEventsCountRef.current
-      })
-    };
-    await syncWithStatus(closedGame, true);
-
-    const userKey = currentUserRef.current?.uid || 'guest';
-    const currentHistory = getGamesHistory(userKey);
-    const updatedHistory = [closedGame, ...currentHistory.filter(g => g.id !== closedGame.id)];
-    setGamesHistory(updatedHistory);
-    safeSetItem(getHistoryKey(userKey), JSON.stringify(updatedHistory));
-
-    saveActiveGame(null);
-    setActiveGame(null);
-    setIsCloudJoined(false);
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem('burraco_table_closed_explicitly', 'true');
-    }
-
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('game');
-      window.history.replaceState({}, '', url.pathname);
-    } catch {
-      // ignore
-    }
-  }, [syncWithStatus, offlineEventsCountRef]);
-
-  // Scollegati dal tavolo condiviso
-  const handleLeaveCloudTable = useCallback(async (customConfirm) => {
-    const ok = typeof customConfirm === 'function'
-      ? await customConfirm({
-          title: 'Scollegati dal Tavolo',
-          message: 'Vuoi scollegarti da questo tavolo condiviso online e tornare alla schermata iniziale?',
-          confirmText: 'Sì, scollegati',
-          variant: 'warning'
-        })
-      : window.confirm("Vuoi scollegarti da questo tavolo condiviso?");
-    if (ok) {
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('game');
-        window.history.replaceState({}, '', url.pathname);
-      } catch {
-        // ignore
-      }
-      setIsCloudJoined(false);
-      setActiveGame(null);
-      saveActiveGame(null);
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem('burraco_table_closed_explicitly', 'true');
-      }
-    }
-  }, []);
-
-  // Eliminazione partita dallo storico
-  const handleDeleteGameHistory = useCallback((gameId) => {
-    const userKey = currentUserRef.current?.uid || 'guest';
-    const updated = deleteGameFromHistory(gameId, userKey);
-    setGamesHistory(updated);
-    removeFromOutboxQueue(gameId);
-    deleteGameFromCloud(gameId).catch((err) => {
-      console.warn('Errore eliminazione partita cloud:', err?.message || err);
-    });
-  }, []);
-
-  // Condivisione WhatsApp / Appunti
-  const handleShareGame = useCallback(() => {
-    const current = activeGameRef.current;
-    if (!current) return;
-    const isTrio = current.mode === 'trio';
-    const { t1Total, t2Total, t3Total } = computeTeamTotalsAndWinner(current.rounds, current.mode, current.targetScore);
-
-    let text;
-    if (isTrio) {
-      text = `🃏 Burraco a 3 Score:
-♦ ${current.team1.name} (${(current.team1.players || []).join(' & ')}): ${t1Total} pt
-♠ ${current.team2.name} (${(current.team2.players || []).join(' & ')}): ${t2Total} pt
-♥ ${current.team3?.name || 'Giocatore 3'} (${(current.team3?.players || []).join(' & ')}): ${t3Total} pt
-Mani giocate: ${current.rounds.length} (Traguardo: ${current.targetScore} pt)`;
-    } else {
-      text = `🃏 Burraco Score:
-♦ ${current.team1.name} (${current.team1.players.join(' & ')}): ${t1Total} pt
-♠ ${current.team2.name} (${current.team2.players.join(' & ')}): ${t2Total} pt
-Mani giocate: ${current.rounds.length} (Traguardo: ${current.targetScore} pt)`;
-    }
-
-    if (navigator.share) {
-      navigator.share({ title: 'Punteggio Burraco', text });
-    } else {
-      navigator.clipboard.writeText(text);
-      customAlert({
-        title: 'Punteggio Copiato',
-        message: 'Punteggio copiato negli appunti! Puoi incollarlo su WhatsApp o inviarlo agli amici.',
-        variant: 'success'
-      });
-    }
-  }, [customAlert]);
-
-  // Riprendi partita passata o tavolo da PIN (riapre tableClosed nel cloud PRIMA di attivare il listener)
-  const handleResumeGame = useCallback(async (gameOrId) => {
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.removeItem('burraco_table_closed_explicitly');
-    }
-    let targetGame = gameOrId;
-    if (typeof gameOrId === 'string') {
-      targetGame = await findGameByPinOrId(gameOrId);
-      if (!targetGame) {
-        const userKey = currentUserRef.current?.uid || 'guest';
-        targetGame = (getGamesHistory(userKey) || []).find(g => g?.id === gameOrId);
-      }
-    }
-    if (!targetGame || typeof targetGame !== 'object' || !targetGame.id) {
-      console.warn('handleResumeGame: partita non valida', gameOrId);
-      return null;
-    }
-
-    const resumedGame = {
-      ...targetGame,
-      tableClosed: false,
-    };
-
-    if (targetGame.tableClosed && (typeof navigator === 'undefined' || navigator.onLine)) {
-      await syncWithStatus(resumedGame, true);
-    } else {
-      syncWithStatus(resumedGame, true);
-    }
-
-    setActiveGame(resumedGame);
-    saveActiveGame(resumedGame);
-    setIsCloudJoined(true);
-
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set('game', resumedGame.id);
-      window.history.replaceState({}, '', url.toString());
-    } catch {}
-
-    return resumedGame;
-  }, [syncWithStatus]);
-
-  // Salvataggio manuale forzato con feedback (Cloud Firestore + Locale)
-  const handleManualSave = useCallback(async () => {
-    const current = activeGameRef.current;
-    if (!current) return { success: false, reason: 'no_game' };
-
-    const user = currentUserRef.current;
-    const userKey = user?.uid || 'guest';
-    saveActiveGame(current);
-    setGamesHistory(prev => {
-      const filtered = (prev || []).filter(g => g?.id !== current.id);
-      const updated = [current, ...filtered];
-      safeSetItem(getHistoryKey(userKey), JSON.stringify(updated));
-      return updated;
-    });
-
-    setSyncStatus('syncing');
-    try {
-      const ok = await syncGameToCloud(current, user, true);
-      if (ok) removeFromOutboxQueue(current.id);
-      setSyncStatus(ok ? 'synced' : 'offline');
-      return { success: ok, isOffline: !ok };
-    } catch (err) {
-      console.warn('Errore salvataggio manuale nel cloud:', err);
-      setSyncStatus('offline');
-      return { success: false, isOffline: true, error: err };
-    }
-  }, [setSyncStatus]);
-
-  // Importazione dati
-  const handleDataImported = useCallback((importedGames, replaceCloud = false) => {
-    const userKey = currentUserRef.current?.uid || 'guest';
-    const localGames = getGamesHistory(userKey);
-    if (Array.isArray(importedGames)) {
-      let merged;
-      if (replaceCloud) {
-        merged = [...importedGames].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      } else {
-        const map = new Map();
-        localGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
-        importedGames.forEach(g => { if (g && g.id) map.set(g.id, g); });
-        merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      }
-
-      safeSetItem(getHistoryKey(userKey), JSON.stringify(merged));
-      setGamesHistory(merged);
-    } else {
-      setGamesHistory(localGames);
-    }
-    const current = getActiveGame();
-    if (current) setActiveGame(current);
-  }, []);
-
-  // Gioca incontro torneo sul tavolo principale
-  const handlePlayTournamentMatch = useCallback((match, tournament, onTournamentMatchStarted) => {
-    if (!match || !tournament) return;
-
-    const current = activeGameRef.current;
-    if (current && current.rounds && current.rounds.length > 0 && current.tournamentMatchId !== match.id) {
-      const userKey = currentUserRef.current?.uid || 'guest';
-      const updatedHistory = archiveCurrentGame(current, userKey);
-      setGamesHistory(updatedHistory);
-      if (updatedHistory && updatedHistory[0]) {
-        syncWithStatus(updatedHistory[0], false);
-      }
-    }
-
-    const tournamentGame = {
-      id: match.gameId || ('game_' + Date.now()),
-      createdAt: new Date().toISOString(),
-      mode: 'pairs',
-      allowSemipulito: true,
-      targetScore: tournament.targetScore || 2505,
-      tournamentId: tournament.id,
-      tournamentName: tournament.name,
-      tournamentMatchId: match.id,
-      tournamentRoundNumber: match.roundNumber,
-      tournamentTableNumber: match.tableNumber,
-      team1: {
-        id: match.team1Id,
-        name: match.team1Name,
-        players: match.team1Players || [],
-      },
-      team2: {
-        id: match.team2Id,
-        name: match.team2Name,
-        players: match.team2Players || [],
-      },
-      rounds: [],
-      winner: null,
-      isFinished: false,
-    };
-
-    if (match.status !== 'completed') {
-      const updatedRounds = tournament.rounds.map(r => ({
-        ...r,
-        matches: r.matches.map(m => {
-          if (m.id === match.id) {
-            return {
-              ...m,
-              status: 'in_progress',
-              gameId: tournamentGame.id,
-            };
-          }
-          return m;
-        })
-      }));
-      handleUpdateTournamentRef.current({ ...tournament, rounds: updatedRounds });
-    }
-
-    setActiveGame(tournamentGame);
-    saveActiveGame(tournamentGame);
-    syncWithStatus(tournamentGame, false);
-
-    if (typeof onTournamentMatchStarted === 'function') {
-      onTournamentMatchStarted();
-    }
-  }, [syncWithStatus]);
-
-  // Sfida un amico
-  const handleChallengeFriend = useCallback((friend, onOpenNewGameModal) => {
-    const myName = currentUserRef.current?.displayName || 'Io';
-    const friendName = friend.displayName || friend.email || 'Amico';
-    setNewGameInitialSetup({
-      mode: 'pairs',
-      p1A: myName,
-      p2A: friendName,
-      team1Name: `Coppia ${myName}`,
-      team2Name: `Coppia ${friendName}`
-    });
-    if (typeof onOpenNewGameModal === 'function') {
-      onOpenNewGameModal();
-    }
-  }, []);
+  const {
+    syncGameToTournamentMatch,
+    handlePlayTournamentMatch,
+  } = useTournamentSyncBridge({
+    currentUserRef,
+    activeGameRef,
+    activeTournamentRef,
+    allTournamentsRef,
+    handleUpdateTournamentRef,
+    updateTournamentByIdRef,
+    setActiveGame,
+    setGamesHistory,
+    syncWithStatus,
+  });
+
+  const {
+    handleSaveRound,
+    handleDeleteLastRound,
+    handleDeleteRound,
+    handleUpdateTeams,
+  } = useRoundMutations({
+    currentUserRef,
+    activeGameRef,
+    offlineEventsCountRef,
+    onCelebrateRef,
+    setActiveGame,
+    setGamesHistory,
+    syncWithStatus,
+    syncGameToTournamentMatch,
+  });
+
+  const {
+    handleStartGame,
+    handleEndGame,
+    handleRematch,
+    handleArchiveAndNew,
+    handleCloseTable,
+    handleLeaveCloudTable,
+    handleResumeGame,
+    handleChallengeFriend,
+  } = useGameLifecycle({
+    currentUserRef,
+    friendsListRef,
+    activeGameRef,
+    offlineEventsCountRef,
+    onCelebrateRef,
+    setActiveGame,
+    setGamesHistory,
+    setIsCloudJoined,
+    setNewGameInitialSetup,
+    syncWithStatus,
+    syncGameToTournamentMatch,
+  });
+
+  const {
+    recentPlayers,
+    handleDeleteGameHistory,
+    handleShareGame,
+    handleManualSave,
+    handleDataImported,
+  } = useGameHistoryAndShare({
+    activeGame,
+    gamesHistory,
+    currentUserRef,
+    activeGameRef,
+    setActiveGame,
+    setGamesHistory,
+    setSyncStatus,
+    customAlert,
+  });
 
   return useMemo(() => ({
     activeGame,

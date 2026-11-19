@@ -720,21 +720,21 @@ export default function TournamentHub({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
             <div className="p-3 rounded-xl club-inset space-y-1">
-              <span className="font-bold text-white block">1. Formula Round-Robin</span>
+              <span className="font-bold club-text-primary block">1. Formula Round-Robin</span>
               <p className="club-text-muted leading-relaxed m-0">
                 Tutte le coppie si affrontano a rotazione diretta. In caso di squadre dispari, il sistema assegna automaticamente il turno di riposo equo per ogni giornata.
               </p>
             </div>
 
             <div className="p-3 rounded-xl club-inset space-y-1">
-              <span className="font-bold text-white block">2. Victory Points (20 - 0)</span>
+              <span className="font-bold club-text-primary block">2. Victory Points (20 - 0)</span>
               <p className="club-text-muted leading-relaxed m-0">
                 Al termine della partita, la differenza tra i punti delle due squadre determina i Victory Points assegnati al tavolo. La somma dei VP è sempre 20.
               </p>
             </div>
 
             <div className="p-3 rounded-xl club-inset space-y-1">
-              <span className="font-bold text-white block">3. Criteri Classifica</span>
+              <span className="font-bold club-text-primary block">3. Criteri Classifica</span>
               <p className="club-text-muted leading-relaxed m-0">
                 1° Totale Victory Points · 2° Differenza punti Burraco (PF - PS) · 3° Totale Punti Fatti · 4° Numero di vittorie.
               </p>
@@ -758,6 +758,7 @@ export default function TournamentHub({
                 <label className="text-[11px] club-text-muted block mb-1">Punti Coppia 1</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={testScore1}
                   onChange={(e) => setTestScore1(e.target.value)}
                   className="w-full min-h-[40px] px-3 py-1.5 rounded-xl club-input text-xs font-mono-num font-bold"
@@ -768,6 +769,7 @@ export default function TournamentHub({
                 <label className="text-[11px] club-text-muted block mb-1">Punti Coppia 2</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={testScore2}
                   onChange={(e) => setTestScore2(e.target.value)}
                   className="w-full min-h-[40px] px-3 py-1.5 rounded-xl club-input text-xs font-mono-num font-bold"
@@ -779,7 +781,7 @@ export default function TournamentHub({
                 <span className="font-mono-num text-lg font-bold club-text-gold">
                   {testVpResult.team1Vp} - {testVpResult.team2Vp}
                 </span>
-                <span className="text-[10px] text-white block mt-0.5">
+                <span className="text-[10px] club-text-primary block mt-0.5">
                   {testVpResult.diff === 0
                     ? 'Pareggio perfetto'
                     : testVpResult.diff > 0
@@ -792,14 +794,14 @@ export default function TournamentHub({
 
           {/* Tabella Ufficiale degli Scaglioni */}
           <div className="rounded-xl overflow-hidden border club-divider">
-            <div className="px-3.5 py-2 bg-black/30 border-b club-divider flex items-center justify-between text-xs">
-              <span className="font-bold text-white">Tabella Scaglioni Scarto FIBUR</span>
+            <div className="px-3.5 py-2 club-table-head border-b club-divider flex items-center justify-between text-xs">
+              <span className="font-bold club-text-primary">Tabella Scaglioni Scarto FIBUR</span>
               <span className="text-[11px] club-text-subtle">Fonte: Regolamento Tecnico Nazionale FIBUR</span>
             </div>
             <div className="overflow-x-auto max-h-48 overflow-y-auto">
               <table className="w-full text-left text-xs font-mono-num">
                 <thead>
-                  <tr className="bg-black/20 text-[11px] club-text-muted border-b club-divider">
+                  <tr className="club-row-bg text-[11px] club-text-muted border-b club-divider">
                     <th className="py-2 px-3">Differenza Punti</th>
                     <th className="py-2 px-3 text-center">VP Vincitore</th>
                     <th className="py-2 px-3 text-center">VP Perdente</th>
@@ -814,11 +816,11 @@ export default function TournamentHub({
                       : `${prevMax} - ${b.maxDiff} pt`;
 
                     return (
-                      <tr key={b.maxDiff} className="hover:bg-white/5 transition-colors">
-                        <td className="py-1.5 px-3 font-sans text-white">{label}</td>
-                        <td className="py-1.5 px-3 text-center font-bold text-amber-300">{b.winnerVp}</td>
+                      <tr key={b.maxDiff} className="club-hover-soft transition-colors">
+                        <td className="py-1.5 px-3 font-sans club-text-primary">{label}</td>
+                        <td className="py-1.5 px-3 text-center font-bold club-text-gold">{b.winnerVp}</td>
                         <td className="py-1.5 px-3 text-center club-text-muted">{b.loserVp}</td>
-                        <td className="py-1.5 px-3 text-right font-bold text-white">{b.winnerVp} - {b.loserVp}</td>
+                        <td className="py-1.5 px-3 text-right font-bold club-text-primary">{b.winnerVp} - {b.loserVp}</td>
                       </tr>
                     );
                   })}

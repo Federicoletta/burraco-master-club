@@ -30,7 +30,7 @@ export default function TargetScoreSelector({
           <Target className="w-4 h-4 club-text-gold" />
           <span>Traguardo Punti</span>
         </label>
-        <span className={`font-mono-num text-xs font-bold ${error ? 'text-rose-300' : 'club-text-gold'}`}>
+        <span className={`font-mono-num text-xs font-bold ${error ? 'club-danger-text' : 'club-text-gold'}`}>
           {customTarget ? `${customTarget} pt` : `${targetScore} pt`}
         </span>
       </div>
@@ -87,7 +87,7 @@ export default function TargetScoreSelector({
           <p
             id="target-score-error"
             role="alert"
-            className="text-[11px] font-semibold text-rose-300 flex items-center gap-1.5 m-0"
+            className="text-[11px] font-semibold club-danger-text flex items-center gap-1.5 m-0"
           >
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span>{error}</span>

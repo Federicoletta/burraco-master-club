@@ -121,7 +121,7 @@ class BackgroundMusicManager {
     if (!this.audio) {
       this.audio = new Audio();
       this.audio.loop = true;
-      this.audio.preload = 'auto';
+      this.audio.preload = 'none';
       this.audio.crossOrigin = 'anonymous';
 
       // Sincronizza stato se l'utente mette in pausa dal centro di controllo del dispositivo

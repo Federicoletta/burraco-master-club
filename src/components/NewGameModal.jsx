@@ -177,7 +177,7 @@ function NewGameModalContent({
       >
         {/* Handle mobile */}
         <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
-          <span className="w-10 h-1 rounded-full bg-white/25" />
+          <span className="w-10 h-1 rounded-full club-handle" />
         </div>
 
         {/* Header */}
@@ -187,7 +187,7 @@ function NewGameModalContent({
               ♣
             </div>
             <div className="min-w-0">
-              <h2 className="font-display text-lg sm:text-xl font-bold text-white m-0 truncate">
+              <h2 className="font-display text-lg sm:text-xl font-bold club-text-primary m-0 truncate">
                 Nuova Partita
               </h2>
               <p className="text-xs club-text-subtle m-0 truncate">
@@ -220,7 +220,7 @@ function NewGameModalContent({
             <div className="p-3 rounded-2xl club-inset border club-border flex items-center justify-between gap-3 text-xs">
               <div className="truncate min-w-0">
                 <span className="club-text-gold font-bold">Ultima formazione: </span>
-                <span className="text-white truncate">
+                <span className="club-text-primary truncate">
                   {lastGame.team1?.name} vs {lastGame.team2?.name} ({lastGame.targetScore || DEFAULT_TARGET_SCORE} pt)
                 </span>
               </div>
@@ -292,7 +292,7 @@ function NewGameModalContent({
                   >
                     <div className="flex items-center gap-2">
                       <Edit3 className="w-4 h-4 club-text-gold" />
-                      <span className="text-xs font-bold text-white">Nomi Squadre Personalizzati</span>
+                      <span className="text-xs font-bold club-text-primary">Nomi Squadre Personalizzati</span>
                     </div>
                     <div className="flex items-center gap-1 text-xs club-text-subtle">
                       <span>{showTeamNamesEdit ? 'Chiudi' : 'Opzionale'}</span>
@@ -315,7 +315,7 @@ function NewGameModalContent({
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] uppercase font-bold text-sky-300 block mb-1">
+                        <label className="text-[11px] uppercase font-bold club-team2 block mb-1">
                           Nome {mode === 'pairs' ? 'Coppia 2' : 'Giocatore 2'}
                         </label>
                         <input
@@ -348,22 +348,22 @@ function NewGameModalContent({
                 />
 
                 {/* Riepilogo Partita */}
-                <div className="p-3.5 rounded-2xl bg-black/30 border club-border space-y-2">
+                <div className="p-3.5 rounded-2xl club-inset border club-border space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider club-text-gold block">
                     Riepilogo Tavolo
                   </span>
-                  <div className="flex items-center justify-between text-sm font-bold text-white gap-2">
+                  <div className="flex items-center justify-between text-sm font-bold club-text-primary gap-2">
                     <span className="club-text-gold truncate max-w-[44%]">
                       {finalTeam1Name}
                     </span>
                     <span className="club-text-subtle font-display italic text-xs shrink-0">vs</span>
-                    <span className="text-sky-300 truncate max-w-[44%] text-right">
+                    <span className="club-team2 truncate max-w-[44%] text-right">
                       {finalTeam2Name}
                     </span>
                   </div>
                   <div className="text-xs club-text-subtle flex items-center justify-between pt-2 border-t club-divider font-mono-num">
-                    <span>Traguardo: <strong className="text-white">{customTarget || targetScore} pt</strong></span>
-                    <span>Semipulito: <strong className="text-white">{allowSemipulito ? '150 pt' : 'No'}</strong></span>
+                    <span>Traguardo: <strong className="club-text-primary">{customTarget || targetScore} pt</strong></span>
+                    <span>Semipulito: <strong className="club-text-primary">{allowSemipulito ? '150 pt' : 'No'}</strong></span>
                   </div>
                 </div>
 

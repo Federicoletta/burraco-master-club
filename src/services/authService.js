@@ -2,6 +2,8 @@ import { doc, setDoc } from 'firebase/firestore';
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   getAdditionalUserInfo,
@@ -16,6 +18,37 @@ import {
 } from './firebaseClient';
 
 const googleProvider = new GoogleAuthProvider();
+const REDIRECT_FALLBACK_CODES = new Set([
+  'auth/popup-blocked',
+  'auth/operation-not-supported-in-this-environment',
+  'auth/cancelled-popup-request',
+]);
+
+/**
+ * Rileva se l'app è in esecuzione dentro un iframe (es. preview embedded).
+ * Negli iframe signInWithRedirect non è supportato dai browser, quindi si usa sempre popup.
+ */
+export function isInsideIframe() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Rileva iPhone/iPad in modalità PWA standalone (Home Screen), dove WebKit spesso blocca i popup OAuth.
+ */
+export function isStandaloneIOS() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone =
+    window.navigator.standalone === true ||
+    Boolean(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  return Boolean(isIOS && isStandalone);
+}
 
 /**
  * Sincronizza profilo privato (burraco_users) e directory pubblica senza PII (burraco_public_profiles)
@@ -51,47 +84,88 @@ async function syncUserProfiles(user, { includeLastLogin = false } = {}) {
   ]);
 }
 
+async function finalizeAuthResult(result) {
+  const user = result?.user;
+  if (!user) return null;
+
+  let isNewUser = false;
+  try {
+    const additionalInfo = getAdditionalUserInfo(result);
+    isNewUser = Boolean(additionalInfo?.isNewUser);
+  } catch {
+    // fallback
+  }
+
+  let wasWelcomed = false;
+  try {
+    wasWelcomed = typeof localStorage !== 'undefined' && localStorage.getItem('burraco_welcomed_' + user.uid) === 'true';
+  } catch {
+    // ignore
+  }
+  user.isFirstLogin = Boolean(isNewUser || !wasWelcomed);
+
+  if (db) {
+    try {
+      await syncUserProfiles(user, { includeLastLogin: true });
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('burraco_last_seen_sync', String(Date.now()));
+        sessionStorage.setItem('burraco_public_profile_synced_v1', user.uid);
+      }
+    } catch (firestoreErr) {
+      if (isPermissionOrQuotaError(firestoreErr)) {
+        handleFirestoreError(firestoreErr, OperationType.WRITE, `burraco_users/${user.uid}`);
+      }
+      console.warn('Avviso: impossibile salvare profilo su Firestore (offline):', firestoreErr);
+    }
+  }
+  return user;
+}
+
 /**
- * Accesso con Account Google (Popup)
+ * Risolve un eventuale accesso Google completato tramite signInWithRedirect (usato su iOS PWA standalone).
+ */
+export async function resolvePendingRedirectLogin() {
+  if (!auth) return null;
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result?.user) return null;
+    return await finalizeAuthResult(result);
+  } catch (err) {
+    console.warn('Errore risoluzione redirect Google:', err?.code || err?.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Accesso con Account Google:
+ * - Usa signInWithPopup come flusso primario (desktop, Android e iframe preview).
+ * - Su iOS PWA standalone (fuori da iframe) o se il popup viene bloccato da WebKit,
+ *   attiva il fallback affidabile signInWithRedirect.
  */
 export async function loginWithGoogle() {
   if (!auth) {
     throw new Error('Accesso con Google non disponibile: configurazione Firebase mancante in questo ambiente.');
   }
+
+  const inIframe = isInsideIframe();
+  if (isStandaloneIOS() && !inIframe) {
+    await signInWithRedirect(auth, googleProvider);
+    return null;
+  }
+
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    const user = result?.user;
-
-    let isNewUser = false;
-    try {
-      const additionalInfo = getAdditionalUserInfo(result);
-      isNewUser = Boolean(additionalInfo?.isNewUser);
-    } catch {
-      // fallback
-    }
-
-    const wasWelcomed = localStorage.getItem('burraco_welcomed_' + user?.uid) === 'true';
-    if (user) {
-      user.isFirstLogin = Boolean(isNewUser || !wasWelcomed);
-    }
-
-    // Registra/aggiorna profilo privato e profilo pubblico su Firestore
-    if (db && user) {
+    return await finalizeAuthResult(result);
+  } catch (err) {
+    if (!inIframe && REDIRECT_FALLBACK_CODES.has(err?.code)) {
       try {
-        await syncUserProfiles(user, { includeLastLogin: true });
-        if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.setItem('burraco_last_seen_sync', String(Date.now()));
-          sessionStorage.setItem('burraco_public_profile_synced_v1', user.uid);
-        }
-      } catch (firestoreErr) {
-        if (isPermissionOrQuotaError(firestoreErr)) {
-          handleFirestoreError(firestoreErr, OperationType.WRITE, `burraco_users/${user.uid}`);
-        }
-        console.warn('Avviso: impossibile salvare profilo su Firestore (offline):', firestoreErr);
+        await signInWithRedirect(auth, googleProvider);
+        return null;
+      } catch (redirectErr) {
+        console.error('Fallback redirect Google fallito:', redirectErr);
+        throw redirectErr;
       }
     }
-    return user;
-  } catch (err) {
     console.error('Errore login Google:', err);
     throw err;
   }
@@ -124,11 +198,21 @@ export function subscribeToAuth(onUserChange) {
     onUserChange(user);
     if (user && db) {
       const now = Date.now();
-      const lastSynced = Number(sessionStorage.getItem('burraco_last_seen_sync') || 0);
-      const hasPublicSync = sessionStorage.getItem('burraco_public_profile_synced_v1') === user.uid;
+      let lastSynced = 0;
+      let hasPublicSync = false;
+      try {
+        lastSynced = Number(sessionStorage.getItem('burraco_last_seen_sync') || 0);
+        hasPublicSync = sessionStorage.getItem('burraco_public_profile_synced_v1') === user.uid;
+      } catch {
+        // ignore
+      }
       if (!hasPublicSync || now - lastSynced > 15 * 60 * 1000) {
-        sessionStorage.setItem('burraco_last_seen_sync', String(now));
-        sessionStorage.setItem('burraco_public_profile_synced_v1', user.uid);
+        try {
+          sessionStorage.setItem('burraco_last_seen_sync', String(now));
+          sessionStorage.setItem('burraco_public_profile_synced_v1', user.uid);
+        } catch {
+          // ignore
+        }
         try {
           await syncUserProfiles(user, { includeLastLogin: false });
         } catch (err) {

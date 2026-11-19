@@ -54,7 +54,7 @@ export default function HistoryGameDetail({
                   if (typeof onClose === 'function') onClose();
                 }
               }}
-              className="min-h-[42px] px-3.5 rounded-xl club-btn-secondary text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              className="min-h-[42px] px-3.5 rounded-xl club-btn-secondary club-text-primary font-bold text-xs flex items-center gap-1.5 cursor-pointer"
               title="Assegna vittoria e archivia ufficialmente"
             >
               <Flag className="w-4 h-4 club-text-gold" />
@@ -113,7 +113,7 @@ export default function HistoryGameDetail({
             className={`p-3 rounded-xl border ${
               selectedGame.winner === 'team1'
                 ? 'club-card border-[var(--accent-gold)]'
-                : 'bg-black/20 border-[var(--border-subtle)]'
+                : 'club-row-bg border-[var(--border-subtle)]'
             }`}
           >
             <span className="text-xs font-bold club-text-gold block truncate">
@@ -122,7 +122,7 @@ export default function HistoryGameDetail({
             <span className="text-[11px] club-text-subtle block mb-1 truncate">
               {(selectedGame.team1?.players || []).join(' & ') || 'Giocatori'}
             </span>
-            <span className="font-mono-num text-xl sm:text-2xl font-bold text-white block">
+            <span className="font-mono-num text-xl sm:text-2xl font-bold club-text-primary block">
               {t1Total} <small className="text-xs font-normal club-text-subtle">pt</small>
             </span>
             {selectedGame.winner === 'team1' && (
@@ -136,20 +136,20 @@ export default function HistoryGameDetail({
             className={`p-3 rounded-xl border ${
               selectedGame.winner === 'team2'
                 ? 'club-card border-sky-400'
-                : 'bg-black/20 border-[var(--border-subtle)]'
+                : 'club-row-bg border-[var(--border-subtle)]'
             }`}
           >
-            <span className="text-xs font-bold text-sky-300 block truncate">
+            <span className="text-xs font-bold club-team2 block truncate">
               ♠ {selectedGame.team2?.name || 'Sq. 2'}
             </span>
             <span className="text-[11px] club-text-subtle block mb-1 truncate">
               {(selectedGame.team2?.players || []).join(' & ') || 'Giocatori'}
             </span>
-            <span className="font-mono-num text-xl sm:text-2xl font-bold text-white block">
+            <span className="font-mono-num text-xl sm:text-2xl font-bold club-text-primary block">
               {t2Total} <small className="text-xs font-normal club-text-subtle">pt</small>
             </span>
             {selectedGame.winner === 'team2' && (
-              <span className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-black text-sky-300 uppercase tracking-wider">
+              <span className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-black club-team2 uppercase tracking-wider">
                 <Trophy className="w-3 h-3" /> Vincitore
               </span>
             )}
@@ -160,20 +160,20 @@ export default function HistoryGameDetail({
               className={`p-3 rounded-xl border ${
                 selectedGame.winner === 'team3'
                   ? 'club-card border-rose-400'
-                  : 'bg-black/20 border-[var(--border-subtle)]'
+                  : 'club-row-bg border-[var(--border-subtle)]'
               }`}
             >
-              <span className="text-xs font-bold text-rose-300 block truncate">
+              <span className="text-xs font-bold club-team3 block truncate">
                 ♥ {selectedGame.team3?.name || 'G3'}
               </span>
               <span className="text-[11px] club-text-subtle block mb-1 truncate">
                 {(selectedGame.team3?.players || []).join(' & ') || 'Giocatore'}
               </span>
-              <span className="font-mono-num text-xl sm:text-2xl font-bold text-white block">
+              <span className="font-mono-num text-xl sm:text-2xl font-bold club-text-primary block">
                 {t3Total} <small className="text-xs font-normal club-text-subtle">pt</small>
               </span>
               {selectedGame.winner === 'team3' && (
-                <span className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-black text-rose-300 uppercase tracking-wider">
+                <span className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-black club-team3 uppercase tracking-wider">
                   <Trophy className="w-3 h-3" /> Vincitore
                 </span>
               )}
@@ -189,9 +189,9 @@ export default function HistoryGameDetail({
             <tr>
               <th className="p-2.5 text-center w-12">Mano</th>
               <th className="p-2.5 club-text-gold truncate max-w-[110px]">{selectedGame.team1?.name || 'Sq. 1'}</th>
-              <th className="p-2.5 text-sky-300 truncate max-w-[110px]">{selectedGame.team2?.name || 'Sq. 2'}</th>
+              <th className="p-2.5 club-team2 truncate max-w-[110px]">{selectedGame.team2?.name || 'Sq. 2'}</th>
               {isTrio && (
-                <th className="p-2.5 text-rose-300 truncate max-w-[100px]">{selectedGame.team3?.name || 'G3'}</th>
+                <th className="p-2.5 club-team3 truncate max-w-[100px]">{selectedGame.team3?.name || 'G3'}</th>
               )}
               {onEditRound && onResumeGame && (
                 <th className="p-2.5 text-center w-14">Mod.</th>
@@ -200,16 +200,16 @@ export default function HistoryGameDetail({
           </thead>
           <tbody className="divide-y divide-[var(--border-subtle)]">
             {(selectedGame.rounds || []).map(r => (
-              <tr key={r.roundNumber} className="hover:bg-white/5">
+              <tr key={r.roundNumber} className="club-hover-soft">
                 <td className="p-2.5 text-center font-mono-num font-bold club-text-muted">#{r.roundNumber}</td>
-                <td className="p-2.5 font-mono-num font-bold text-white">
+                <td className="p-2.5 font-mono-num font-bold club-text-primary">
                   {r.team1Score >= 0 ? `+${r.team1Score}` : r.team1Score}
                 </td>
-                <td className="p-2.5 font-mono-num font-bold text-white">
+                <td className="p-2.5 font-mono-num font-bold club-text-primary">
                   {r.team2Score >= 0 ? `+${r.team2Score}` : r.team2Score}
                 </td>
                 {isTrio && (
-                  <td className="p-2.5 font-mono-num font-bold text-white">
+                  <td className="p-2.5 font-mono-num font-bold club-text-primary">
                     {(r.team3Score || 0) >= 0 ? `+${r.team3Score || 0}` : r.team3Score}
                   </td>
                 )}

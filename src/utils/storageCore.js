@@ -276,10 +276,25 @@ export function archiveCurrentGame(game, userKey) {
   const history = getGamesHistory(userKey);
   const completedGame = {
     ...game,
-    completedAt: new Date().toISOString(),
+    completedAt: game.completedAt || new Date().toISOString(),
+    suspendedAt: null,
     isFinished: true,
   };
   const updated = [completedGame, ...history.filter(g => g.id !== game.id)];
+  safeSetItem(getHistoryKey(userKey), JSON.stringify(updated));
+  return updated;
+}
+
+export function suspendGameToHistory(game, userKey) {
+  if (!game) return getGamesHistory(userKey);
+  const history = getGamesHistory(userKey);
+  const suspendedGame = {
+    ...game,
+    isFinished: false,
+    tableClosed: true,
+    suspendedAt: new Date().toISOString(),
+  };
+  const updated = [suspendedGame, ...history.filter(g => g.id !== game.id)];
   safeSetItem(getHistoryKey(userKey), JSON.stringify(updated));
   return updated;
 }

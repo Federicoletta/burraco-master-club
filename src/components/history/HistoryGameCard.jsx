@@ -38,7 +38,7 @@ export default function HistoryGameCard({
       <div className="min-w-0 flex-1 space-y-1.5">
         {/* Titolo match & Stato */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <span className="text-sm font-bold text-white group-hover:text-[var(--accent-gold-bright)] transition-colors truncate">
+          <span className="text-sm font-bold club-text-primary group-hover:text-[var(--accent-gold-bright)] transition-colors truncate">
             {game.team1?.name || 'Squadra 1'} <span className="club-text-subtle font-normal">vs</span> {game.team2?.name || 'Squadra 2'}
             {isGameTrio && (
               <>
@@ -49,8 +49,8 @@ export default function HistoryGameCard({
           </span>
 
           {isActiveNow ? (
-            <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1.5 shrink-0">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-[11px] font-bold club-success-text flex items-center gap-1.5 shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>Sul Tabellone</span>
             </span>
           ) : isOngoing ? (
@@ -78,7 +78,7 @@ export default function HistoryGameCard({
           <span>•</span>
           <span>{game.rounds?.length || 0} mani</span>
           <span>•</span>
-          <span className="font-mono-num font-bold text-white">
+          <span className="font-mono-num font-bold club-text-primary">
             {isGameTrio ? `${t1Total} - ${t2Total} - ${t3Total} pt` : `${t1Total} - ${t2Total} pt`}
           </span>
         </div>

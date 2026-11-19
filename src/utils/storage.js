@@ -13,6 +13,7 @@ export {
   saveActiveGame,
   getGamesHistory,
   archiveCurrentGame,
+  suspendGameToHistory,
   deleteGameFromHistory,
 } from './storageCore';
 
